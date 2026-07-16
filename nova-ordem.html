@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Solicitação de nova ordem de serviço da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Nova Ordem de Serviço | Salvateck</title>
+
+  <!-- Fonte Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- CSS global e CSS da página -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/nova-ordem.css" />
+</head>
+
+<body data-page="nova-ordem" data-profile="cliente">
+
+  <main class="order-shell">
+
+    <!-- Cabeçalho -->
+    <header class="order-header">
+
+      <a href="principal.html" class="header-button" aria-label="Voltar para o painel de controle">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+      </a>
+
+      <div class="order-header__content">
+
+        <p class="order-header__eyebrow">
+          Atendimento Salvateck
+        </p>
+
+        <h1 class="order-header__title">
+          Nova Ordem de Serviço
+        </h1>
+
+      </div>
+
+      <div class="order-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- Apresentação -->
+    <section class="order-intro">
+
+      <div class="order-intro__copy">
+
+        <span class="order-intro__badge">
+          Solicitação rápida
+        </span>
+
+        <h2>
+          Conte para nós o que precisa
+        </h2>
+
+        <p>
+          Selecione as opções do serviço e escreva apenas o que for realmente necessário.
+        </p>
+
+      </div>
+
+      <div class="order-progress">
+
+        <div class="order-progress__top">
+
+          <span id="progress-label">
+            Etapa inicial
+          </span>
+
+          <strong id="progress-value">
+            0%
+          </strong>
+
+        </div>
+
+        <div class="order-progress__track" aria-hidden="true">
+          <span id="progress-bar"></span>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Alternância temporária para testes -->
+    <section class="profile-mode" aria-label="Visualização temporária do formulário">
+
+      <div>
+
+        <span class="profile-mode__label">
+          Preenchendo como
+        </span>
+
+        <small>
+          Esta opção será removida após o login.
+        </small>
+
+      </div>
+
+      <div class="profile-mode__buttons">
+
+        <button type="button" class="profile-mode__button is-active" data-form-profile="cliente" aria-pressed="true">
+          Cliente
+        </button>
+
+        <button type="button" class="profile-mode__button" data-form-profile="admin" aria-pressed="false">
+          Administrador
+        </button>
+
+      </div>
+
+    </section>
+
+    <form id="formNovaOrdem" class="order-form" novalidate>
+
+      <!-- Dados do cliente -->
+      <section class="form-card" data-section="cliente">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            1
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Identificação
+            </p>
+
+            <h2 class="form-card__title">
+              Dados do cliente
+            </h2>
+
+          </div>
+
+        </div>
+
+        <!-- Apenas para o administrador -->
+        <div class="admin-only admin-client-search" hidden>
+
+          <label class="form-label" for="buscarCliente">
+            Pesquisar cliente cadastrado
+          </label>
+
+          <div class="input-action">
+
+            <input id="buscarCliente" name="buscarCliente" type="search" class="input" placeholder="Digite o nome ou telefone" autocomplete="off" />
+
+            <button type="button" class="input-action__button" id="btnBuscarCliente">
+              Buscar
+            </button>
+
+          </div>
+
+          <button type="button" class="text-button" id="btnNovoClienteRapido">
+            + Cadastrar novo cliente
+          </button>
+
+        </div>
+
+        <div class="client-summary">
+
+          <div class="client-summary__avatar">
+            JS
+          </div>
+
+          <div class="client-summary__copy">
+
+            <strong id="resumoNomeCliente">
+              João da Silva
+            </strong>
+
+            <span id="resumoContatoCliente">
+              (11) 99999-9999
+            </span>
+
+            <span id="resumoEmailCliente">
+              joao@email.com
+            </span>
+
+          </div>
+
+          <button type="button" class="client-summary__edit" id="btnEditarDados">
+            Editar
+          </button>
+
+        </div>
+
+        <div class="form-grid form-grid--2">
+
+          <div class="form-group">
+
+            <label class="form-label" for="nomeCliente">
+              Nome
+            </label>
+
+            <input id="nomeCliente" name="nomeCliente" type="text" class="input" value="João da Silva" readonly required />
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="telefoneCliente">
+              Telefone
+            </label>
+
+            <input id="telefoneCliente" name="telefoneCliente" type="tel" class="input" value="(11) 99999-9999" readonly required />
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="emailCliente">
+            E-mail
+          </label>
+
+          <input id="emailCliente" name="emailCliente" type="email" class="input" value="joao@email.com" readonly />
+
+        </div>
+
+        <p class="form-help">
+          Futuramente esses dados serão preenchidos automaticamente com as informações do cadastro.
+        </p>
+
+      </section>
+
+      <!-- Endereço -->
+      <section class="form-card" data-section="endereco">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            2
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Local do atendimento
+            </p>
+
+            <h2 class="form-card__title">
+              Onde o serviço será realizado?
+            </h2>
+
+          </div>
+
+        </div>
+
+        <fieldset class="choice-group">
+
+          <legend class="sr-only">
+            Selecione o endereço do atendimento
+          </legend>
+
+          <label class="choice-card is-selected">
+
+            <input type="radio" name="tipoEndereco" value="cadastrado" checked />
+
+            <span class="choice-card__indicator"></span>
+
+            <span class="choice-card__copy">
+
+              <strong>
+                Usar endereço cadastrado
+              </strong>
+
+              <small>
+                Mais rápido e sem precisar digitar novamente.
+              </small>
+
+            </span>
+
+          </label>
+
+          <label class="choice-card">
+
+            <input type="radio" name="tipoEndereco" value="outro" />
+
+            <span class="choice-card__indicator"></span>
+
+            <span class="choice-card__copy">
+
+              <strong>
+                Atendimento em outro endereço
+              </strong>
+
+              <small>
+                Use esta opção para outro imóvel ou unidade.
+              </small>
+
+            </span>
+
+          </label>
+
+        </fieldset>
+
+        <div class="registered-address" id="registered-address">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+            <circle cx="12" cy="9" r="2.3"></circle>
+          </svg>
+
+          <div>
+
+            <strong>
+              Endereço principal
+            </strong>
+
+            <span>
+              Rua Exemplo, 150, Casa 2
+            </span>
+
+            <span>
+              Centro — São Paulo/SP
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="alternate-address" id="alternate-address" hidden>
+
+          <div class="form-grid form-grid--2">
+
+            <div class="form-group">
+
+              <label class="form-label" for="cepAtendimento">
+                CEP
+              </label>
+
+              <input id="cepAtendimento" name="cepAtendimento" type="text" class="input" placeholder="00000-000" inputmode="numeric" />
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label" for="numeroAtendimento">
+                Número
+              </label>
+
+              <input id="numeroAtendimento" name="numeroAtendimento" type="text" class="input" placeholder="Ex: 150" />
+
+            </div>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="ruaAtendimento">
+              Rua ou avenida
+            </label>
+
+            <input id="ruaAtendimento" name="ruaAtendimento" type="text" class="input" placeholder="Nome da rua" />
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="complementoAtendimento">
+              Complemento
+            </label>
+
+            <input id="complementoAtendimento" name="complementoAtendimento" type="text" class="input" placeholder="Apartamento, bloco, sala ou referência" />
+
+          </div>
+
+          <div class="form-grid form-grid--2">
+
+            <div class="form-group">
+
+              <label class="form-label" for="bairroAtendimento">
+                Bairro
+              </label>
+
+              <input id="bairroAtendimento" name="bairroAtendimento" type="text" class="input" placeholder="Ex: Centro" />
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label" for="cidadeAtendimento">
+                Cidade
+              </label>
+
+              <input id="cidadeAtendimento" name="cidadeAtendimento" type="text" class="input" placeholder="Ex: São Paulo" />
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Categorias -->
+      <section class="form-card" data-section="categorias">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            3
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Tipo de manutenção
+            </p>
+
+            <h2 class="form-card__title">
+              Selecione uma ou mais categorias
+            </h2>
+
+          </div>
+
+        </div>
+
+        <p class="form-card__description">
+          Marque todas as áreas relacionadas ao serviço que precisa.
+        </p>
+
+        <div class="category-grid" id="category-grid">
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="hidraulica" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11Z"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Hidráulica
+            </span>
+
+          </label>
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="eletrica" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m13 2-7 12h6l-1 8 7-12h-6l1-8Z"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Elétrica
+            </span>
+
+          </label>
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="pintura" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 4h11v5H4z"></path>
+                <path d="M15 6h3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-5"></path>
+                <path d="M13 9v12"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Pintura
+            </span>
+
+          </label>
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="alvenaria" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 5h8v5H3zM13 5h8v5h-8zM3 14h5v5H3zM10 14h11v5H10z"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Alvenaria
+            </span>
+
+          </label>
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="instalacoes" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m14 6 4-4 4 4-4 4"></path>
+                <path d="m16 8-9.5 9.5a2.1 2.1 0 0 1-3-3L13 5"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Instalações
+            </span>
+
+          </label>
+
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="manutencao-geral" />
+
+            <span class="category-card__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20h16"></path>
+                <path d="M7 20V9l5-5 5 5v11"></path>
+                <path d="M10 20v-6h4v6"></path>
+              </svg>
+            </span>
+
+            <span class="category-card__label">
+              Manutenção geral
+            </span>
+
+          </label>
+
+        </div>
+
+        <p class="validation-message" id="category-error" hidden>
+          Selecione pelo menos uma categoria.
+        </p>
+
+      </section>
+
+      <!-- Mini serviços -->
+      <section class="form-card" id="services-section" data-section="servicos">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            4
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Detalhes do serviço
+            </p>
+
+            <h2 class="form-card__title">
+              O que precisa ser feito?
+            </h2>
+
+          </div>
+
+        </div>
+
+        <p class="form-card__description">
+          Os serviços aparecerão conforme as categorias selecionadas.
+        </p>
+
+        <div class="service-placeholder" id="service-placeholder">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v18M3 12h18"></path>
+          </svg>
+
+          <strong>
+            Selecione uma categoria acima
+          </strong>
+
+          <span>
+            Depois você poderá marcar um ou mais serviços.
+          </span>
+
+        </div>
+
+        <div class="selected-services" id="selected-services"></div>
+
+        <p class="validation-message" id="service-error" hidden>
+          Selecione pelo menos um serviço.
+        </p>
+
+      </section>
+
+      <!-- Data -->
+      <section class="form-card" data-section="agenda">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            5
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Preferência de atendimento
+            </p>
+
+            <h2 class="form-card__title">
+              Quando podemos atender?
+            </h2>
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="dataPreferida">
+            Data de preferência
+          </label>
+
+          <input id="dataPreferida" name="dataPreferida" type="date" class="input" required />
+
+        </div>
+
+        <fieldset class="period-fieldset">
+
+          <legend class="form-label">
+            Melhor período
+          </legend>
+
+          <div class="period-grid">
+
+            <label class="period-option">
+
+              <input type="radio" name="periodo" value="manha" required />
+
+              <span>
+                Manhã
+              </span>
+
+            </label>
+
+            <label class="period-option">
+
+              <input type="radio" name="periodo" value="tarde" />
+
+              <span>
+                Tarde
+              </span>
+
+            </label>
+
+            <label class="period-option">
+
+              <input type="radio" name="periodo" value="noite" />
+
+              <span>
+                Noite
+              </span>
+
+            </label>
+
+            <label class="period-option">
+
+              <input type="radio" name="periodo" value="horario" />
+
+              <span>
+                Horário específico
+              </span>
+
+            </label>
+
+          </div>
+
+        </fieldset>
+
+        <div class="form-group" id="specific-time-group" hidden>
+
+          <label class="form-label" for="horarioPreferido">
+            Horário de preferência
+          </label>
+
+          <input id="horarioPreferido" name="horarioPreferido" type="time" class="input" />
+
+        </div>
+
+        <div class="information-box">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 11v6M12 7h.01"></path>
+          </svg>
+
+          <p>
+            A data escolhida é uma preferência. A equipe Salvateck analisará a solicitação e confirmará ou proporá uma nova data.
+          </p>
+
+        </div>
+
+      </section>
+
+      <!-- Fotos -->
+      <section class="form-card" data-section="fotos">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            6
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Imagens do problema
+            </p>
+
+            <h2 class="form-card__title">
+              Adicione fotos
+            </h2>
+
+          </div>
+
+        </div>
+
+        <p class="form-card__description">
+          As fotos ajudam a equipe a entender o serviço antes da visita.
+        </p>
+
+        <label class="photo-upload" for="fotosProblema">
+
+          <input id="fotosProblema" name="fotosProblema" type="file" accept="image/*" multiple />
+
+          <span class="photo-upload__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+              <circle cx="8.5" cy="10" r="1.5"></circle>
+              <path d="m5 18 4-4 3 3 2-2 5 5"></path>
+            </svg>
+
+          </span>
+
+          <span class="photo-upload__copy">
+
+            <strong>
+              Selecionar fotos
+            </strong>
+
+            <small>
+              Você poderá visualizar e remover antes de enviar.
+            </small>
+
+          </span>
+
+        </label>
+
+        <div class="photo-preview" id="photo-preview" aria-live="polite"></div>
+
+      </section>
+
+      <!-- Observações -->
+      <section class="form-card" data-section="observacoes">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            7
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Informações adicionais
+            </p>
+
+            <h2 class="form-card__title">
+              Observações
+            </h2>
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="observacaoCliente">
+            Algo que a equipe precisa saber?
+          </label>
+
+          <textarea id="observacaoCliente" name="observacaoCliente" class="input textarea" rows="5" maxlength="600" placeholder="Ex: O vazamento aumenta quando o registro é aberto."></textarea>
+
+          <div class="character-counter">
+
+            <span>
+              Campo opcional
+            </span>
+
+            <span id="observation-counter">
+              0/600
+            </span>
+
+          </div>
+
+        </div>
+
+        <!-- Apenas para o administrador -->
+        <div class="admin-only admin-notes" hidden>
+
+          <div class="form-group">
+
+            <label class="form-label" for="observacaoResposta">
+              Informação visível para o cliente
+            </label>
+
+            <textarea id="observacaoResposta" name="observacaoResposta" class="input textarea" rows="4" placeholder="Mensagem ou orientação que será mostrada ao cliente."></textarea>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="observacaoInterna">
+              Observação interna
+            </label>
+
+            <textarea id="observacaoInterna" name="observacaoInterna" class="input textarea" rows="4" placeholder="Ex: Levar sifão, vedação e chave específica."></textarea>
+
+            <p class="form-help">
+              Esta informação será visível apenas para os administradores.
+            </p>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="statusInicial">
+              Status inicial
+            </label>
+
+            <select id="statusInicial" name="statusInicial" class="input">
+              <option value="nova-solicitacao">
+                Nova solicitação
+              </option>
+
+              <option value="em-analise">
+                Em análise
+              </option>
+
+              <option value="agendado">
+                Agendado
+              </option>
+            </select>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Resumo -->
+      <section class="form-card summary-card" data-section="resumo">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            8
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Conferência
+            </p>
+
+            <h2 class="form-card__title">
+              Resumo da solicitação
+            </h2>
+
+          </div>
+
+        </div>
+
+        <div class="order-summary">
+
+          <div class="order-summary__item">
+
+            <span>
+              Cliente
+            </span>
+
+            <strong id="summary-client">
+              João da Silva
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Endereço
+            </span>
+
+            <strong id="summary-address">
+              Endereço cadastrado
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Categorias
+            </span>
+
+            <strong id="summary-categories">
+              Nenhuma selecionada
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Serviços
+            </span>
+
+            <strong id="summary-services">
+              Nenhum selecionado
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Preferência
+            </span>
+
+            <strong id="summary-schedule">
+              Data e período não informados
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Fotos
+            </span>
+
+            <strong id="summary-photos">
+              Nenhuma foto adicionada
+            </strong>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Botões -->
+      <div class="form-actions">
+
+        <a href="principal.html" class="button button--secondary">
+          Cancelar
+        </a>
+
+        <button id="btnSalvarOrdem" type="submit" class="button button--primary">
+          Enviar solicitação
+        </button>
+
+      </div>
+
+    </form>
+
+  </main>
+
+  <!-- Feedback -->
+  <div id="feedback-msg" class="feedback-message" role="status" aria-live="polite" hidden>
+    Solicitação enviada com sucesso!
+  </div>
+
+  <script src="js/nova-ordem.js"></script>
+</body>
+
+</html>

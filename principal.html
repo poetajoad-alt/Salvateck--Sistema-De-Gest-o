@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Painel de Controle | Salvateck</title>
+
+  <!-- Fonte Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./css/base.css?v=1.0.1" />
+  <link rel="stylesheet" href="./css/principal.css?v=1.0.1" />
+</head>
+
+<body>
+  <main class="app-shell">
+
+    <!-- Cabeçalho -->
+    <header class="topbar">
+
+      <button class="icon-button" type="button" id="back-button" aria-label="Voltar">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6" />
+        </svg>
+      </button>
+
+      <h1 class="topbar__title">
+        Painel de Controle
+      </h1>
+
+      <button class="logout-button" type="button" id="logout-button">
+        Sair
+      </button>
+
+    </header>
+
+    <!-- Informações do usuário/empresa -->
+    <section class="profile-section" aria-labelledby="profile-title">
+
+      <div class="profile-copy">
+
+        <p class="profile-kicker" id="profile-kicker">
+          Área do Cliente
+        </p>
+
+        <h2 class="profile-name" id="profile-title">
+          Bem-vindo à Salvateck
+        </h2>
+
+      </div>
+
+      <div class="profile-logo" aria-label="Logo da Salvateck">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" id="company-logo" />
+
+        <!-- Aparece somente caso a imagem ainda não exista -->
+        <span class="profile-logo__fallback" aria-hidden="true">
+          S
+        </span>
+
+      </div>
+
+    </section>
+
+    <!-- Alternância temporária de perfil -->
+    <section class="profile-switcher" aria-label="Visualização temporária de perfil">
+
+      <span class="profile-switcher__label">
+        Visualizar como
+      </span>
+
+      <div class="profile-switcher__buttons">
+
+        <button class="profile-switcher__button is-active" type="button" data-profile="cliente" aria-pressed="true">
+          Cliente
+        </button>
+
+        <button class="profile-switcher__button" type="button" data-profile="admin" aria-pressed="false">
+          Administrador
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- Pesquisa -->
+    <section class="search-section">
+
+      <label class="search-field" for="quick-search">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.2-3.2" />
+        </svg>
+
+        <input type="search" id="quick-search" placeholder="Pesquisar serviço ou solicitação" autocomplete="off" />
+
+      </label>
+
+    </section>
+
+    <!-- Acesso rápido -->
+    <section class="quick-access">
+
+      <div class="quick-access__heading">
+
+        <div>
+
+          <p class="quick-access__eyebrow" id="section-eyebrow">
+            Serviços e solicitações
+          </p>
+
+          <h2>
+            Acesso rápido
+          </h2>
+
+        </div>
+
+        <span class="quick-access__count" id="card-count">
+          5 atalhos
+        </span>
+
+      </div>
+
+      <!-- Os cards serão inseridos pelo JavaScript -->
+      <div class="quick-grid" id="quick-grid" aria-live="polite"></div>
+
+      <!-- Estado da pesquisa sem resultados -->
+      <div class="empty-state" id="empty-state" hidden>
+
+        <strong>
+          Nenhum atalho encontrado
+        </strong>
+
+        <span>
+          Tente pesquisar usando outro termo.
+        </span>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- JavaScript -->
+  <script src="js/principal.js"></script>
+</body>
+
+</html>
