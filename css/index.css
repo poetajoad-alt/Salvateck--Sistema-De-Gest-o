@@ -1,0 +1,348 @@
+/* =========================================
+   PÁGINA INICIAL SALVATECK
+   Referência de design: 402 x 874 px
+========================================= */
+
+body {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+
+  overflow-x: hidden;
+
+  font-family: "Montserrat", Arial, sans-serif;
+
+  background-color: #081f35;
+}
+
+.login-shell {
+  width: min(100%, 402px);
+  min-height: 100vh;
+
+  margin: 0 auto;
+}
+
+/* =========================================
+   ÁREA PRINCIPAL
+========================================= */
+
+.login-hero {
+  position: relative;
+
+  width: 100%;
+  min-height: max(100vh, 874px);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  padding: max(42px, env(safe-area-inset-top)) 28px
+    max(28px, env(safe-area-inset-bottom));
+
+  overflow: hidden;
+
+  color: #f9f9f9;
+
+  background:
+    radial-gradient(
+      circle at 20% 8%,
+      rgba(221, 154, 23, 0.34) 0%,
+      rgba(221, 154, 23, 0.08) 28%,
+      transparent 52%
+    ),
+    linear-gradient(165deg, #dd9a17 0%, #aa741a 19%, #0d3861 55%, #071f34 100%);
+}
+
+/* =========================================
+   ELEMENTOS DECORATIVOS
+========================================= */
+
+.login-decoration {
+  position: absolute;
+
+  pointer-events: none;
+
+  border: 1px solid rgba(221, 154, 23, 0.28);
+  border-radius: 50%;
+}
+
+.login-decoration--top {
+  top: -110px;
+  right: -110px;
+
+  width: 290px;
+  height: 290px;
+
+  box-shadow:
+    0 0 0 32px rgba(221, 154, 23, 0.04),
+    0 0 0 70px rgba(249, 249, 249, 0.025);
+}
+
+.login-decoration--bottom {
+  bottom: -145px;
+  left: -125px;
+
+  width: 320px;
+  height: 320px;
+
+  border-color: rgba(249, 249, 249, 0.1);
+
+  box-shadow:
+    0 0 0 38px rgba(249, 249, 249, 0.025),
+    0 0 0 82px rgba(221, 154, 23, 0.025);
+}
+
+/* =========================================
+   CONTEÚDO
+========================================= */
+
+.login-content {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 50px 0 36px;
+
+  text-align: center;
+}
+
+/* =========================================
+   LOGO
+========================================= */
+
+.login-logo {
+  width: 168px;
+  min-height: 168px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 22px;
+
+  background-color: #f9f9f9;
+
+  border: 3px solid rgba(221, 154, 23, 0.85);
+  border-radius: 38px;
+
+  box-shadow:
+    0 22px 50px rgba(4, 26, 47, 0.34),
+    0 0 0 9px rgba(249, 249, 249, 0.06);
+
+  transform: rotate(-2deg);
+}
+
+.login-logo img {
+  width: 100%;
+  max-height: 120px;
+
+  object-fit: contain;
+
+  transform: rotate(2deg);
+}
+
+/* =========================================
+   TEXTO
+========================================= */
+
+.login-copy {
+  margin-top: 46px;
+}
+
+.login-eyebrow {
+  display: inline-block;
+
+  margin-bottom: 13px;
+
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+
+  color: #dd9a17;
+}
+
+.login-copy h1 {
+  max-width: 340px;
+
+  margin: 0 auto;
+
+  font-size: clamp(1.85rem, 8vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.055em;
+
+  color: #f9f9f9;
+}
+
+.login-copy p {
+  max-width: 320px;
+
+  margin: 19px auto 0;
+
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.65;
+
+  color: rgba(249, 249, 249, 0.74);
+}
+
+/* =========================================
+   BOTÃO ENTRAR
+========================================= */
+
+.login-button {
+  width: 100%;
+  min-height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  margin-top: 48px;
+  padding: 0 24px;
+
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 1px solid rgba(249, 249, 249, 0.18);
+  border-radius: 999px;
+
+  box-shadow:
+    0 14px 28px rgba(4, 26, 47, 0.28),
+    inset 0 1px 0 rgba(249, 249, 249, 0.35);
+
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.login-button svg {
+  width: 22px;
+  height: 22px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  transition: transform 180ms ease;
+}
+
+.login-button:hover {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border-color: rgba(221, 154, 23, 0.65);
+
+  box-shadow:
+    0 16px 30px rgba(4, 26, 47, 0.36),
+    0 0 0 4px rgba(221, 154, 23, 0.1);
+}
+
+.login-button:hover svg {
+  transform: translateX(4px);
+}
+
+.login-button:active {
+  transform: scale(0.98);
+}
+
+/* =========================================
+   RODAPÉ
+========================================= */
+
+.login-footer {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  padding-top: 18px;
+
+  font-size: 0.61rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+
+  color: rgba(249, 249, 249, 0.5);
+}
+
+.login-footer__divider {
+  width: 4px;
+  height: 4px;
+
+  background-color: #dd9a17;
+
+  border-radius: 50%;
+}
+
+/* =========================================
+   CELULARES MENORES
+========================================= */
+
+@media (max-width: 360px) {
+  .login-hero {
+    padding-inline: 20px;
+  }
+
+  .login-logo {
+    width: 148px;
+    min-height: 148px;
+
+    padding: 19px;
+  }
+
+  .login-copy {
+    margin-top: 38px;
+  }
+
+  .login-copy h1 {
+    font-size: 1.72rem;
+  }
+
+  .login-button {
+    margin-top: 38px;
+  }
+}
+
+/* =========================================
+   TELAS MAIORES
+========================================= */
+
+@media (min-width: 403px) {
+  .login-shell {
+    box-shadow: 0 0 55px rgba(4, 26, 47, 0.42);
+  }
+}
+
+/* =========================================
+   REDUÇÃO DE MOVIMENTO
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

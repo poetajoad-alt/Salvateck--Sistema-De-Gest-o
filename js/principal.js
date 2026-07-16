@@ -380,10 +380,6 @@ backButton.addEventListener("click", () => {
    BOTÃO SAIR
 ================================ */
 
-logoutButton.addEventListener("click", () => {
-  alert("O logout será conectado quando criarmos a tela de login.");
-});
-
 /* ==============================
    VERIFICAÇÃO DA LOGO
 ================================ */
