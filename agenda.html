@@ -61,7 +61,7 @@
     </header>
 
     <!-- =====================================
-         APRESENTAÇÃO
+         APRESENTAÇÃO COMPACTA
     ====================================== -->
 
     <section class="agenda-intro">
@@ -73,11 +73,11 @@
         </span>
 
         <h2>
-          Organize os atendimentos da equipe
+          Atendimentos da equipe
         </h2>
 
         <p>
-          Consulte horários confirmados, acompanhe a disponibilidade e acesse rapidamente cada ordem de serviço.
+          Consulte a programação, selecione uma data e acesse somente os serviços necessários.
         </p>
 
       </div>
@@ -98,116 +98,63 @@
     </section>
 
     <!-- =====================================
-         RESUMO DA AGENDA
+         RESUMO COMPACTO
     ====================================== -->
 
-    <section class="agenda-summary" aria-label="Resumo da agenda">
+    <section class="agenda-overview" aria-label="Resumo da agenda">
 
-      <article class="summary-card">
+      <div class="overview-item">
 
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-
-            <path d="M7 3v4M17 3v4M3 10h18"></path>
-          </svg>
-
+        <span>
+          Hoje
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-today">
+          0
+        </strong>
 
-          <span>
-            Hoje
-          </span>
+      </div>
 
-          <strong id="summary-today">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 5h16v14H4z"></path>
-            <path d="M8 9h8"></path>
-            <path d="M8 13h5"></path>
-          </svg>
-
+        <span>
+          Esta semana
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-week">
+          0
+        </strong>
 
-          <span>
-            Esta semana
-          </span>
+      </div>
 
-          <strong id="summary-week">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-
+        <span>
+          A confirmar
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-pending">
+          0
+        </strong>
 
-          <span>
-            A confirmar
-          </span>
+      </div>
 
-          <strong id="summary-pending">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12l4 4L19 6"></path>
-          </svg>
-
+        <span>
+          Confirmados
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-confirmed">
+          0
+        </strong>
 
-          <span>
-            Confirmados
-          </span>
-
-          <strong id="summary-confirmed">
-            0
-          </strong>
-
-        </div>
-
-      </article>
+      </div>
 
     </section>
 
     <!-- =====================================
-         NAVEGAÇÃO DE DATA E VISUALIZAÇÃO
+         NAVEGAÇÃO DA AGENDA
     ====================================== -->
 
     <section class="agenda-navigation">
@@ -225,7 +172,7 @@
         <div class="agenda-navigation__current">
 
           <span id="current-period-eyebrow">
-            Semana atual
+            Mês atual
           </span>
 
           <strong id="current-period-label">
@@ -252,12 +199,16 @@
 
         <div class="view-mode" role="group" aria-label="Modo de visualização">
 
-          <button type="button" class="view-mode__button" data-view-mode="dia" aria-pressed="false">
-            Dia
+          <button type="button" class="view-mode__button is-active" data-view-mode="mes" aria-pressed="true">
+            Mês
           </button>
 
-          <button type="button" class="view-mode__button is-active" data-view-mode="semana" aria-pressed="true">
+          <button type="button" class="view-mode__button" data-view-mode="semana" aria-pressed="false">
             Semana
+          </button>
+
+          <button type="button" class="view-mode__button" data-view-mode="dia" aria-pressed="false">
+            Dia
           </button>
 
           <button type="button" class="view-mode__button" data-view-mode="lista" aria-pressed="false">
@@ -306,6 +257,12 @@
       </button>
 
     </section>
+
+    <!-- =====================================
+         FILTROS ATIVOS
+    ====================================== -->
+
+    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
 
     <!-- =====================================
          PAINEL DE FILTROS
@@ -502,7 +459,7 @@
         </button>
 
         <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
-          Aplicar
+          Aplicar filtros
         </button>
 
       </div>
@@ -510,7 +467,7 @@
     </section>
 
     <!-- =====================================
-         CONTEÚDO DA AGENDA
+         CONTEÚDO PRINCIPAL
     ====================================== -->
 
     <section class="agenda-content">
@@ -520,11 +477,11 @@
         <div>
 
           <p id="agenda-content-eyebrow">
-            Programação semanal
+            Visão mensal
           </p>
 
           <h2 id="agenda-content-title">
-            Atendimentos
+            Calendário de atendimentos
           </h2>
 
         </div>
@@ -535,9 +492,117 @@
 
       </div>
 
-      <div class="agenda-board" id="agenda-board" aria-live="polite"></div>
+      <!-- =====================================
+           VISÃO MENSAL
+      ====================================== -->
 
-      <!-- Estado vazio -->
+      <section class="calendar-view" id="calendar-view">
+
+        <div class="calendar-weekdays" aria-hidden="true">
+
+          <span>Seg</span>
+          <span>Ter</span>
+          <span>Qua</span>
+          <span>Qui</span>
+          <span>Sex</span>
+          <span>Sáb</span>
+          <span>Dom</span>
+
+        </div>
+
+        <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="Calendário mensal de atendimentos" aria-live="polite"></div>
+
+        <!-- Orientação antes de selecionar uma data -->
+
+        <div class="day-selection-placeholder" id="day-selection-placeholder">
+
+          <span class="day-selection-placeholder__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+              <path d="M7 3v4M17 3v4M3 10h18"></path>
+              <path d="M8 14h3"></path>
+              <path d="M8 17h6"></path>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <strong>
+              Selecione uma data
+            </strong>
+
+            <p>
+              Toque em um dia do calendário para visualizar os atendimentos.
+            </p>
+
+          </div>
+
+        </div>
+
+        <!-- Serviços do dia selecionado -->
+
+        <section class="selected-day-panel" id="selected-day-panel" aria-labelledby="selected-day-label" hidden>
+
+          <header class="selected-day-panel__header">
+
+            <div>
+
+              <p>
+                Programação selecionada
+              </p>
+
+              <h3 id="selected-day-label">
+                Atendimentos do dia
+              </h3>
+
+            </div>
+
+            <div class="selected-day-panel__actions">
+
+              <span id="selected-day-count">
+                0 itens
+              </span>
+
+              <button type="button" id="close-selected-day-button" aria-label="Fechar atendimentos do dia">
+                ×
+              </button>
+
+            </div>
+
+          </header>
+
+          <div class="selected-day-appointments" id="selected-day-appointments"></div>
+
+          <div class="selected-day-empty" id="selected-day-empty" hidden>
+
+            <strong>
+              Nenhum atendimento nesta data
+            </strong>
+
+            <p>
+              A data está livre ou os atendimentos foram ocultados pelos filtros.
+            </p>
+
+            <a href="nova-ordem.html?perfil=admin">
+              Criar ordem nesta data
+            </a>
+
+          </div>
+
+        </section>
+
+      </section>
+
+      <!-- =====================================
+           VISÕES SEMANA, DIA E LISTA
+      ====================================== -->
+
+      <div class="agenda-board" id="agenda-board" aria-live="polite" hidden></div>
+
+      <!-- Estado vazio geral -->
 
       <div class="empty-state" id="empty-state" hidden>
 
@@ -570,7 +635,26 @@
   </main>
 
   <!-- =====================================
-       TEMPLATE DO DIA
+       TEMPLATE DO DIA DO CALENDÁRIO
+  ====================================== -->
+
+  <template id="calendar-day-template">
+
+    <button type="button" class="calendar-day" role="gridcell" aria-pressed="false">
+
+      <span class="calendar-day__number"></span>
+
+      <span class="calendar-day__markers" aria-hidden="true"></span>
+
+      <span class="calendar-day__count"></span>
+
+    </button>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DA COLUNA DO DIA
+       USADO EM SEMANA E DIA
   ====================================== -->
 
   <template id="agenda-day-template">
@@ -604,34 +688,52 @@
   </template>
 
   <!-- =====================================
-       TEMPLATE DO ATENDIMENTO
+       TEMPLATE DO ATENDIMENTO COMPACTO
   ====================================== -->
 
   <template id="appointment-card-template">
 
     <article class="appointment-card">
 
-      <div class="appointment-card__time">
+      <div class="appointment-card__summary">
 
-        <strong></strong>
+        <div class="appointment-card__time">
 
-        <span></span>
+          <strong></strong>
 
-      </div>
-
-      <div class="appointment-card__content">
-
-        <div class="appointment-card__top">
-
-          <span class="appointment-card__code"></span>
-
-          <span class="appointment-card__status"></span>
+          <span></span>
 
         </div>
 
-        <span class="appointment-card__client"></span>
+        <div class="appointment-card__content">
 
-        <h3 class="appointment-card__title"></h3>
+          <div class="appointment-card__top">
+
+            <span class="appointment-card__code"></span>
+
+            <span class="appointment-card__status"></span>
+
+          </div>
+
+          <span class="appointment-card__client"></span>
+
+          <h3 class="appointment-card__title"></h3>
+
+        </div>
+
+        <button type="button" class="appointment-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do atendimento">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <!-- Informações inicialmente escondidas -->
+
+      <div class="appointment-card__details" hidden>
 
         <p class="appointment-card__services"></p>
 

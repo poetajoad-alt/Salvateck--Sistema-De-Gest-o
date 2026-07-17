@@ -2135,7 +2135,829 @@ body.modal-open {
     border-radius: 26px 26px 18px 18px;
   }
 }
+/* =========================================
+   INDICADOR DE CONDOMÍNIOS NO CARD
+========================================= */
 
+.customer-card__condominiums {
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-top: 13px;
+  padding: 10px 12px;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.13);
+
+  border: 1px solid rgba(221, 154, 23, 0.28);
+  border-radius: 13px;
+}
+
+.customer-card__condominiums svg {
+  flex: 0 0 auto;
+
+  width: 19px;
+  height: 19px;
+
+  fill: none;
+  stroke: #a16d12;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.customer-card__condominiums > span {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.customer-card__condominiums-count {
+  font-size: 0.72rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.customer-card__condominiums-label {
+  font-size: 0.64rem;
+  font-weight: 700;
+
+  color: #626a71;
+}
+
+/* =========================================
+   SEÇÃO DE CONDOMÍNIOS NO CADASTRO
+========================================= */
+
+.customer-condominiums-section {
+  margin-top: 22px;
+  padding-top: 21px;
+
+  border-top: 1px solid rgba(43, 47, 51, 0.1);
+}
+
+.customer-condominiums-section__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.customer-condominiums-section__heading > div:first-child {
+  min-width: 0;
+}
+
+.customer-condominiums-section__heading p {
+  margin: 0 0 4px;
+
+  font-size: 0.63rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+
+  color: #a16d12;
+}
+
+.customer-condominiums-section__heading h3 {
+  margin: 0;
+
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.3;
+
+  color: #0d3861;
+}
+
+.customer-condominiums-section__controls {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-condominiums-section__count {
+  padding: 7px 10px;
+
+  font-size: 0.64rem;
+  font-weight: 800;
+  white-space: nowrap;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.16);
+
+  border-radius: var(--radius-pill);
+}
+
+.customer-condominiums-section__add {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 14px;
+
+  cursor: pointer;
+
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-align: center;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+  border-radius: var(--radius-pill);
+}
+
+.customer-condominiums-section__description {
+  max-width: 560px;
+
+  margin: 8px 0 0;
+
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.55;
+
+  color: #70787f;
+}
+
+/* =========================================
+   PAINEL PARA VINCULAR CONDOMÍNIO
+========================================= */
+
+.customer-condominium-link-panel {
+  margin-top: 15px;
+  padding: 15px;
+
+  background-color: #eef1f3;
+
+  border: 1px solid rgba(13, 56, 97, 0.09);
+  border-radius: 16px;
+}
+
+.customer-condominium-link-panel__options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+
+  margin-top: 15px;
+}
+
+.customer-condominium-check {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  cursor: pointer;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  color: #4f575e;
+}
+
+.customer-condominium-check input {
+  width: 19px;
+  height: 19px;
+
+  accent-color: #dd9a17;
+}
+
+.customer-condominium-link-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+
+  margin-top: 17px;
+}
+
+.customer-condominium-link-button {
+  min-height: 43px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 14px;
+
+  cursor: pointer;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+
+  border-radius: var(--radius-pill);
+}
+
+.customer-condominium-link-button--secondary {
+  color: #0d3861;
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.13);
+}
+
+.customer-condominium-link-button--primary {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+}
+
+/* =========================================
+   LISTA DE CONDOMÍNIOS NO CADASTRO
+========================================= */
+
+.customer-condominiums-list {
+  display: grid;
+  gap: 10px;
+
+  margin-top: 14px;
+}
+
+.customer-condominium-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+
+  padding: 11px;
+
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.09);
+  border-radius: 15px;
+}
+
+.customer-condominium-card__icon {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border-radius: 13px;
+}
+
+.customer-condominium-card__icon svg {
+  width: 22px;
+  height: 22px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.customer-condominium-card__content {
+  min-width: 0;
+}
+
+.customer-condominium-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.customer-condominium-card__name {
+  min-width: 0;
+
+  overflow: hidden;
+
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #0d3861;
+}
+
+.customer-condominium-card__role {
+  flex: 0 0 auto;
+
+  padding: 5px 8px;
+
+  font-size: 0.58rem;
+  font-weight: 800;
+  white-space: nowrap;
+
+  color: #775006;
+  background-color: #fff0c9;
+
+  border-radius: var(--radius-pill);
+}
+
+.customer-condominium-card__address {
+  display: block;
+
+  margin-top: 5px;
+
+  overflow: hidden;
+
+  font-size: 0.63rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #70787f;
+}
+
+.customer-condominium-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  margin-top: 7px;
+}
+
+.customer-condominium-card__badge {
+  padding: 4px 7px;
+
+  font-size: 0.56rem;
+  font-weight: 700;
+
+  color: #315e48;
+  background-color: #dcefe4;
+
+  border-radius: var(--radius-pill);
+}
+
+.customer-condominium-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.customer-condominium-card__open,
+.customer-condominium-card__remove {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  border-radius: 50%;
+}
+
+.customer-condominium-card__open {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.36);
+}
+
+.customer-condominium-card__open svg {
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.customer-condominium-card__remove {
+  font-size: 1.15rem;
+  line-height: 1;
+
+  color: #8b2d2d;
+  background-color: #f5dddd;
+
+  border: 1px solid rgba(139, 45, 45, 0.12);
+}
+
+.customer-condominiums-empty {
+  margin-top: 14px;
+  padding: 23px 17px;
+
+  text-align: center;
+
+  background-color: #eef1f3;
+
+  border: 1px dashed rgba(13, 56, 97, 0.18);
+  border-radius: 15px;
+}
+
+.customer-condominiums-empty strong {
+  display: block;
+
+  font-size: 0.76rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.customer-condominiums-empty p {
+  max-width: 450px;
+
+  margin: 6px auto 0;
+
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  color: #70787f;
+}
+
+/* =========================================
+   CONDOMÍNIOS NOS DETALHES DO CLIENTE
+========================================= */
+
+.customer-details__condominiums {
+  padding: 15px;
+
+  background-color: rgba(13, 56, 97, 0.035);
+
+  border: 1px solid rgba(13, 56, 97, 0.08);
+  border-radius: 16px;
+}
+
+.customer-details__condominiums-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.customer-details__condominiums-heading > div {
+  min-width: 0;
+}
+
+.customer-details__condominiums-heading span {
+  display: block;
+
+  font-size: 0.59rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  color: #a16d12;
+}
+
+.customer-details__condominiums-heading h3 {
+  margin: 5px 0 0;
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.customer-details__condominiums-count {
+  flex: 0 0 auto;
+
+  padding: 7px 9px;
+
+  font-size: 0.62rem !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  white-space: nowrap;
+
+  color: #0d3861 !important;
+  background-color: rgba(221, 154, 23, 0.17);
+
+  border-radius: var(--radius-pill);
+}
+
+.customer-details__condominiums-list {
+  display: grid;
+  gap: 9px;
+
+  margin-top: 13px;
+}
+
+.details-condominium-card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px;
+
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.09);
+  border-radius: 14px;
+}
+
+.details-condominium-card__icon {
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border-radius: 12px;
+}
+
+.details-condominium-card__icon svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.details-condominium-card__content {
+  min-width: 0;
+}
+
+.details-condominium-card__name,
+.details-condominium-card__role,
+.details-condominium-card__address {
+  display: block;
+}
+
+.details-condominium-card__name {
+  overflow: hidden;
+
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #0d3861;
+}
+
+.details-condominium-card__role {
+  margin-top: 4px;
+
+  font-size: 0.61rem;
+  font-weight: 700;
+
+  color: #a16d12;
+}
+
+.details-condominium-card__address {
+  margin-top: 4px;
+
+  overflow: hidden;
+
+  font-size: 0.61rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #70787f;
+}
+
+.details-condominium-card__open {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.36);
+  border-radius: 50%;
+}
+
+.details-condominium-card__open svg {
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.customer-details__condominiums-empty {
+  margin-top: 13px;
+  padding: 20px 15px;
+
+  text-align: center;
+
+  background-color: #ffffff;
+
+  border: 1px dashed rgba(13, 56, 97, 0.18);
+  border-radius: 14px;
+}
+
+.customer-details__condominiums-empty strong {
+  display: block;
+
+  font-size: 0.74rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.customer-details__condominiums-empty p {
+  margin: 6px 0 0;
+
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  color: #70787f;
+}
+
+.customer-details__link-condominium {
+  width: 100%;
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 12px;
+  padding: 0 14px;
+
+  cursor: pointer;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border: 1px solid rgba(221, 154, 23, 0.38);
+  border-radius: var(--radius-pill);
+}
+
+/* =========================================
+   FOCO DOS NOVOS COMPONENTES
+========================================= */
+
+.customer-condominiums-section__add:focus-visible,
+.customer-condominium-link-button:focus-visible,
+.customer-condominium-card__open:focus-visible,
+.customer-condominium-card__remove:focus-visible,
+.details-condominium-card__open:focus-visible,
+.customer-details__link-condominium:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 3px;
+}
+
+/* =========================================
+   HOVER DOS NOVOS COMPONENTES
+========================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .customer-condominiums-section__add,
+  .customer-condominium-link-button,
+  .customer-condominium-card,
+  .customer-condominium-card__open,
+  .customer-condominium-card__remove,
+  .details-condominium-card,
+  .details-condominium-card__open,
+  .customer-details__link-condominium {
+    transition:
+      transform 180ms ease,
+      color 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .customer-condominiums-section__add:hover,
+  .customer-condominium-link-button--primary:hover,
+  .customer-condominium-card__open:hover,
+  .details-condominium-card__open:hover {
+    color: #0d3861;
+    background-color: #dd9a17;
+  }
+
+  .customer-condominium-link-button--secondary:hover {
+    background-color: #dfe4e7;
+  }
+
+  .customer-condominium-card:hover,
+  .details-condominium-card:hover {
+    border-color: rgba(221, 154, 23, 0.43);
+
+    box-shadow: 0 9px 20px rgba(13, 56, 97, 0.1);
+  }
+
+  .customer-condominium-card__remove:hover {
+    color: #ffffff;
+    background-color: #a92f2f;
+  }
+
+  .customer-details__link-condominium:hover {
+    color: #dd9a17;
+    background-color: #0d3861;
+  }
+}
+
+/* =========================================
+   RESPONSIVIDADE DOS VÍNCULOS
+========================================= */
+
+@media (max-width: 620px) {
+  .customer-condominiums-section__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-condominiums-section__controls {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .customer-condominiums-section__add {
+    flex: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .customer-condominium-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .customer-condominium-card__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .customer-condominium-card__actions {
+    grid-column: 2;
+
+    justify-content: flex-end;
+  }
+
+  .customer-condominium-card__top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-condominium-card__address {
+    white-space: normal;
+  }
+
+  .customer-details__condominiums-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-condominium-link-panel__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .customer-condominiums-section__controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customer-condominiums-section__count {
+    align-self: flex-start;
+  }
+
+  .details-condominium-card {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .details-condominium-card__open {
+    grid-column: 2;
+
+    justify-self: end;
+  }
+
+  .details-condominium-card__address {
+    white-space: normal;
+  }
+}
 /* =========================================
    REDUÇÃO DE MOVIMENTO
 ========================================= */

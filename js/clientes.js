@@ -3,6 +3,17 @@
 ========================================= */
 
 const CUSTOMERS_STORAGE_KEY = "salvateckClientesTemporarios";
+const CONDOMINIUMS_STORAGE_KEY = "salvateckCondominiosTemporarios";
+
+const LEGACY_CUSTOMER_ID_MAP = {
+  "cliente-joao": "CLI-0001",
+  "cliente-maria": "CLI-0002",
+  "cliente-carlos": "CLI-0003",
+  "cliente-ana": "CLI-0004",
+  "cliente-roberto": "CLI-0005",
+  "cliente-patricia": "CLI-0006",
+  "cliente-fernanda": "CLI-0007",
+};
 
 /* =========================================
    FUNÇÕES DE DATA
@@ -339,6 +350,8 @@ let clientes = clientesIniciais.map((cliente) => ({
   ...cliente,
 }));
 
+let condominios = [];
+
 /* =========================================
    CONFIGURAÇÕES DOS CAMPOS
 ========================================= */
@@ -371,6 +384,24 @@ const contatoConfig = {
   telefone: "Ligação telefônica",
 
   email: "E-mail",
+};
+
+const papelCondominioConfig = {
+  sindico: "Síndico",
+
+  subsindico: "Subsindico",
+
+  proprietario: "Proprietário",
+
+  gerente: "Gerente",
+
+  administradora: "Administradora",
+
+  zelador: "Zelador",
+
+  financeiro: "Responsável financeiro",
+
+  outro: "Outro",
 };
 
 const abasConfig = {
@@ -467,7 +498,6 @@ const emptyState = document.getElementById("empty-state");
 const customerCardTemplate = document.getElementById("customer-card-template");
 
 const newCustomerButton = document.getElementById("new-customer-button");
-
 /* =========================================
    MODAL DE CADASTRO
 ========================================= */
@@ -531,6 +561,58 @@ const saveCustomerLabel = saveCustomerButton.querySelector(".button-label");
 const saveCustomerLoading = saveCustomerButton.querySelector(".button-loading");
 
 /* =========================================
+   VÍNCULOS COM CONDOMÍNIOS
+========================================= */
+
+const customerCondominiumsCount = document.getElementById(
+  "customer-condominiums-count",
+);
+
+const openCustomerCondominiumLinkButton = document.getElementById(
+  "open-customer-condominium-link-button",
+);
+
+const customerCondominiumLinkPanel = document.getElementById(
+  "customer-condominium-link-panel",
+);
+
+const customerCondominiumSelect = document.getElementById(
+  "customer-condominium-select",
+);
+
+const customerCondominiumRole = document.getElementById(
+  "customer-condominium-role",
+);
+
+const customerCondominiumPrimary = document.getElementById(
+  "customer-condominium-primary",
+);
+
+const customerCondominiumFinancial = document.getElementById(
+  "customer-condominium-financial",
+);
+
+const cancelCustomerCondominiumLinkButton = document.getElementById(
+  "cancel-customer-condominium-link-button",
+);
+
+const linkCustomerCondominiumButton = document.getElementById(
+  "link-customer-condominium-button",
+);
+
+const customerCondominiumsList = document.getElementById(
+  "customer-condominiums-list",
+);
+
+const customerCondominiumsEmpty = document.getElementById(
+  "customer-condominiums-empty",
+);
+
+const customerCondominiumTemplate = document.getElementById(
+  "customer-condominium-template",
+);
+
+/* =========================================
    MODAL DE DETALHES
 ========================================= */
 
@@ -572,6 +654,26 @@ const detailsNewOrderButton = document.getElementById(
   "details-new-order-button",
 );
 
+const detailsCondominiumsCount = document.getElementById(
+  "details-condominiums-count",
+);
+
+const detailsCondominiumsList = document.getElementById(
+  "details-condominiums-list",
+);
+
+const detailsCondominiumsEmpty = document.getElementById(
+  "details-condominiums-empty",
+);
+
+const detailsLinkCondominiumButton = document.getElementById(
+  "details-link-condominium-button",
+);
+
+const detailsCondominiumTemplate = document.getElementById(
+  "details-condominium-template",
+);
+
 const feedbackMessage = document.getElementById("feedback-message");
 
 /* =========================================
@@ -594,11 +696,17 @@ let clienteEmEdicaoId = null;
 
 let clienteNosDetalhesId = null;
 
+let vinculosDoClienteRascunho = [];
+
 let feedbackTimeout;
 
 /* =========================================
    FUNÇÕES AUXILIARES
 ========================================= */
+
+function clonarDados(valor) {
+  return JSON.parse(JSON.stringify(valor));
+}
 
 function somenteNumeros(valor) {
   return String(valor || "").replace(/\D/g, "");
@@ -632,6 +740,10 @@ function criarDataLocal(valor) {
 
 function formatarQuantidadeClientes(quantidade) {
   return quantidade === 1 ? "1 cliente" : `${quantidade} clientes`;
+}
+
+function formatarQuantidadeVinculos(quantidade) {
+  return quantidade === 1 ? "1 vínculo" : `${quantidade} vínculos`;
 }
 
 function formatarData(valor) {
@@ -710,6 +822,14 @@ function obterClientePorId(clienteId) {
   return clientes.find((cliente) => cliente.id === clienteId);
 }
 
+function obterCondominioPorId(condominioId) {
+  return condominios.find((condominio) => condominio.id === condominioId);
+}
+
+function normalizarIdClienteVinculado(clienteId) {
+  return LEGACY_CUSTOMER_ID_MAP[clienteId] || clienteId;
+}
+
 function mostrarFeedback(mensagem) {
   window.clearTimeout(feedbackTimeout);
 
@@ -736,8 +856,36 @@ function obterEnderecoCompleto(cliente) {
   return `${enderecoPrincipal}${complemento}${regiao ? ` — ${regiao}` : ""}`;
 }
 
+function obterEnderecoDoCondominio(condominio) {
+  const endereco = condominio?.endereco || {};
+
+  const primeiraLinha = [endereco.logradouro, endereco.numero]
+    .filter(Boolean)
+    .join(", ");
+
+  const segundaLinha = [endereco.complemento, endereco.bairro]
+    .filter(Boolean)
+    .join(" — ");
+
+  const terceiraLinha = [endereco.cidade, endereco.estado]
+    .filter(Boolean)
+    .join("/");
+
+  return (
+    [primeiraLinha, segundaLinha, terceiraLinha].filter(Boolean).join(" — ") ||
+    "Endereço não informado"
+  );
+}
+
+function abrirCadastroDoCondominio(condominioId) {
+  const parametros = new URLSearchParams({
+    condominio: condominioId,
+  });
+
+  window.location.href = `condominios.html?${parametros.toString()}`;
+}
 /* =========================================
-   ARMAZENAMENTO LOCAL TEMPORÁRIO
+   ARMAZENAMENTO LOCAL
 ========================================= */
 
 function carregarClientesSalvos() {
@@ -770,6 +918,416 @@ function salvarClientesLocalmente() {
   }
 }
 
+function carregarCondominiosSalvos() {
+  try {
+    const dadosSalvos = JSON.parse(
+      localStorage.getItem(CONDOMINIUMS_STORAGE_KEY) || "null",
+    );
+
+    condominios = Array.isArray(dadosSalvos) ? dadosSalvos : [];
+  } catch (error) {
+    console.warn(
+      "Não foi possível carregar os condomínios temporários.",
+      error,
+    );
+
+    condominios = [];
+  }
+}
+
+function salvarCondominiosLocalmente() {
+  try {
+    localStorage.setItem(CONDOMINIUMS_STORAGE_KEY, JSON.stringify(condominios));
+
+    return true;
+  } catch (error) {
+    console.warn("Não foi possível salvar os vínculos dos condomínios.", error);
+
+    return false;
+  }
+}
+
+function migrarIdsLegadosDosCondominios() {
+  let alterou = false;
+
+  condominios.forEach((condominio) => {
+    const vinculos = Array.isArray(condominio.clientesVinculados)
+      ? condominio.clientesVinculados
+      : [];
+
+    const normalizados = vinculos.map((vinculo) => {
+      const novoId = normalizarIdClienteVinculado(vinculo.clienteId);
+
+      if (novoId !== vinculo.clienteId) {
+        alterou = true;
+      }
+
+      return {
+        ...vinculo,
+        clienteId: novoId,
+      };
+    });
+
+    const chaves = new Set();
+
+    condominio.clientesVinculados = normalizados.filter((vinculo) => {
+      const chave = `${vinculo.clienteId}::` + `${vinculo.papel || "outro"}`;
+
+      if (chaves.has(chave)) {
+        alterou = true;
+
+        return false;
+      }
+
+      chaves.add(chave);
+
+      return true;
+    });
+  });
+
+  if (alterou) {
+    salvarCondominiosLocalmente();
+  }
+}
+
+/* =========================================
+   RELAÇÃO CLIENTE ↔ CONDOMÍNIO
+========================================= */
+
+function obterVinculosDoCliente(clienteId) {
+  if (!clienteId) {
+    return [];
+  }
+
+  const vinculos = [];
+
+  condominios.forEach((condominio) => {
+    const clientesVinculados = Array.isArray(condominio.clientesVinculados)
+      ? condominio.clientesVinculados
+      : [];
+
+    clientesVinculados.forEach((vinculo) => {
+      const idNormalizado = normalizarIdClienteVinculado(vinculo.clienteId);
+
+      if (idNormalizado !== clienteId) {
+        return;
+      }
+
+      vinculos.push({
+        condominioId: condominio.id,
+
+        papel: vinculo.papel || "outro",
+
+        contatoPrincipal: Boolean(vinculo.contatoPrincipal),
+
+        responsavelFinanceiro: Boolean(vinculo.responsavelFinanceiro),
+      });
+    });
+  });
+
+  return vinculos;
+}
+
+function sincronizarVinculosDoCliente(clienteId) {
+  condominios.forEach((condominio) => {
+    const atuais = Array.isArray(condominio.clientesVinculados)
+      ? condominio.clientesVinculados
+      : [];
+
+    condominio.clientesVinculados = atuais.filter(
+      (vinculo) =>
+        normalizarIdClienteVinculado(vinculo.clienteId) !== clienteId,
+    );
+  });
+
+  vinculosDoClienteRascunho.forEach((vinculoRascunho) => {
+    const condominio = obterCondominioPorId(vinculoRascunho.condominioId);
+
+    if (!condominio) {
+      return;
+    }
+
+    if (!Array.isArray(condominio.clientesVinculados)) {
+      condominio.clientesVinculados = [];
+    }
+
+    if (vinculoRascunho.contatoPrincipal) {
+      condominio.clientesVinculados.forEach((vinculo) => {
+        vinculo.contatoPrincipal = false;
+      });
+    }
+
+    if (vinculoRascunho.responsavelFinanceiro) {
+      condominio.clientesVinculados.forEach((vinculo) => {
+        vinculo.responsavelFinanceiro = false;
+      });
+    }
+
+    condominio.clientesVinculados.push({
+      clienteId,
+
+      papel: vinculoRascunho.papel,
+
+      contatoPrincipal: Boolean(vinculoRascunho.contatoPrincipal),
+
+      responsavelFinanceiro: Boolean(vinculoRascunho.responsavelFinanceiro),
+    });
+  });
+
+  return salvarCondominiosLocalmente();
+}
+
+function popularSelectDeCondominios() {
+  const valorAtual = customerCondominiumSelect.value;
+
+  customerCondominiumSelect.innerHTML = "";
+
+  const optionInicial = document.createElement("option");
+
+  optionInicial.value = "";
+
+  optionInicial.textContent = condominios.length
+    ? "Selecione um condomínio"
+    : "Nenhum condomínio cadastrado";
+
+  customerCondominiumSelect.appendChild(optionInicial);
+
+  const idsJaVinculados = new Set(
+    vinculosDoClienteRascunho.map((vinculo) => vinculo.condominioId),
+  );
+
+  [...condominios]
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    .forEach((condominio) => {
+      if (idsJaVinculados.has(condominio.id)) {
+        return;
+      }
+
+      const option = document.createElement("option");
+
+      option.value = condominio.id;
+
+      option.textContent = condominio.nome;
+
+      customerCondominiumSelect.appendChild(option);
+    });
+
+  const valorAindaExiste = Array.from(customerCondominiumSelect.options).some(
+    (option) => option.value === valorAtual,
+  );
+
+  if (valorAindaExiste) {
+    customerCondominiumSelect.value = valorAtual;
+  }
+
+  customerCondominiumSelect.disabled = condominios.length === 0;
+
+  linkCustomerCondominiumButton.disabled = condominios.length === 0;
+}
+
+function abrirPainelDeVinculo() {
+  popularSelectDeCondominios();
+
+  customerCondominiumLinkPanel.hidden = false;
+
+  openCustomerCondominiumLinkButton.setAttribute("aria-expanded", "true");
+
+  window.setTimeout(() => {
+    customerCondominiumSelect.focus();
+  }, 30);
+}
+
+function fecharPainelDeVinculo() {
+  customerCondominiumLinkPanel.hidden = true;
+
+  openCustomerCondominiumLinkButton.setAttribute("aria-expanded", "false");
+
+  customerCondominiumSelect.value = "";
+
+  customerCondominiumRole.value = "sindico";
+
+  customerCondominiumPrimary.checked = false;
+
+  customerCondominiumFinancial.checked = false;
+}
+
+function renderizarVinculosNoFormulario() {
+  customerCondominiumsList.innerHTML = "";
+
+  const vinculosValidos = vinculosDoClienteRascunho.filter((vinculo) =>
+    Boolean(obterCondominioPorId(vinculo.condominioId)),
+  );
+
+  customerCondominiumsCount.textContent = formatarQuantidadeVinculos(
+    vinculosValidos.length,
+  );
+
+  customerCondominiumsEmpty.hidden = vinculosValidos.length > 0;
+
+  customerCondominiumsList.hidden = vinculosValidos.length === 0;
+
+  vinculosValidos.forEach((vinculo) => {
+    const condominio = obterCondominioPorId(vinculo.condominioId);
+
+    const fragmento = customerCondominiumTemplate.content.cloneNode(true);
+
+    const name = fragmento.querySelector(".customer-condominium-card__name");
+
+    const role = fragmento.querySelector(".customer-condominium-card__role");
+
+    const address = fragmento.querySelector(
+      ".customer-condominium-card__address",
+    );
+
+    const primaryBadge = fragmento.querySelector("[data-primary-badge]");
+
+    const financialBadge = fragmento.querySelector("[data-financial-badge]");
+
+    const openButton = fragmento.querySelector(
+      ".customer-condominium-card__open",
+    );
+
+    const removeButton = fragmento.querySelector(
+      ".customer-condominium-card__remove",
+    );
+
+    name.textContent = condominio.nome;
+
+    role.textContent = papelCondominioConfig[vinculo.papel] || "Outro";
+
+    address.textContent = obterEnderecoDoCondominio(condominio);
+
+    primaryBadge.hidden = !vinculo.contatoPrincipal;
+
+    financialBadge.hidden = !vinculo.responsavelFinanceiro;
+
+    openButton.setAttribute("aria-label", `Abrir ${condominio.nome}`);
+
+    openButton.addEventListener("click", () => {
+      abrirCadastroDoCondominio(condominio.id);
+    });
+
+    removeButton.setAttribute("aria-label", `Desvincular ${condominio.nome}`);
+
+    removeButton.addEventListener("click", () => {
+      vinculosDoClienteRascunho = vinculosDoClienteRascunho.filter(
+        (item) => item.condominioId !== vinculo.condominioId,
+      );
+
+      renderizarVinculosNoFormulario();
+
+      mostrarFeedback(
+        "Condomínio removido do vínculo. Salve o cliente para confirmar.",
+      );
+    });
+
+    customerCondominiumsList.appendChild(fragmento);
+  });
+
+  popularSelectDeCondominios();
+}
+
+function vincularCondominioAoCliente() {
+  const condominioId = customerCondominiumSelect.value;
+
+  if (!condominioId) {
+    mostrarFeedback("Selecione um condomínio.");
+
+    customerCondominiumSelect.focus();
+
+    return;
+  }
+
+  const jaVinculado = vinculosDoClienteRascunho.some(
+    (vinculo) => vinculo.condominioId === condominioId,
+  );
+
+  if (jaVinculado) {
+    mostrarFeedback("Este condomínio já está vinculado ao cliente.");
+
+    return;
+  }
+
+  vinculosDoClienteRascunho.push({
+    condominioId,
+
+    papel: customerCondominiumRole.value || "outro",
+
+    contatoPrincipal: customerCondominiumPrimary.checked,
+
+    responsavelFinanceiro: customerCondominiumFinancial.checked,
+  });
+
+  fecharPainelDeVinculo();
+
+  renderizarVinculosNoFormulario();
+
+  mostrarFeedback(
+    "Condomínio adicionado. Salve o cliente para confirmar o vínculo.",
+  );
+}
+
+function renderizarCondominiosNosDetalhes(cliente) {
+  const vinculos = obterVinculosDoCliente(cliente.id).filter((vinculo) =>
+    Boolean(obterCondominioPorId(vinculo.condominioId)),
+  );
+
+  detailsCondominiumsList.innerHTML = "";
+
+  detailsCondominiumsCount.textContent = formatarQuantidadeVinculos(
+    vinculos.length,
+  );
+
+  detailsCondominiumsEmpty.hidden = vinculos.length > 0;
+
+  detailsCondominiumsList.hidden = vinculos.length === 0;
+
+  vinculos.forEach((vinculo) => {
+    const condominio = obterCondominioPorId(vinculo.condominioId);
+
+    const fragmento = detailsCondominiumTemplate.content.cloneNode(true);
+
+    const name = fragmento.querySelector(".details-condominium-card__name");
+
+    const role = fragmento.querySelector(".details-condominium-card__role");
+
+    const address = fragmento.querySelector(
+      ".details-condominium-card__address",
+    );
+
+    const openButton = fragmento.querySelector(
+      ".details-condominium-card__open",
+    );
+
+    name.textContent = condominio.nome;
+
+    const complementos = [];
+
+    if (vinculo.contatoPrincipal) {
+      complementos.push("Contato principal");
+    }
+
+    if (vinculo.responsavelFinanceiro) {
+      complementos.push("Financeiro");
+    }
+
+    role.textContent = [
+      papelCondominioConfig[vinculo.papel] || "Outro",
+
+      ...complementos,
+    ].join(" · ");
+
+    address.textContent = obterEnderecoDoCondominio(condominio);
+
+    openButton.setAttribute("aria-label", `Abrir ${condominio.nome}`);
+
+    openButton.addEventListener("click", () => {
+      abrirCadastroDoCondominio(condominio.id);
+    });
+
+    detailsCondominiumsList.appendChild(fragmento);
+  });
+}
 /* =========================================
    RESUMO
 ========================================= */
@@ -872,7 +1430,9 @@ function alterarAba(novaAba) {
   abaAtual = novaAba;
 
   atualizarAbas();
+
   fecharTodosOsMenus();
+
   renderizarClientes();
 }
 
@@ -886,6 +1446,16 @@ function correspondeAPesquisa(cliente) {
   if (!pesquisa) {
     return true;
   }
+
+  const condominiosDoCliente = obterVinculosDoCliente(cliente.id)
+    .map((vinculo) => {
+      const condominio = obterCondominioPorId(vinculo.condominioId);
+
+      return `${condominio?.nome || ""} ${
+        papelCondominioConfig[vinculo.papel] || ""
+      }`;
+    })
+    .join(" ");
 
   const conteudoPesquisavel = normalizarTexto(
     [
@@ -904,6 +1474,7 @@ function correspondeAPesquisa(cliente) {
       statusConfig[cliente.status]?.nome,
       cliente.observacoes,
       cliente.aviso,
+      condominiosDoCliente,
     ].join(" "),
   );
 
@@ -1101,8 +1672,11 @@ function limparPesquisaEFiltros() {
   });
 
   cityFilter.value = "";
+
   contactFilter.value = "";
+
   registrationFilter.value = "";
+
   ordersFilter.value = "";
 
   filtrosAplicados = {
@@ -1159,32 +1733,30 @@ function ordenarClientes(lista) {
   const copia = [...lista];
 
   if (ordenacaoAtual === "mais-recentes") {
-    return copia.sort((a, b) => {
-      return criarDataLocal(b.cadastradoEm) - criarDataLocal(a.cadastradoEm);
-    });
+    return copia.sort(
+      (a, b) => criarDataLocal(b.cadastradoEm) - criarDataLocal(a.cadastradoEm),
+    );
   }
 
   if (ordenacaoAtual === "mais-antigos") {
-    return copia.sort((a, b) => {
-      return criarDataLocal(a.cadastradoEm) - criarDataLocal(b.cadastradoEm);
-    });
+    return copia.sort(
+      (a, b) => criarDataLocal(a.cadastradoEm) - criarDataLocal(b.cadastradoEm),
+    );
   }
 
   if (ordenacaoAtual === "mais-servicos") {
-    return copia.sort((a, b) => {
-      return Number(b.quantidadeOrdens) - Number(a.quantidadeOrdens);
-    });
+    return copia.sort(
+      (a, b) => Number(b.quantidadeOrdens) - Number(a.quantidadeOrdens),
+    );
   }
 
   if (ordenacaoAtual === "maior-valor") {
-    return copia.sort((a, b) => {
-      return Number(b.valorMovimentado) - Number(a.valorMovimentado);
-    });
+    return copia.sort(
+      (a, b) => Number(b.valorMovimentado) - Number(a.valorMovimentado),
+    );
   }
 
-  return copia.sort((a, b) => {
-    return a.nome.localeCompare(b.nome, "pt-BR");
-  });
+  return copia.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
 function alterarOrdenacao(novaOrdenacao) {
@@ -1211,19 +1783,14 @@ function alterarOrdenacao(novaOrdenacao) {
   mostrarFeedback("Ordenação atualizada.");
 }
 
-/* =========================================
-   OBTENÇÃO DA LISTA
-========================================= */
-
 function obterClientesFiltrados() {
-  const lista = clientes
-    .filter(correspondeAAba)
-    .filter(correspondeAPesquisa)
-    .filter(correspondeAosFiltros);
-
-  return ordenarClientes(lista);
+  return ordenarClientes(
+    clientes
+      .filter(correspondeAAba)
+      .filter(correspondeAPesquisa)
+      .filter(correspondeAosFiltros),
+  );
 }
-
 /* =========================================
    MENUS DOS CARDS
 ========================================= */
@@ -1381,6 +1948,12 @@ function limparFormularioDoCliente() {
 
   customerStatusInput.value = "ativo";
 
+  vinculosDoClienteRascunho = [];
+
+  fecharPainelDeVinculo();
+
+  renderizarVinculosNoFormulario();
+
   limparErrosDoFormulario();
 }
 
@@ -1412,11 +1985,17 @@ function preencherFormularioDoCliente(cliente) {
   customerStatusInput.value = cliente.status;
 
   customerNotesInput.value = cliente.observacoes || "";
+
+  vinculosDoClienteRascunho = clonarDados(obterVinculosDoCliente(cliente.id));
+
+  renderizarVinculosNoFormulario();
 }
 
 function abrirModalDeCliente(cliente = null, campoParaFocar = null) {
   fecharTodosOsMenus();
+
   fecharOrdenacao();
+
   fecharFiltros();
 
   limparFormularioDoCliente();
@@ -1446,6 +2025,12 @@ function abrirModalDeCliente(cliente = null, campoParaFocar = null) {
   window.setTimeout(() => {
     if (campoParaFocar === "status") {
       customerStatusInput.focus();
+
+      return;
+    }
+
+    if (campoParaFocar === "condominios") {
+      abrirPainelDeVinculo();
 
       return;
     }
@@ -1555,10 +2140,6 @@ function validarFormularioDoCliente() {
   return true;
 }
 
-/* =========================================
-   IDENTIFICAÇÃO DO NOVO CLIENTE
-========================================= */
-
 function gerarNovoIdDeCliente() {
   const maiorNumero = clientes.reduce((maior, cliente) => {
     const numero = Number(String(cliente.id).replace(/\D/g, ""));
@@ -1610,6 +2191,8 @@ async function salvarCliente(event) {
 
   const status = customerStatusInput.value;
 
+  const clienteIdSalvo = clienteExistente?.id || gerarNovoIdDeCliente();
+
   const dadosDoCliente = {
     nome: limparTexto(customerNameInput.value),
 
@@ -1646,7 +2229,7 @@ async function salvarCliente(event) {
     Object.assign(clienteExistente, dadosDoCliente);
   } else {
     clientes.push({
-      id: gerarNovoIdDeCliente(),
+      id: clienteIdSalvo,
 
       ...dadosDoCliente,
 
@@ -1660,12 +2243,14 @@ async function salvarCliente(event) {
     });
   }
 
-  const salvo = salvarClientesLocalmente();
+  const clienteSalvo = salvarClientesLocalmente();
+
+  const vinculosSalvos = sincronizarVinculosDoCliente(clienteIdSalvo);
 
   definirEstadoDeSalvamento(false);
 
-  if (!salvo) {
-    mostrarFeedback("Não foi possível salvar o cliente.");
+  if (!clienteSalvo || !vinculosSalvos) {
+    mostrarFeedback("Não foi possível salvar todos os dados do cliente.");
 
     return;
   }
@@ -1678,11 +2263,10 @@ async function salvarCliente(event) {
 
   mostrarFeedback(
     clienteExistente
-      ? "Cadastro atualizado com sucesso."
+      ? "Cadastro e vínculos atualizados com sucesso."
       : "Cliente cadastrado com sucesso.",
   );
 }
-
 /* =========================================
    CONSULTA DE CEP
 ========================================= */
@@ -1800,6 +2384,8 @@ function abrirDetalhesDoCliente(cliente) {
 
   detailsTotalValue.textContent = formatarValor(cliente.valorMovimentado);
 
+  renderizarCondominiosNosDetalhes(cliente);
+
   customerDetailsModal.hidden = false;
 
   document.body.classList.add("modal-open");
@@ -1825,6 +2411,18 @@ function editarClienteDosDetalhes() {
   fecharDetalhesDoCliente();
 
   abrirModalDeCliente(cliente);
+}
+
+function vincularCondominioDosDetalhes() {
+  const cliente = obterClientePorId(clienteNosDetalhesId);
+
+  if (!cliente) {
+    return;
+  }
+
+  fecharDetalhesDoCliente();
+
+  abrirModalDeCliente(cliente, "condominios");
 }
 
 function criarOrdemDosDetalhes() {
@@ -1918,6 +2516,18 @@ function preencherCard(cliente) {
 
   const totalValue = card.querySelector(".customer-card__total-value");
 
+  const condominiumsIndicator = card.querySelector(
+    ".customer-card__condominiums",
+  );
+
+  const condominiumsCount = card.querySelector(
+    ".customer-card__condominiums-count",
+  );
+
+  const condominiumsLabel = card.querySelector(
+    ".customer-card__condominiums-label",
+  );
+
   const warning = card.querySelector(".customer-card__warning");
 
   const warningText = warning.querySelector("span");
@@ -1969,6 +2579,17 @@ function preencherCard(cliente) {
   activeOrders.textContent = String(cliente.ordensAtivas || 0);
 
   totalValue.textContent = formatarValor(cliente.valorMovimentado);
+
+  const quantidadeCondominios = obterVinculosDoCliente(cliente.id).length;
+
+  condominiumsIndicator.hidden = quantidadeCondominios === 0;
+
+  condominiumsCount.textContent = String(quantidadeCondominios);
+
+  condominiumsLabel.textContent =
+    quantidadeCondominios === 1
+      ? "condomínio vinculado"
+      : "condomínios vinculados";
 
   const possuiAviso = Boolean(cliente.aviso);
 
@@ -2105,6 +2726,24 @@ cancelCustomerButton.addEventListener("click", fecharModalDeCliente);
 
 searchCustomerPostalCodeButton.addEventListener("click", buscarCepDoCliente);
 
+openCustomerCondominiumLinkButton.addEventListener("click", () => {
+  if (customerCondominiumLinkPanel.hidden) {
+    abrirPainelDeVinculo();
+  } else {
+    fecharPainelDeVinculo();
+  }
+});
+
+cancelCustomerCondominiumLinkButton.addEventListener(
+  "click",
+  fecharPainelDeVinculo,
+);
+
+linkCustomerCondominiumButton.addEventListener(
+  "click",
+  vincularCondominioAoCliente,
+);
+
 customerPhoneInput.addEventListener("input", () => {
   customerPhoneInput.value = formatarTelefone(customerPhoneInput.value);
 
@@ -2145,6 +2784,11 @@ detailsEditButton.addEventListener("click", editarClienteDosDetalhes);
 
 detailsNewOrderButton.addEventListener("click", criarOrdemDosDetalhes);
 
+detailsLinkCondominiumButton.addEventListener(
+  "click",
+  vincularCondominioDosDetalhes,
+);
+
 /* =========================================
    FECHAMENTO DOS MODAIS PELO FUNDO
 ========================================= */
@@ -2184,10 +2828,21 @@ document.addEventListener("keydown", (event) => {
   }
 
   fecharTodosOsMenus();
+
   fecharOrdenacao();
+
+  if (!customerCondominiumLinkPanel.hidden) {
+    fecharPainelDeVinculo();
+
+    openCustomerCondominiumLinkButton.focus();
+
+    return;
+  }
 
   if (!filterPanel.hidden) {
     fecharFiltros();
+
+    return;
   }
 
   if (!customerModal.hidden) {
@@ -2207,6 +2862,10 @@ document.addEventListener("keydown", (event) => {
 
 carregarClientesSalvos();
 
+carregarCondominiosSalvos();
+
+migrarIdsLegadosDosCondominios();
+
 sincronizarEstiloDosFiltros();
 
 atualizarContagemDeFiltros();
@@ -2216,5 +2875,7 @@ atualizarOpcoesDeOrdenacao();
 atualizarAbas();
 
 atualizarResumo();
+
+popularSelectDeCondominios();
 
 renderizarClientes();

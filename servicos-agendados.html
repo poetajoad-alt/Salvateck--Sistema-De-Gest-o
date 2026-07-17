@@ -62,7 +62,7 @@
     </header>
 
     <!-- =====================================
-         APRESENTAÇÃO
+         APRESENTAÇÃO COMPACTA
     ====================================== -->
 
     <section class="schedule-intro">
@@ -74,11 +74,11 @@
         </span>
 
         <h2>
-          Acompanhe seus próximos atendimentos
+          Acompanhe seus atendimentos
         </h2>
 
         <p>
-          Consulte datas, horários, endereços e informações dos serviços já confirmados.
+          Consulte o próximo serviço e selecione uma data para visualizar os demais atendimentos.
         </p>
 
       </div>
@@ -134,6 +134,10 @@
 
           <span class="next-service__month" id="next-service-month">
             ---
+          </span>
+
+          <span class="next-service__year" id="next-service-year">
+            ----
           </span>
 
         </div>
@@ -196,299 +200,426 @@
 
       </div>
 
-    </section>
+      <!-- Estado sem próximo atendimento -->
 
-    <!-- =====================================
-         RESUMO
-    ====================================== -->
+      <div class="next-service__empty" id="next-service-empty" hidden>
 
-    <section class="schedule-summary" aria-label="Resumo dos serviços agendados">
+        <strong>
+          Nenhum atendimento próximo
+        </strong>
 
-      <article class="summary-card">
+        <p>
+          Quando uma solicitação for confirmada, ela aparecerá aqui.
+        </p>
 
-        <span class="summary-card__icon">
+        <a href="nova-ordem.html?perfil=cliente">
+          Criar nova solicitação
+        </a>
 
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-
-            <path d="M7 3v4M17 3v4M3 10h18"></path>
-          </svg>
-
-        </span>
-
-        <div>
-
-          <span>
-            Agendados
-          </span>
-
-          <strong id="summary-total">
-            0
-          </strong>
-
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12l4 4L19 6"></path>
-          </svg>
-
-        </span>
-
-        <div>
-
-          <span>
-            Neste mês
-          </span>
-
-          <strong id="summary-month">
-            0
-          </strong>
-
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-
-        </span>
-
-        <div>
-
-          <span>
-            Mais próximo
-          </span>
-
-          <strong id="summary-next">
-            --
-          </strong>
-
-        </div>
-
-      </article>
+      </div>
 
     </section>
 
     <!-- =====================================
-         PESQUISA E FILTROS
+         RESUMO COMPACTO
     ====================================== -->
 
-    <section class="schedule-tools">
+    <section class="schedule-overview" aria-label="Resumo dos serviços">
 
-      <label class="search-field">
-
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m20 20-4-4"></path>
-        </svg>
-
-        <input id="schedule-search" type="search" placeholder="Pesquisar serviço agendado" autocomplete="off" aria-label="Pesquisar serviço agendado" />
-
-      </label>
-
-      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
-
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 6h16"></path>
-          <path d="M7 12h10"></path>
-          <path d="M10 18h4"></path>
-        </svg>
+      <div class="overview-item">
 
         <span>
-          Filtros
+          Próximos
         </span>
 
-        <span class="filter-button__count" id="active-filter-count" hidden>
+        <strong id="summary-total">
           0
+        </strong>
+
+      </div>
+
+      <div class="overview-item">
+
+        <span>
+          Este mês
         </span>
 
-      </button>
-
-    </section>
-
-    <!-- =====================================
-         PAINEL DE FILTROS
-    ====================================== -->
-
-    <section class="filter-panel" id="filter-panel" hidden>
-
-      <div class="filter-panel__header">
-
-        <div>
-
-          <p>
-            Refine sua agenda
-          </p>
-
-          <h2>
-            Filtros
-          </h2>
-
-        </div>
-
-        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
-          ×
-        </button>
+        <strong id="summary-month">
+          0
+        </strong>
 
       </div>
 
-      <div class="filter-group">
+      <div class="overview-item">
 
-        <span class="filter-group__label">
-          Período
+        <span>
+          Aguardando
         </span>
 
-        <div class="filter-options">
-
-          <label class="filter-option">
-
-            <input type="radio" name="periodFilter" value="" checked />
-
-            <span>
-              Todos
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="radio" name="periodFilter" value="hoje" />
-
-            <span>
-              Hoje
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="radio" name="periodFilter" value="semana" />
-
-            <span>
-              Esta semana
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="radio" name="periodFilter" value="mes" />
-
-            <span>
-              Este mês
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="radio" name="periodFilter" value="proximos" />
-
-            <span>
-              Próximos meses
-            </span>
-
-          </label>
-
-        </div>
-
-      </div>
-
-      <div class="filter-group">
-
-        <label class="filter-group__label" for="category-filter">
-          Categoria
-        </label>
-
-        <select id="category-filter" class="filter-select">
-
-          <option value="">
-            Todas as categorias
-          </option>
-
-          <option value="hidraulica">
-            Hidráulica
-          </option>
-
-          <option value="eletrica">
-            Elétrica
-          </option>
-
-          <option value="pintura">
-            Pintura
-          </option>
-
-          <option value="alvenaria">
-            Alvenaria
-          </option>
-
-          <option value="instalacoes">
-            Instalações
-          </option>
-
-          <option value="manutencao-geral">
-            Manutenção geral
-          </option>
-
-        </select>
-
-      </div>
-
-      <div class="filter-panel__actions">
-
-        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
-          Limpar filtros
-        </button>
-
-        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
-          Aplicar
-        </button>
+        <strong id="summary-pending">
+          0
+        </strong>
 
       </div>
 
     </section>
 
     <!-- =====================================
-         LISTA DE SERVIÇOS
+         AGENDA DO CLIENTE
     ====================================== -->
 
-    <section class="services-section">
+    <section class="client-calendar-section">
 
-      <div class="services-section__heading">
+      <div class="client-calendar-section__heading">
 
         <div>
 
           <p>
-            Atendimentos confirmados
+            Sua programação
           </p>
 
           <h2>
-            Próximos serviços
+            Calendário de serviços
           </h2>
 
         </div>
 
-        <span class="services-section__count" id="services-count">
+        <span class="client-calendar-section__count" id="services-count">
           0 itens
         </span>
 
       </div>
 
-      <div class="services-list" id="services-list" aria-live="polite"></div>
+      <!-- =====================================
+           NAVEGAÇÃO DO CALENDÁRIO
+      ====================================== -->
 
-      <!-- Estado vazio -->
+      <div class="calendar-navigation">
+
+        <button type="button" class="calendar-navigation__button" id="previous-month-button" aria-label="Mês anterior">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+
+        </button>
+
+        <div class="calendar-navigation__current">
+
+          <span>
+            Mês selecionado
+          </span>
+
+          <strong id="current-month-label">
+            Carregando...
+          </strong>
+
+        </div>
+
+        <button type="button" class="calendar-navigation__button" id="next-month-button" aria-label="Próximo mês">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <button type="button" class="today-button" id="today-button">
+        Voltar para hoje
+      </button>
+
+      <!-- =====================================
+           FILTROS RÁPIDOS
+      ====================================== -->
+
+      <div class="quick-filters" role="group" aria-label="Filtrar serviços por situação">
+
+        <button type="button" class="quick-filter is-active" data-quick-filter="todos" aria-pressed="true">
+          Todos
+        </button>
+
+        <button type="button" class="quick-filter" data-quick-filter="confirmado" aria-pressed="false">
+          Confirmados
+        </button>
+
+        <button type="button" class="quick-filter" data-quick-filter="a-confirmar" aria-pressed="false">
+          Aguardando
+        </button>
+
+        <button type="button" class="quick-filter" data-quick-filter="encerrados" aria-pressed="false">
+          Encerrados
+        </button>
+
+      </div>
+
+      <!-- =====================================
+           PESQUISA E MAIS FILTROS
+      ====================================== -->
+
+      <div class="schedule-tools">
+
+        <label class="search-field">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-4-4"></path>
+          </svg>
+
+          <input id="schedule-search" type="search" placeholder="Pesquisar serviço" autocomplete="off" aria-label="Pesquisar serviço agendado" />
+
+        </label>
+
+        <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16"></path>
+            <path d="M7 12h10"></path>
+            <path d="M10 18h4"></path>
+          </svg>
+
+          <span>
+            Mais filtros
+          </span>
+
+          <span class="filter-button__count" id="active-filter-count" hidden>
+            0
+          </span>
+
+        </button>
+
+      </div>
+
+      <!-- =====================================
+           FILTROS ATIVOS
+      ====================================== -->
+
+      <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
+
+      <!-- =====================================
+           PAINEL DE FILTROS
+      ====================================== -->
+
+      <section class="filter-panel" id="filter-panel" hidden>
+
+        <div class="filter-panel__header">
+
+          <div>
+
+            <p>
+              Refine sua agenda
+            </p>
+
+            <h2>
+              Mais filtros
+            </h2>
+
+          </div>
+
+          <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+            ×
+          </button>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="period-filter">
+            Período
+          </label>
+
+          <select id="period-filter" class="filter-select">
+
+            <option value="">
+              Todos os períodos
+            </option>
+
+            <option value="hoje">
+              Hoje
+            </option>
+
+            <option value="semana">
+              Esta semana
+            </option>
+
+            <option value="mes">
+              Este mês
+            </option>
+
+            <option value="proximos">
+              Próximos meses
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="category-filter">
+            Categoria
+          </label>
+
+          <select id="category-filter" class="filter-select">
+
+            <option value="">
+              Todas as categorias
+            </option>
+
+            <option value="hidraulica">
+              Hidráulica
+            </option>
+
+            <option value="eletrica">
+              Elétrica
+            </option>
+
+            <option value="pintura">
+              Pintura
+            </option>
+
+            <option value="alvenaria">
+              Alvenaria
+            </option>
+
+            <option value="instalacoes">
+              Instalações
+            </option>
+
+            <option value="manutencao-geral">
+              Manutenção geral
+            </option>
+
+            <option value="vistoria">
+              Vistoria técnica
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-panel__actions">
+
+          <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+            Limpar filtros
+          </button>
+
+          <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+            Aplicar filtros
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           CALENDÁRIO
+      ====================================== -->
+
+      <div class="calendar-wrapper">
+
+        <div class="calendar-weekdays" aria-hidden="true">
+
+          <span>Seg</span>
+          <span>Ter</span>
+          <span>Qua</span>
+          <span>Qui</span>
+          <span>Sex</span>
+          <span>Sáb</span>
+          <span>Dom</span>
+
+        </div>
+
+        <div class="calendar-grid" id="calendar-grid" role="grid" aria-label="Calendário dos serviços agendados" aria-live="polite"></div>
+
+      </div>
+
+      <!-- =====================================
+           ORIENTAÇÃO
+      ====================================== -->
+
+      <div class="day-selection-placeholder" id="day-selection-placeholder">
+
+        <span class="day-selection-placeholder__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+            <path d="M8 14h3"></path>
+            <path d="M8 17h6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <strong>
+            Selecione uma data
+          </strong>
+
+          <p>
+            Os dias marcados possuem serviços ou solicitações em acompanhamento.
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- =====================================
+           SERVIÇOS DO DIA
+      ====================================== -->
+
+      <section class="selected-day-panel" id="selected-day-panel" aria-labelledby="selected-day-title" hidden>
+
+        <header class="selected-day-panel__header">
+
+          <div>
+
+            <p>
+              Serviços da data
+            </p>
+
+            <h3 id="selected-day-title">
+              Atendimentos
+            </h3>
+
+          </div>
+
+          <div class="selected-day-panel__actions">
+
+            <span id="selected-day-count">
+              0 itens
+            </span>
+
+            <button type="button" id="close-selected-day-button" aria-label="Fechar serviços da data">
+              ×
+            </button>
+
+          </div>
+
+        </header>
+
+        <div class="services-list" id="services-list" aria-live="polite"></div>
+
+        <div class="selected-day-empty" id="selected-day-empty" hidden>
+
+          <strong>
+            Nenhum serviço nesta data
+          </strong>
+
+          <p>
+            A data está livre ou os serviços foram ocultados pelos filtros selecionados.
+          </p>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           ESTADO VAZIO GERAL
+      ====================================== -->
 
       <div class="empty-state" id="empty-state" hidden>
 
@@ -521,57 +652,90 @@
   </main>
 
   <!-- =====================================
-       TEMPLATE DO CARD
+       TEMPLATE DO DIA
+  ====================================== -->
+
+  <template id="calendar-day-template">
+
+    <button type="button" class="calendar-day" role="gridcell" aria-pressed="false">
+
+      <span class="calendar-day__number"></span>
+
+      <span class="calendar-day__markers" aria-hidden="true"></span>
+
+      <span class="calendar-day__count"></span>
+
+    </button>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO SERVIÇO COMPACTO
   ====================================== -->
 
   <template id="service-card-template">
 
     <article class="service-card">
 
-      <div class="service-card__date">
+      <div class="service-card__summary">
 
-        <span class="service-card__day"></span>
+        <div class="service-card__time">
 
-        <span class="service-card__month"></span>
+          <strong></strong>
 
-        <span class="service-card__year"></span>
-
-      </div>
-
-      <div class="service-card__content">
-
-        <div class="service-card__top">
-
-          <span class="service-card__code"></span>
-
-          <span class="service-card__status">
-            Confirmado
-          </span>
+          <span></span>
 
         </div>
 
-        <h3 class="service-card__title"></h3>
+        <div class="service-card__content">
+
+          <div class="service-card__top">
+
+            <span class="service-card__code"></span>
+
+            <span class="service-card__status"></span>
+
+          </div>
+
+          <h3 class="service-card__title"></h3>
+
+        </div>
+
+        <button type="button" class="service-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do serviço">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <!-- Informações inicialmente escondidas -->
+
+      <div class="service-card__details" hidden>
 
         <p class="service-card__services"></p>
 
         <div class="service-card__information">
-
-          <span class="service-card__time">
-
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M12 7v5l3 2"></path>
-            </svg>
-
-            <span></span>
-
-          </span>
 
           <span class="service-card__address">
 
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
               <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="service-card__date-information">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+              <path d="M7 3v4M17 3v4M3 10h18"></path>
             </svg>
 
             <span></span>

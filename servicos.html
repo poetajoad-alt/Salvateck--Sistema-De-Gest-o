@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Consulta de serviços oferecidos pela Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Serviços | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/servicos.css" />
+</head>
+
+<body data-page="servicos" data-profile="admin">
+
+  <main class="services-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="services-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="services-header__content">
+
+        <p class="services-header__eyebrow">
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Serviços
+        </h1>
+
+      </div>
+
+      <div class="services-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="services-intro">
+
+      <div class="services-intro__copy">
+
+        <span class="services-intro__badge">
+          Catálogo Salvateck
+        </span>
+
+        <h2>
+          Serviços oferecidos
+        </h2>
+
+        <p>
+          Consulte os serviços disponíveis, valores de referência,
+          duração, equipamentos aplicáveis e orientações para execução.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO COMPACTO
+    ====================================== -->
+
+    <section class="services-overview" aria-label="Resumo dos serviços">
+
+      <article class="overview-item">
+
+        <span>
+          Serviços ativos
+        </span>
+
+        <strong id="summary-active">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item">
+
+        <span>
+          Categorias
+        </span>
+
+        <strong id="summary-categories">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item">
+
+        <span>
+          Preventivos
+        </span>
+
+        <strong id="summary-preventive">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item">
+
+        <span>
+          Emergenciais
+        </span>
+
+        <strong id="summary-emergency">
+          0
+        </strong>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         VISUALIZAÇÕES
+    ====================================== -->
+
+    <nav class="services-views" aria-label="Visualização dos serviços">
+
+      <button type="button" class="services-view is-active" data-services-view="categories" aria-pressed="true">
+        Categorias
+      </button>
+
+      <button type="button" class="services-view" data-services-view="all" aria-pressed="false">
+        Todos
+      </button>
+
+      <button type="button" class="services-view" data-services-view="inactive" aria-pressed="false">
+        Inativos
+      </button>
+
+    </nav>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="services-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="services-search" type="search" placeholder="Pesquisar serviço, categoria ou equipamento" autocomplete="off" aria-label="Pesquisar serviços" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS ATIVOS
+    ====================================== -->
+
+    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <header class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a consulta
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </header>
+
+      <div class="filter-grid">
+
+        <label class="filter-field">
+
+          <span>
+            Categoria
+          </span>
+
+          <select id="category-filter">
+
+            <option value="">
+              Todas as categorias
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="filter-field">
+
+          <span>
+            Tipo de serviço
+          </span>
+
+          <select id="type-filter">
+
+            <option value="">
+              Todos os tipos
+            </option>
+
+            <option value="preventivo">
+              Preventivo
+            </option>
+
+            <option value="corretivo">
+              Corretivo
+            </option>
+
+            <option value="emergencial">
+              Emergencial
+            </option>
+
+            <option value="inspecao">
+              Inspeção
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="filter-field">
+
+          <span>
+            Forma de cobrança
+          </span>
+
+          <select id="charge-filter">
+
+            <option value="">
+              Todas as formas
+            </option>
+
+            <option value="valor-fixo">
+              Valor fixo
+            </option>
+
+            <option value="por-hora">
+              Por hora
+            </option>
+
+            <option value="sob-orcamento">
+              Sob orçamento
+            </option>
+
+            <option value="contrato">
+              Incluído em contrato
+            </option>
+
+          </select>
+
+        </label>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar filtros
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CONTEÚDO
+    ====================================== -->
+
+    <section class="services-content">
+
+      <header class="services-content__heading">
+
+        <div>
+
+          <p id="services-content-eyebrow">
+            Consulta por área
+          </p>
+
+          <h2 id="services-content-title">
+            Categorias de serviços
+          </h2>
+
+        </div>
+
+        <span class="services-content__count" id="services-count">
+          0 serviços
+        </span>
+
+      </header>
+
+      <!-- Categorias recolhíveis -->
+
+      <div class="services-categories" id="services-categories"></div>
+
+      <!-- Lista compacta de todos os serviços -->
+
+      <div class="all-services" id="all-services" hidden></div>
+
+      <button type="button" class="load-more-button" id="load-more-services-button" hidden>
+        Mostrar mais serviços
+      </button>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.5 6.5 17 4l3 3-2.5 2.5"></path>
+            <path d="m13 8 3 3-8 8H5v-3z"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum serviço encontrado
+        </h3>
+
+        <p>
+          Não existem serviços correspondentes à pesquisa
+          ou aos filtros selecionados.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
+          Limpar pesquisa e filtros
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DA CATEGORIA
+  ====================================== -->
+
+  <template id="service-category-template">
+
+    <article class="service-category">
+
+      <button type="button" class="service-category__header" aria-expanded="false">
+
+        <span class="service-category__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.5 6.5 17 4l3 3-2.5 2.5"></path>
+            <path d="m13 8 3 3-8 8H5v-3z"></path>
+          </svg>
+
+        </span>
+
+        <span class="service-category__identity">
+
+          <strong class="service-category__name"></strong>
+
+          <small class="service-category__description"></small>
+
+        </span>
+
+        <span class="service-category__numbers">
+
+          <strong class="service-category__count">
+            0
+          </strong>
+
+          <small>
+            serviços
+          </small>
+
+        </span>
+
+        <span class="service-category__chevron">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+
+        </span>
+
+      </button>
+
+      <div class="service-category__body" hidden>
+
+        <div class="service-category__services"></div>
+
+        <button type="button" class="service-category__more" hidden>
+          Mostrar mais
+        </button>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DA LINHA DE SERVIÇO
+  ====================================== -->
+
+  <template id="service-row-template">
+
+    <article class="service-row">
+
+      <span class="service-row__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14.5 6.5 17 4l3 3-2.5 2.5"></path>
+          <path d="m13 8 3 3-8 8H5v-3z"></path>
+        </svg>
+
+      </span>
+
+      <div class="service-row__content">
+
+        <div class="service-row__heading">
+
+          <span class="service-row__code"></span>
+
+          <span class="service-row__status"></span>
+
+        </div>
+
+        <h3 class="service-row__name"></h3>
+
+        <div class="service-row__metadata">
+
+          <span class="service-row__type"></span>
+
+          <span class="service-row__duration"></span>
+
+          <span class="service-row__price"></span>
+
+        </div>
+
+      </div>
+
+      <button type="button" class="service-row__open" aria-label="Ver detalhes do serviço">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+
+      </button>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       MODAL DE DETALHES
+  ====================================== -->
+
+  <div class="modal-backdrop" id="service-details-modal" hidden>
+
+    <section class="service-details" role="dialog" aria-modal="true" aria-labelledby="service-details-title">
+
+      <header class="service-details__header">
+
+        <div>
+
+          <p id="details-service-code">
+            Serviço
+          </p>
+
+          <h2 id="service-details-title">
+            Detalhes do serviço
+          </h2>
+
+        </div>
+
+        <button type="button" class="service-details__close" id="close-service-details-button" aria-label="Fechar detalhes do serviço">
+          ×
+        </button>
+
+      </header>
+
+      <div class="service-details__status-row">
+
+        <span class="service-details__category" id="details-service-category"></span>
+
+        <span class="service-details__type" id="details-service-type"></span>
+
+        <span class="service-details__status" id="details-service-status"></span>
+
+      </div>
+
+      <article class="service-details__description">
+
+        <span>
+          Descrição
+        </span>
+
+        <p id="details-service-description"></p>
+
+      </article>
+
+      <div class="service-details__grid">
+
+        <article>
+
+          <span>
+            Duração estimada
+          </span>
+
+          <strong id="details-service-duration"></strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Valor de referência
+          </span>
+
+          <strong id="details-service-price"></strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Forma de cobrança
+          </span>
+
+          <strong id="details-service-charge"></strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Equipe recomendada
+          </span>
+
+          <strong id="details-service-team"></strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Prioridade padrão
+          </span>
+
+          <strong id="details-service-priority"></strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Equipamentos aplicáveis
+          </span>
+
+          <strong id="details-service-equipment-count"></strong>
+
+        </article>
+
+      </div>
+
+      <section class="service-details__section">
+
+        <header>
+
+          <div>
+
+            <span>
+              Aplicação
+            </span>
+
+            <h3>
+              Equipamentos e estruturas
+            </h3>
+
+          </div>
+
+        </header>
+
+        <div class="service-details__tags" id="details-service-equipment"></div>
+
+        <p class="service-details__empty" id="details-service-equipment-empty" hidden>
+          Nenhum equipamento específico informado.
+        </p>
+
+      </section>
+
+      <section class="service-details__section">
+
+        <header>
+
+          <div>
+
+            <span>
+              Execução
+            </span>
+
+            <h3>
+              Regras do serviço
+            </h3>
+
+          </div>
+
+        </header>
+
+        <div class="service-details__tags" id="details-service-requirements"></div>
+
+      </section>
+
+      <section class="service-details__section">
+
+        <header>
+
+          <div>
+
+            <span>
+              Orientações
+            </span>
+
+            <h3>
+              Cuidados técnicos
+            </h3>
+
+          </div>
+
+        </header>
+
+        <p class="service-details__text" id="details-service-instructions"></p>
+
+      </section>
+
+      <section class="service-details__section">
+
+        <header>
+
+          <div>
+
+            <span>
+              Conferência
+            </span>
+
+            <h3>
+              Checklist de execução
+            </h3>
+
+          </div>
+
+          <span class="service-details__section-count" id="details-checklist-count">
+            0 itens
+          </span>
+
+        </header>
+
+        <div class="service-details__checklist" id="details-service-checklist"></div>
+
+        <p class="service-details__empty" id="details-service-checklist-empty" hidden>
+          Nenhum item de checklist cadastrado.
+        </p>
+
+      </section>
+
+      <div class="service-details__actions">
+
+        <button type="button" class="details-button details-button--secondary" id="close-service-details-secondary-button">
+          Fechar
+        </button>
+
+        <button type="button" class="details-button details-button--primary" id="create-order-with-service-button">
+          Criar ordem com este serviço
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/servicos.js"></script>
+
+</body>
+
+</html>

@@ -1,66 +1,216 @@
 /* =========================================
-   DADOS TEMPORÁRIOS DOS AGENDAMENTOS
+   CONFIGURAÇÕES GERAIS
+========================================= */
+
+const clienteAtualId = "cliente-joao";
+
+const clienteAtualNome = "João da Silva";
+
+const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
+
+const ORDERS_STATE_STORAGE_KEY = "salvateckEstadoOrdensTemporarias";
+
+const REQUEST_DETAILS_STORAGE_KEY = "salvateckDetalhesSolicitacoesTeste";
+
+const FILTROS_RAPIDOS = ["todos", "confirmado", "a-confirmar", "encerrados"];
+
+/* =========================================
+   FUNÇÕES INICIAIS DE DATA
+========================================= */
+
+function obterInicioDoDia(data = new Date()) {
+  const novaData = new Date(data);
+
+  novaData.setHours(0, 0, 0, 0);
+
+  return novaData;
+}
+
+function obterDataISO(data) {
+  const ano = data.getFullYear();
+
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+
+  const dia = String(data.getDate()).padStart(2, "0");
+
+  return `${ano}-${mes}-${dia}`;
+}
+
+function criarDataComOffset(dias) {
+  const data = obterInicioDoDia();
+
+  data.setDate(data.getDate() + dias);
+
+  return obterDataISO(data);
+}
+
+/* =========================================
+   DADOS TEMPORÁRIOS DOS SERVIÇOS
 ========================================= */
 
 const servicosAgendados = [
   {
     id: "OS-0001",
     clienteId: "cliente-joao",
+
     titulo: "Vazamento na torneira da cozinha",
+
     categorias: ["hidraulica"],
+
     servicos: ["Torneira vazando", "Ajustar torneira"],
-    data: "2026-07-18",
+
+    data: criarDataComOffset(0),
+
     periodo: "manha",
     horario: "09:00",
+
     endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
+
     status: "confirmado",
   },
 
   {
     id: "OS-0002",
     clienteId: "cliente-joao",
+
     titulo: "Instalação de luminária",
+
     categorias: ["eletrica", "instalacoes"],
+
     servicos: ["Instalar luminária"],
-    data: "2026-07-19",
+
+    data: criarDataComOffset(1),
+
     periodo: "tarde",
     horario: "14:30",
+
     endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-    status: "confirmado",
+
+    status: "a-confirmar",
   },
 
   {
     id: "OS-0003",
     clienteId: "cliente-joao",
+
     titulo: "Pintura de parede do quarto",
+
     categorias: ["pintura"],
+
     servicos: ["Preparação da superfície", "Pintura de parede"],
-    data: "2026-07-23",
+
+    data: criarDataComOffset(5),
+
     periodo: "tarde",
     horario: "14:00",
+
     endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
+
     status: "confirmado",
   },
 
   {
     id: "OS-0009",
     clienteId: "cliente-joao",
+
     titulo: "Ajuste da porta da área de serviço",
+
     categorias: ["manutencao-geral"],
+
     servicos: ["Ajustar porta", "Trocar maçaneta"],
-    data: "2026-08-04",
+
+    data: criarDataComOffset(13),
+
     periodo: "manha",
     horario: "10:00",
+
     endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
+
     status: "confirmado",
+  },
+
+  {
+    id: "OS-0007",
+    clienteId: "cliente-joao",
+
+    titulo: "Manutenção da descarga",
+
+    categorias: ["hidraulica"],
+
+    servicos: ["Reparo da descarga", "Teste de funcionamento"],
+
+    data: criarDataComOffset(-4),
+
+    periodo: "manha",
+    horario: "08:30",
+
+    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
+
+    status: "concluido",
+  },
+
+  {
+    id: "OS-0008",
+    clienteId: "cliente-joao",
+
+    titulo: "Instalação de prateleira",
+
+    categorias: ["instalacoes"],
+
+    servicos: ["Instalar prateleira"],
+
+    data: criarDataComOffset(-9),
+
+    periodo: "tarde",
+    horario: "15:00",
+
+    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
+
+    status: "cancelado",
   },
 ];
 
 /* =========================================
-   CONFIGURAÇÕES
+   CONFIGURAÇÕES DOS CAMPOS
 ========================================= */
 
-const clienteAtualId = "cliente-joao";
+const statusConfig = {
+  confirmado: {
+    nome: "Confirmado",
+    classe: "status--confirmado",
+    marcador: "calendar-marker--confirmado",
+  },
+
+  "a-confirmar": {
+    nome: "Aguardando",
+    classe: "status--a-confirmar",
+    marcador: "calendar-marker--a-confirmar",
+  },
+
+  "em-deslocamento": {
+    nome: "Em deslocamento",
+    classe: "status--em-deslocamento",
+    marcador: "calendar-marker--em-deslocamento",
+  },
+
+  "em-atendimento": {
+    nome: "Em atendimento",
+    classe: "status--em-atendimento",
+    marcador: "calendar-marker--em-atendimento",
+  },
+
+  concluido: {
+    nome: "Concluído",
+    classe: "status--concluido",
+    marcador: "calendar-marker--concluido",
+  },
+
+  cancelado: {
+    nome: "Cancelado",
+    classe: "status--cancelado",
+    marcador: "calendar-marker--cancelado",
+  },
+};
 
 const categoriaConfig = {
   hidraulica: "Hidráulica",
@@ -69,6 +219,7 @@ const categoriaConfig = {
   alvenaria: "Alvenaria",
   instalacoes: "Instalações",
   "manutencao-geral": "Manutenção geral",
+  vistoria: "Vistoria técnica",
 };
 
 const periodoConfig = {
@@ -78,11 +229,30 @@ const periodoConfig = {
   horario: "Horário específico",
 };
 
+const periodoFiltroConfig = {
+  hoje: "Hoje",
+  semana: "Esta semana",
+  mes: "Este mês",
+  proximos: "Próximos meses",
+};
+
 /* =========================================
    ELEMENTOS DA PÁGINA
 ========================================= */
 
 const nextServiceSection = document.getElementById("next-service");
+
+const nextServiceTop = nextServiceSection.querySelector(".next-service__top");
+
+const nextServiceContent = nextServiceSection.querySelector(
+  ".next-service__content",
+);
+
+const nextServiceActions = nextServiceSection.querySelector(
+  ".next-service__actions",
+);
+
+const nextServiceEmpty = document.getElementById("next-service-empty");
 
 const nextServiceTitle = document.getElementById("next-service-title");
 
@@ -91,6 +261,8 @@ const nextServiceStatus = document.getElementById("next-service-status");
 const nextServiceDay = document.getElementById("next-service-day");
 
 const nextServiceMonth = document.getElementById("next-service-month");
+
+const nextServiceYear = document.getElementById("next-service-year");
 
 const nextServiceTime = document.getElementById("next-service-time");
 
@@ -108,7 +280,17 @@ const summaryTotal = document.getElementById("summary-total");
 
 const summaryMonth = document.getElementById("summary-month");
 
-const summaryNext = document.getElementById("summary-next");
+const summaryPending = document.getElementById("summary-pending");
+
+const previousMonthButton = document.getElementById("previous-month-button");
+
+const nextMonthButton = document.getElementById("next-month-button");
+
+const todayButton = document.getElementById("today-button");
+
+const currentMonthLabel = document.getElementById("current-month-label");
+
+const quickFilterButtons = document.querySelectorAll("[data-quick-filter]");
 
 const scheduleSearch = document.getElementById("schedule-search");
 
@@ -120,9 +302,9 @@ const filterPanel = document.getElementById("filter-panel");
 
 const activeFilterCount = document.getElementById("active-filter-count");
 
-const periodFilterInputs = document.querySelectorAll(
-  'input[name="periodFilter"]',
-);
+const activeFiltersList = document.getElementById("active-filters-list");
+
+const periodFilter = document.getElementById("period-filter");
 
 const categoryFilter = document.getElementById("category-filter");
 
@@ -132,7 +314,27 @@ const applyFiltersButton = document.getElementById("apply-filters-button");
 
 const servicesCount = document.getElementById("services-count");
 
+const calendarGrid = document.getElementById("calendar-grid");
+
+const calendarDayTemplate = document.getElementById("calendar-day-template");
+
+const daySelectionPlaceholder = document.getElementById(
+  "day-selection-placeholder",
+);
+
+const selectedDayPanel = document.getElementById("selected-day-panel");
+
+const selectedDayTitle = document.getElementById("selected-day-title");
+
+const selectedDayCount = document.getElementById("selected-day-count");
+
+const closeSelectedDayButton = document.getElementById(
+  "close-selected-day-button",
+);
+
 const servicesList = document.getElementById("services-list");
+
+const selectedDayEmpty = document.getElementById("selected-day-empty");
 
 const emptyState = document.getElementById("empty-state");
 
@@ -143,6 +345,12 @@ const feedbackMessage = document.getElementById("feedback-message");
 /* =========================================
    VARIÁVEIS DE CONTROLE
 ========================================= */
+
+let dataReferencia = obterInicioDoDia();
+
+let dataSelecionada = null;
+
+let filtroRapido = "todos";
 
 let filtrosAplicados = {
   periodo: "",
@@ -173,37 +381,30 @@ function criarDataLocal(valor) {
   return new Date(`${valor}T12:00:00`);
 }
 
-function obterInicioDoDia(data = new Date()) {
-  const novaData = new Date(data);
+function resolverData(valor) {
+  if (valor instanceof Date) {
+    return new Date(valor);
+  }
 
-  novaData.setHours(0, 0, 0, 0);
-
-  return novaData;
-}
-
-function obterHoje() {
-  return obterInicioDoDia(new Date());
+  return criarDataLocal(valor);
 }
 
 function formatarQuantidade(quantidade) {
   return quantidade === 1 ? "1 item" : `${quantidade} itens`;
 }
 
-function formatarDataCurta(valor) {
-  const data = criarDataLocal(valor);
+function formatarDia(valor) {
+  const data = resolverData(valor);
 
   if (!data) {
     return "--";
   }
 
-  return data.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
+  return String(data.getDate()).padStart(2, "0");
 }
 
 function formatarMesCurto(valor) {
-  const data = criarDataLocal(valor);
+  const data = resolverData(valor);
 
   if (!data) {
     return "---";
@@ -217,20 +418,42 @@ function formatarMesCurto(valor) {
     .toUpperCase();
 }
 
-function formatarDia(valor) {
-  const data = criarDataLocal(valor);
-
-  if (!data) {
-    return "--";
-  }
-
-  return String(data.getDate()).padStart(2, "0");
-}
-
 function formatarAno(valor) {
-  const data = criarDataLocal(valor);
+  const data = resolverData(valor);
 
   return data ? String(data.getFullYear()) : "----";
+}
+
+function formatarMesEAno(valor) {
+  const data = resolverData(valor);
+
+  if (!data) {
+    return "Mês não identificado";
+  }
+
+  const texto = data.toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function formatarDataCompleta(valor) {
+  const data = resolverData(valor);
+
+  if (!data) {
+    return "Data não informada";
+  }
+
+  const texto = data.toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 function formatarHorario(servico) {
@@ -247,6 +470,31 @@ function obterNomeCategorias(categorias) {
   return categorias
     .map((categoria) => categoriaConfig[categoria] || categoria)
     .filter(Boolean);
+}
+
+function datasSaoIguais(dataA, dataB) {
+  if (!dataA || !dataB) {
+    return false;
+  }
+
+  return (
+    dataA.getFullYear() === dataB.getFullYear() &&
+    dataA.getMonth() === dataB.getMonth() &&
+    dataA.getDate() === dataB.getDate()
+  );
+}
+
+function ordenarServicos(lista) {
+  return [...lista].sort((servicoA, servicoB) => {
+    const diferencaData =
+      criarDataLocal(servicoA.data) - criarDataLocal(servicoB.data);
+
+    if (diferencaData !== 0) {
+      return diferencaData;
+    }
+
+    return String(servicoA.horario).localeCompare(String(servicoB.horario));
+  });
 }
 
 function mostrarFeedback(mensagem) {
@@ -282,9 +530,280 @@ function abrirEnderecoNoMapa(endereco) {
 
   window.open(url, "_blank", "noopener,noreferrer");
 }
-
 /* =========================================
-   DATAS E PERÍODOS
+   INTEGRAÇÃO COM AS ORDENS SALVAS
+========================================= */
+
+function normalizarStatusParaAgenda(status) {
+  const statusNormalizado = normalizarTexto(status);
+
+  const statusMap = {
+    "aguardando-confirmacao": "a-confirmar",
+
+    agendada: "confirmado",
+    agendado: "confirmado",
+    confirmado: "confirmado",
+
+    "em-deslocamento": "em-deslocamento",
+
+    "em-atendimento": "em-atendimento",
+
+    concluida: "concluido",
+    concluido: "concluido",
+
+    cancelada: "cancelado",
+    cancelado: "cancelado",
+
+    recusada: "cancelado",
+    recusado: "cancelado",
+  };
+
+  return statusMap[statusNormalizado] || "";
+}
+
+function obterServicosDaOrdemSalva(ordem) {
+  if (!Array.isArray(ordem.servicos)) {
+    return [ordem.servicoPrincipal].filter(Boolean);
+  }
+
+  return ordem.servicos
+    .map((servico) => {
+      if (typeof servico === "string") {
+        return servico;
+      }
+
+      return servico?.servico || servico?.nome || "";
+    })
+    .filter(Boolean);
+}
+
+function obterEnderecoDaOrdemSalva(ordem) {
+  if (typeof ordem.endereco === "string") {
+    return ordem.endereco;
+  }
+
+  const resumo = String(ordem.endereco?.resumo || "").trim();
+
+  if (resumo) {
+    return resumo;
+  }
+
+  const primeiraLinha = [
+    ordem.endereco?.logradouro || ordem.endereco?.rua,
+
+    ordem.endereco?.numero,
+
+    ordem.endereco?.complemento,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const cidadeEstado = [
+    ordem.endereco?.cidade,
+
+    ordem.endereco?.uf || ordem.endereco?.estado,
+  ]
+    .filter(Boolean)
+    .join("/");
+
+  const segundaLinha = [ordem.endereco?.bairro, cidadeEstado]
+    .filter(Boolean)
+    .join(" — ");
+
+  return (
+    [primeiraLinha, segundaLinha].filter(Boolean).join(" — ") ||
+    "Endereço não informado"
+  );
+}
+
+function ordemPertenceAoClienteAtual(ordem) {
+  const clienteId = ordem.cliente?.id || ordem.clienteId || "";
+
+  const clienteNome = ordem.cliente?.nome || ordem.clienteNome || "";
+
+  const perfilCriador = normalizarTexto(ordem.perfilCriador);
+
+  if (clienteId === clienteAtualId) {
+    return true;
+  }
+
+  if (normalizarTexto(clienteNome) === normalizarTexto(clienteAtualNome)) {
+    return true;
+  }
+
+  return perfilCriador === "cliente" && !clienteId;
+}
+
+function mesclarOrdemComEstadosLocais(ordem, estadosSalvos, detalhesSalvos) {
+  const estado = estadosSalvos[ordem.id] || {};
+
+  const detalhes = detalhesSalvos[ordem.id] || {};
+
+  const dataConfirmada =
+    estado.dataAgendada ||
+    detalhes.atendimento?.dataConfirmada ||
+    ordem.atendimento?.dataConfirmada ||
+    "";
+
+  const periodoConfirmado =
+    estado.periodo ||
+    detalhes.atendimento?.periodoConfirmado ||
+    ordem.atendimento?.periodoConfirmado ||
+    "";
+
+  const horarioConfirmado =
+    estado.horario ||
+    detalhes.atendimento?.horarioConfirmado ||
+    ordem.atendimento?.horarioConfirmado ||
+    "";
+
+  return {
+    ...ordem,
+
+    status: estado.status || detalhes.status || ordem.status,
+
+    proposta: Object.prototype.hasOwnProperty.call(detalhes, "proposta")
+      ? detalhes.proposta
+      : ordem.proposta,
+
+    atendimento: {
+      ...(ordem.atendimento || {}),
+
+      ...(detalhes.atendimento || {}),
+
+      dataConfirmada,
+
+      periodoConfirmado,
+
+      horarioConfirmado,
+    },
+  };
+}
+
+function normalizarOrdemParaAgenda(ordem, indice) {
+  const status = normalizarStatusParaAgenda(ordem.status);
+
+  if (!status) {
+    return null;
+  }
+
+  const categorias =
+    Array.isArray(ordem.categorias) && ordem.categorias.length
+      ? ordem.categorias
+      : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const data =
+    ordem.atendimento?.dataConfirmada ||
+    ordem.dataAgendada ||
+    ordem.proposta?.data ||
+    ordem.atendimento?.dataPreferida ||
+    ordem.dataPreferida ||
+    "";
+
+  if (!data) {
+    return null;
+  }
+
+  const periodo =
+    ordem.atendimento?.periodoConfirmado ||
+    ordem.periodoConfirmado ||
+    ordem.proposta?.periodo ||
+    ordem.periodo ||
+    ordem.atendimento?.periodo ||
+    "";
+
+  const horario =
+    ordem.atendimento?.horarioConfirmado ||
+    ordem.horarioConfirmado ||
+    ordem.proposta?.horario ||
+    ordem.horario ||
+    ordem.atendimento?.horarioPreferido ||
+    "";
+
+  return {
+    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+
+    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
+
+    clienteId: clienteAtualId,
+
+    titulo:
+      ordem.titulo ||
+      ordem.servicoPrincipal ||
+      (categorias.includes("vistoria")
+        ? "Vistoria técnica"
+        : "Serviço agendado"),
+
+    categorias,
+
+    servicos: obterServicosDaOrdemSalva(ordem),
+
+    data: String(data).split("T")[0],
+
+    periodo,
+
+    horario,
+
+    endereco: obterEnderecoDaOrdemSalva(ordem),
+
+    status,
+  };
+}
+
+function carregarServicosSalvos() {
+  try {
+    const ordensSalvas = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    if (!Array.isArray(ordensSalvas)) {
+      return;
+    }
+
+    const estadosSalvos = JSON.parse(
+      localStorage.getItem(ORDERS_STATE_STORAGE_KEY) || "{}",
+    );
+
+    const detalhesSalvos = JSON.parse(
+      localStorage.getItem(REQUEST_DETAILS_STORAGE_KEY) || "{}",
+    );
+
+    const ordensDoCliente = ordensSalvas
+      .filter(ordemPertenceAoClienteAtual)
+      .map((ordem) => {
+        return mesclarOrdemComEstadosLocais(
+          ordem,
+          estadosSalvos,
+          detalhesSalvos,
+        );
+      })
+      .map(normalizarOrdemParaAgenda)
+      .filter(Boolean);
+
+    ordensDoCliente.forEach((servicoSalvo) => {
+      const indiceExistente = servicosAgendados.findIndex((servicoAtual) => {
+        const codigoAtual = servicoAtual.codigo || servicoAtual.id;
+
+        return (
+          servicoAtual.id === servicoSalvo.id ||
+          codigoAtual === servicoSalvo.codigo
+        );
+      });
+
+      if (indiceExistente >= 0) {
+        servicosAgendados[indiceExistente] = servicoSalvo;
+
+        return;
+      }
+
+      servicosAgendados.push(servicoSalvo);
+    });
+  } catch (error) {
+    console.warn("Não foi possível carregar os serviços salvos.", error);
+  }
+}
+/* =========================================
+   INTERVALOS DE DATA
 ========================================= */
 
 function obterInicioDaSemana(data) {
@@ -309,6 +828,112 @@ function obterFimDaSemana(data) {
   return fim;
 }
 
+function obterPrimeiroDiaDoMes(data) {
+  return new Date(data.getFullYear(), data.getMonth(), 1);
+}
+
+function obterUltimoDiaDoMes(data) {
+  const ultimoDia = new Date(data.getFullYear(), data.getMonth() + 1, 0);
+
+  ultimoDia.setHours(23, 59, 59, 999);
+
+  return ultimoDia;
+}
+
+function obterInicioDoCalendario(data) {
+  return obterInicioDaSemana(obterPrimeiroDiaDoMes(data));
+}
+
+/* =========================================
+   DADOS DO CLIENTE
+========================================= */
+
+function obterServicosDoCliente() {
+  return ordenarServicos(
+    servicosAgendados.filter((servico) => servico.clienteId === clienteAtualId),
+  );
+}
+
+/* =========================================
+   PESQUISA
+========================================= */
+
+function correspondeAPesquisa(servico) {
+  const pesquisa = normalizarTexto(scheduleSearch.value);
+
+  if (!pesquisa) {
+    return true;
+  }
+
+  const categorias = obterNomeCategorias(servico.categorias).join(" ");
+
+  const status = statusConfig[servico.status]?.nome || "";
+
+  const conteudoPesquisavel = normalizarTexto(
+    [
+      servico.id,
+      servico.codigo,
+      servico.titulo,
+      servico.servicos.join(" "),
+      categorias,
+      servico.endereco,
+      status,
+      formatarHorario(servico),
+      formatarDataCompleta(servico.data),
+    ].join(" "),
+  );
+
+  return conteudoPesquisavel.includes(pesquisa);
+}
+
+/* =========================================
+   FILTRO RÁPIDO
+========================================= */
+
+function correspondeAoFiltroRapido(servico) {
+  if (filtroRapido === "todos") {
+    return true;
+  }
+
+  if (filtroRapido === "confirmado") {
+    return ["confirmado", "em-deslocamento", "em-atendimento"].includes(
+      servico.status,
+    );
+  }
+
+  if (filtroRapido === "a-confirmar") {
+    return servico.status === "a-confirmar";
+  }
+
+  if (filtroRapido === "encerrados") {
+    return ["concluido", "cancelado"].includes(servico.status);
+  }
+
+  return true;
+}
+
+function alterarFiltroRapido(novoFiltro) {
+  if (!FILTROS_RAPIDOS.includes(novoFiltro)) {
+    return;
+  }
+
+  filtroRapido = novoFiltro;
+
+  quickFilterButtons.forEach((button) => {
+    const ativo = button.dataset.quickFilter === novoFiltro;
+
+    button.classList.toggle("is-active", ativo);
+
+    button.setAttribute("aria-pressed", String(ativo));
+  });
+
+  renderizarCalendario();
+}
+
+/* =========================================
+   FILTROS AVANÇADOS
+========================================= */
+
 function pertenceAoPeriodo(servico) {
   const filtro = filtrosAplicados.periodo;
 
@@ -322,14 +947,10 @@ function pertenceAoPeriodo(servico) {
     return false;
   }
 
-  const hoje = obterHoje();
+  const hoje = obterInicioDoDia();
 
   if (filtro === "hoje") {
-    return (
-      dataServico.getFullYear() === hoje.getFullYear() &&
-      dataServico.getMonth() === hoje.getMonth() &&
-      dataServico.getDate() === hoje.getDate()
-    );
+    return datasSaoIguais(dataServico, hoje);
   }
 
   if (filtro === "semana") {
@@ -360,59 +981,7 @@ function pertenceAoPeriodo(servico) {
   return true;
 }
 
-/* =========================================
-   DADOS DO CLIENTE
-========================================= */
-
-function obterAgendamentosDoCliente() {
-  const hoje = obterHoje();
-
-  return servicosAgendados
-    .filter((servico) => servico.clienteId === clienteAtualId)
-    .filter((servico) => {
-      const dataServico = criarDataLocal(servico.data);
-
-      return dataServico && dataServico >= hoje;
-    })
-    .sort((a, b) => {
-      return criarDataLocal(a.data) - criarDataLocal(b.data);
-    });
-}
-
-/* =========================================
-   PESQUISA E FILTROS
-========================================= */
-
-function obterPeriodoSelecionado() {
-  return (
-    document.querySelector('input[name="periodFilter"]:checked')?.value || ""
-  );
-}
-
-function correspondeAPesquisa(servico) {
-  const pesquisa = normalizarTexto(scheduleSearch.value);
-
-  if (!pesquisa) {
-    return true;
-  }
-
-  const categorias = obterNomeCategorias(servico.categorias).join(" ");
-
-  const conteudoPesquisavel = normalizarTexto(
-    [
-      servico.id,
-      servico.titulo,
-      servico.servicos.join(" "),
-      categorias,
-      servico.endereco,
-      formatarHorario(servico),
-    ].join(" "),
-  );
-
-  return conteudoPesquisavel.includes(pesquisa);
-}
-
-function correspondeAosFiltros(servico) {
+function correspondeAosFiltrosAvancados(servico) {
   const categoriaCorresponde =
     !filtrosAplicados.categoria ||
     servico.categorias.includes(filtrosAplicados.categoria);
@@ -421,17 +990,18 @@ function correspondeAosFiltros(servico) {
 }
 
 function obterServicosFiltrados() {
-  return obterAgendamentosDoCliente()
-    .filter(correspondeAPesquisa)
-    .filter(correspondeAosFiltros);
+  return ordenarServicos(
+    obterServicosDoCliente()
+      .filter(correspondeAPesquisa)
+      .filter(correspondeAoFiltroRapido)
+      .filter(correspondeAosFiltrosAvancados),
+  );
 }
 
-function sincronizarEstiloDosFiltros() {
-  document.querySelectorAll(".filter-option").forEach((opcao) => {
-    const input = opcao.querySelector('input[name="periodFilter"]');
+function sincronizarFormularioComFiltros() {
+  periodFilter.value = filtrosAplicados.periodo;
 
-    opcao.classList.toggle("is-selected", Boolean(input?.checked));
-  });
+  categoryFilter.value = filtrosAplicados.categoria;
 }
 
 function contarFiltrosAtivos() {
@@ -456,6 +1026,72 @@ function atualizarContagemDeFiltros() {
   activeFilterCount.hidden = quantidade === 0;
 }
 
+function criarChipDeFiltro(texto, removerFiltro) {
+  const chip = document.createElement("span");
+
+  chip.className = "active-filter-chip";
+
+  const label = document.createElement("span");
+
+  label.textContent = texto;
+
+  const button = document.createElement("button");
+
+  button.type = "button";
+
+  button.textContent = "×";
+
+  button.setAttribute("aria-label", `Remover filtro ${texto}`);
+
+  button.addEventListener("click", removerFiltro);
+
+  chip.append(label, button);
+
+  return chip;
+}
+
+function renderizarFiltrosAtivos() {
+  activeFiltersList.innerHTML = "";
+
+  if (filtrosAplicados.periodo) {
+    const nome =
+      periodoFiltroConfig[filtrosAplicados.periodo] || filtrosAplicados.periodo;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.periodo = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.categoria) {
+    const nome =
+      categoriaConfig[filtrosAplicados.categoria] || filtrosAplicados.categoria;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.categoria = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  activeFiltersList.hidden = activeFiltersList.children.length === 0;
+}
+
+function finalizarRemocaoDeFiltro() {
+  sincronizarFormularioComFiltros();
+
+  atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
+  renderizarCalendario();
+}
+
 function abrirFiltros() {
   filterPanel.hidden = false;
 
@@ -475,12 +1111,16 @@ function fecharFiltros() {
 
 function aplicarFiltros() {
   filtrosAplicados = {
-    periodo: obterPeriodoSelecionado(),
+    periodo: periodFilter.value,
     categoria: categoryFilter.value,
   };
 
   atualizarContagemDeFiltros();
-  renderizarLista();
+
+  renderizarFiltrosAtivos();
+
+  renderizarCalendario();
+
   fecharFiltros();
 
   mostrarFeedback(
@@ -491,20 +1131,18 @@ function aplicarFiltros() {
 }
 
 function limparFiltros() {
-  periodFilterInputs.forEach((input) => {
-    input.checked = input.value === "";
-  });
-
-  categoryFilter.value = "";
-
   filtrosAplicados = {
     periodo: "",
     categoria: "",
   };
 
-  sincronizarEstiloDosFiltros();
+  sincronizarFormularioComFiltros();
+
   atualizarContagemDeFiltros();
-  renderizarLista();
+
+  renderizarFiltrosAtivos();
+
+  renderizarCalendario();
 
   mostrarFeedback("Filtros removidos.");
 }
@@ -513,95 +1151,136 @@ function limparFiltros() {
    PRÓXIMO ATENDIMENTO
 ========================================= */
 
+function obterProximoAtendimento() {
+  const hoje = obterInicioDoDia();
+
+  return (
+    obterServicosDoCliente().filter((servico) => {
+      const dataServico = criarDataLocal(servico.data);
+
+      return (
+        dataServico &&
+        dataServico >= hoje &&
+        ["confirmado", "em-deslocamento", "em-atendimento"].includes(
+          servico.status,
+        )
+      );
+    })[0] || null
+  );
+}
+
 function renderizarProximoAtendimento() {
-  const agendamentos = obterAgendamentosDoCliente();
+  proximoAtendimento = obterProximoAtendimento();
 
-  proximoAtendimento = agendamentos[0] || null;
+  const possuiAtendimento = Boolean(proximoAtendimento);
 
-  nextServiceSection.hidden = !proximoAtendimento;
+  nextServiceTop.hidden = !possuiAtendimento;
+
+  nextServiceContent.hidden = !possuiAtendimento;
+
+  nextServiceActions.hidden = !possuiAtendimento;
+
+  nextServiceEmpty.hidden = possuiAtendimento;
 
   if (!proximoAtendimento) {
     return;
   }
 
+  const statusData =
+    statusConfig[proximoAtendimento.status] || statusConfig.confirmado;
+
   nextServiceTitle.textContent = proximoAtendimento.titulo;
 
-  nextServiceStatus.textContent = "Confirmado";
+  nextServiceStatus.textContent = statusData.nome;
+
+  nextServiceStatus.className = `next-service__status ${statusData.classe}`;
 
   nextServiceDay.textContent = formatarDia(proximoAtendimento.data);
 
   nextServiceMonth.textContent = formatarMesCurto(proximoAtendimento.data);
 
+  nextServiceYear.textContent = formatarAno(proximoAtendimento.data);
+
   nextServiceTime.textContent = formatarHorario(proximoAtendimento);
 
-  nextServiceAddress.textContent = proximoAtendimento.endereco;
+  nextServiceAddress.textContent =
+    proximoAtendimento.endereco || "Endereço não informado";
 
-  nextServiceCode.textContent = proximoAtendimento.id;
+  nextServiceCode.textContent =
+    proximoAtendimento.codigo || proximoAtendimento.id;
 }
 
 /* =========================================
    RESUMO
 ========================================= */
 
-function obterResumoProximaData(servico) {
-  if (!servico) {
-    return "--";
-  }
-
-  const hoje = obterHoje();
-
-  const dataServico = criarDataLocal(servico.data);
-
-  const amanha = new Date(hoje);
-
-  amanha.setDate(amanha.getDate() + 1);
-
-  if (dataServico.getTime() === hoje.getTime()) {
-    return "Hoje";
-  }
-
-  if (dataServico.getTime() === amanha.getTime()) {
-    return "Amanhã";
-  }
-
-  return formatarDataCurta(servico.data);
-}
-
 function atualizarResumo() {
-  const agendamentos = obterAgendamentosDoCliente();
+  const lista = obterServicosDoCliente();
 
-  const hoje = obterHoje();
+  const hoje = obterInicioDoDia();
 
-  const agendamentosDoMes = agendamentos.filter((servico) => {
-    const dataServico = criarDataLocal(servico.data);
+  const proximos = lista.filter((servico) => {
+    const data = criarDataLocal(servico.data);
 
     return (
-      dataServico.getFullYear() === hoje.getFullYear() &&
-      dataServico.getMonth() === hoje.getMonth()
+      data &&
+      data >= hoje &&
+      !["concluido", "cancelado"].includes(servico.status)
     );
   });
 
-  summaryTotal.textContent = String(agendamentos.length);
+  const desteMes = lista.filter((servico) => {
+    const data = criarDataLocal(servico.data);
 
-  summaryMonth.textContent = String(agendamentosDoMes.length);
+    return (
+      data &&
+      data.getFullYear() === hoje.getFullYear() &&
+      data.getMonth() === hoje.getMonth()
+    );
+  });
 
-  summaryNext.textContent = obterResumoProximaData(agendamentos[0]);
+  const aguardando = lista.filter(
+    (servico) => servico.status === "a-confirmar",
+  );
+
+  summaryTotal.textContent = String(proximos.length);
+
+  summaryMonth.textContent = String(desteMes.length);
+
+  summaryPending.textContent = String(aguardando.length);
 }
 
 /* =========================================
-   CRIAÇÃO DOS CARDS
+   CARD COMPACTO DO SERVIÇO
 ========================================= */
+
+function alternarDetalhesDoCard(card) {
+  const toggle = card.querySelector(".service-card__toggle");
+
+  const details = card.querySelector(".service-card__details");
+
+  const seraAberto = details.hidden;
+
+  details.hidden = !seraAberto;
+
+  toggle.setAttribute("aria-expanded", String(seraAberto));
+
+  toggle.setAttribute(
+    "aria-label",
+    seraAberto ? "Ocultar detalhes do serviço" : "Mostrar detalhes do serviço",
+  );
+
+  card.classList.toggle("is-expanded", seraAberto);
+}
 
 function preencherCard(servico) {
   const fragmento = serviceCardTemplate.content.cloneNode(true);
 
   const card = fragmento.querySelector(".service-card");
 
-  const day = card.querySelector(".service-card__day");
+  const timeStrong = card.querySelector(".service-card__time strong");
 
-  const month = card.querySelector(".service-card__month");
-
-  const year = card.querySelector(".service-card__year");
+  const timePeriod = card.querySelector(".service-card__time span");
 
   const code = card.querySelector(".service-card__code");
 
@@ -609,33 +1288,43 @@ function preencherCard(servico) {
 
   const title = card.querySelector(".service-card__title");
 
+  const toggle = card.querySelector(".service-card__toggle");
+
   const services = card.querySelector(".service-card__services");
 
-  const time = card.querySelector(".service-card__time span");
-
   const address = card.querySelector(".service-card__address span");
+
+  const dateInformation = card.querySelector(
+    ".service-card__date-information span",
+  );
 
   const mapButton = card.querySelector(".service-card__button--map");
 
   const detailsButton = card.querySelector(".service-card__button--details");
 
-  day.textContent = formatarDia(servico.data);
+  const statusData = statusConfig[servico.status] || statusConfig.confirmado;
 
-  month.textContent = formatarMesCurto(servico.data);
+  card.dataset.serviceId = servico.id;
 
-  year.textContent = formatarAno(servico.data);
+  timeStrong.textContent = servico.horario || "A definir";
 
-  code.textContent = servico.id;
+  timePeriod.textContent = periodoConfig[servico.periodo] || "Período";
 
-  status.textContent = "Confirmado";
+  code.textContent = servico.codigo || servico.id;
+
+  status.textContent = statusData.nome;
+
+  status.classList.add(statusData.classe);
 
   title.textContent = servico.titulo;
 
   services.textContent = servico.servicos.join(" • ");
 
-  time.textContent = formatarHorario(servico);
+  address.textContent = servico.endereco || "Endereço não informado";
 
-  address.textContent = servico.endereco;
+  dateInformation.textContent = formatarDataCompleta(servico.data);
+
+  toggle.setAttribute("aria-label", `Mostrar detalhes da ordem ${servico.id}`);
 
   mapButton.setAttribute("aria-label", `Abrir endereço da ordem ${servico.id}`);
 
@@ -643,6 +1332,10 @@ function preencherCard(servico) {
     "aria-label",
     `Abrir detalhes da ordem ${servico.id}`,
   );
+
+  toggle.addEventListener("click", () => {
+    alternarDetalhesDoCard(card);
+  });
 
   mapButton.addEventListener("click", () => {
     abrirEnderecoNoMapa(servico.endereco);
@@ -656,24 +1349,204 @@ function preencherCard(servico) {
 }
 
 /* =========================================
-   RENDERIZAÇÃO DA LISTA
+   CALENDÁRIO MENSAL
 ========================================= */
 
-function renderizarLista() {
-  const listaFiltrada = obterServicosFiltrados();
+function criarMarcadores(container, servicosDoDia) {
+  container.innerHTML = "";
 
+  const statusUnicos = [
+    ...new Set(servicosDoDia.map((servico) => servico.status)),
+  ].slice(0, 4);
+
+  statusUnicos.forEach((status) => {
+    const marcador = document.createElement("span");
+
+    marcador.className = [
+      "calendar-marker",
+      statusConfig[status]?.marcador || "calendar-marker--confirmado",
+    ].join(" ");
+
+    container.appendChild(marcador);
+  });
+}
+
+function selecionarData(data) {
+  const foraDoMes =
+    data.getMonth() !== dataReferencia.getMonth() ||
+    data.getFullYear() !== dataReferencia.getFullYear();
+
+  dataSelecionada = obterInicioDoDia(data);
+
+  if (foraDoMes) {
+    dataReferencia = obterInicioDoDia(data);
+  }
+
+  renderizarCalendario();
+
+  window.requestAnimationFrame(() => {
+    selectedDayPanel.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  });
+}
+
+function fecharDiaSelecionado() {
+  dataSelecionada = null;
+
+  renderizarCalendario();
+}
+
+function renderizarPainelDoDia() {
   servicesList.innerHTML = "";
 
-  listaFiltrada.forEach((servico) => {
-    servicesList.appendChild(preencherCard(servico));
-  });
+  if (!dataSelecionada) {
+    selectedDayPanel.hidden = true;
 
-  servicesCount.textContent = formatarQuantidade(listaFiltrada.length);
+    return;
+  }
 
-  const listaVazia = listaFiltrada.length === 0;
+  selectedDayPanel.hidden = false;
+
+  const dataISO = obterDataISO(dataSelecionada);
+
+  const lista = obterServicosFiltrados().filter(
+    (servico) => servico.data === dataISO,
+  );
+
+  selectedDayTitle.textContent = formatarDataCompleta(dataSelecionada);
+
+  selectedDayCount.textContent = formatarQuantidade(lista.length);
+
+  const listaVazia = lista.length === 0;
 
   servicesList.hidden = listaVazia;
-  emptyState.hidden = !listaVazia;
+
+  selectedDayEmpty.hidden = !listaVazia;
+
+  lista.forEach((servico) => {
+    servicesList.appendChild(preencherCard(servico));
+  });
+}
+
+function renderizarCalendario() {
+  calendarGrid.innerHTML = "";
+
+  currentMonthLabel.textContent = formatarMesEAno(dataReferencia);
+
+  const listaFiltrada = obterServicosFiltrados();
+
+  const inicioDoMes = obterPrimeiroDiaDoMes(dataReferencia);
+
+  const fimDoMes = obterUltimoDiaDoMes(dataReferencia);
+
+  const servicosDoMes = listaFiltrada.filter((servico) => {
+    const data = criarDataLocal(servico.data);
+
+    return data >= inicioDoMes && data <= fimDoMes;
+  });
+
+  servicesCount.textContent = formatarQuantidade(servicosDoMes.length);
+
+  const inicioCalendario = obterInicioDoCalendario(dataReferencia);
+
+  const hoje = obterInicioDoDia();
+
+  for (let indice = 0; indice < 42; indice += 1) {
+    const data = new Date(inicioCalendario);
+
+    data.setDate(inicioCalendario.getDate() + indice);
+
+    const dataISO = obterDataISO(data);
+
+    const servicosDoDia = listaFiltrada.filter(
+      (servico) => servico.data === dataISO,
+    );
+
+    const fragmento = calendarDayTemplate.content.cloneNode(true);
+
+    const dayButton = fragmento.querySelector(".calendar-day");
+
+    const dayNumber = fragmento.querySelector(".calendar-day__number");
+
+    const markers = fragmento.querySelector(".calendar-day__markers");
+
+    const count = fragmento.querySelector(".calendar-day__count");
+
+    dayNumber.textContent = String(data.getDate());
+
+    count.textContent = String(servicosDoDia.length);
+
+    dayButton.dataset.date = dataISO;
+
+    dayButton.setAttribute(
+      "aria-label",
+      `${formatarDataCompleta(data)}. ` +
+        `${formatarQuantidade(servicosDoDia.length)}.`,
+    );
+
+    const pertenceAoMes =
+      data.getMonth() === dataReferencia.getMonth() &&
+      data.getFullYear() === dataReferencia.getFullYear();
+
+    dayButton.classList.toggle("is-outside-month", !pertenceAoMes);
+
+    dayButton.classList.toggle("is-today", datasSaoIguais(data, hoje));
+
+    dayButton.classList.toggle("has-services", servicosDoDia.length > 0);
+
+    const estaSelecionado = datasSaoIguais(data, dataSelecionada);
+
+    dayButton.classList.toggle("is-selected", estaSelecionado);
+
+    dayButton.setAttribute("aria-pressed", String(estaSelecionado));
+
+    criarMarcadores(markers, servicosDoDia);
+
+    dayButton.addEventListener("click", () => {
+      selecionarData(data);
+    });
+
+    calendarGrid.appendChild(fragmento);
+  }
+
+  const possuiServicosNoMes = servicosDoMes.length > 0;
+
+  const possuiDataSelecionada = Boolean(dataSelecionada);
+
+  daySelectionPlaceholder.hidden =
+    !possuiServicosNoMes || possuiDataSelecionada;
+
+  emptyState.hidden = possuiServicosNoMes || possuiDataSelecionada;
+
+  renderizarPainelDoDia();
+}
+
+/* =========================================
+   NAVEGAÇÃO ENTRE MESES
+========================================= */
+
+function moverMes(direcao) {
+  dataReferencia = new Date(
+    dataReferencia.getFullYear(),
+    dataReferencia.getMonth() + direcao,
+    1,
+  );
+
+  dataSelecionada = null;
+
+  renderizarCalendario();
+}
+
+function voltarParaHoje() {
+  dataReferencia = obterInicioDoDia();
+
+  dataSelecionada = null;
+
+  renderizarCalendario();
+
+  mostrarFeedback("Calendário posicionado no mês atual.");
 }
 
 /* =========================================
@@ -696,6 +1569,22 @@ openNextDetailsButton.addEventListener("click", () => {
   abrirDetalhes(proximoAtendimento.id);
 });
 
+previousMonthButton.addEventListener("click", () => {
+  moverMes(-1);
+});
+
+nextMonthButton.addEventListener("click", () => {
+  moverMes(1);
+});
+
+todayButton.addEventListener("click", voltarParaHoje);
+
+quickFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    alterarFiltroRapido(button.dataset.quickFilter);
+  });
+});
+
 openFilterButton.addEventListener("click", abrirFiltros);
 
 closeFilterButton.addEventListener("click", fecharFiltros);
@@ -704,15 +1593,25 @@ applyFiltersButton.addEventListener("click", aplicarFiltros);
 
 clearFiltersButton.addEventListener("click", limparFiltros);
 
-periodFilterInputs.forEach((input) => {
-  input.addEventListener("change", sincronizarEstiloDosFiltros);
-});
+closeSelectedDayButton.addEventListener("click", fecharDiaSelecionado);
 
-scheduleSearch.addEventListener("input", renderizarLista);
+scheduleSearch.addEventListener("input", renderizarCalendario);
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !filterPanel.hidden) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!filterPanel.hidden) {
     fecharFiltros();
+
+    openFilterButton.focus();
+
+    return;
+  }
+
+  if (dataSelecionada) {
+    fecharDiaSelecionado();
   }
 });
 
@@ -720,10 +1619,18 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-sincronizarEstiloDosFiltros();
+carregarServicosSalvos();
+
+sincronizarFormularioComFiltros();
+
+atualizarContagemDeFiltros();
+
+renderizarFiltrosAtivos();
+
+alterarFiltroRapido(filtroRapido);
 
 renderizarProximoAtendimento();
 
 atualizarResumo();
 
-renderizarLista();
+renderizarCalendario();

@@ -4,6 +4,26 @@
 
 const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
 
+const ORDERS_STATE_STORAGE_KEY = "salvateckEstadoOrdensTemporarias";
+
+const ORDER_PREVIEW_STORAGE_KEY = "salvateckOrdemPreviewTemporaria";
+
+const ABAS_PERMITIDAS = [
+  "todos",
+  "novas",
+  "pendentes",
+  "agendadas",
+  "andamento",
+  "encerradas",
+];
+
+const ORDENACOES_PERMITIDAS = [
+  "mais-recentes",
+  "mais-antigas",
+  "proxima-data",
+  "cliente",
+];
+
 /* =========================================
    FUNÇÕES PARA DATAS TEMPORÁRIAS
 ========================================= */
@@ -362,6 +382,7 @@ const categoriaConfig = {
   alvenaria: "Alvenaria",
   instalacoes: "Instalações",
   "manutencao-geral": "Manutenção geral",
+  vistoria: "Vistoria técnica",
 };
 
 const periodoConfig = {
@@ -372,9 +393,7 @@ const periodoConfig = {
 
 const responsavelConfig = {
   jose: "José",
-
   "equipe-apoio": "Equipe de apoio",
-
   "nao-definido": "Responsável não definido",
 };
 
@@ -454,6 +473,13 @@ const abasConfig = {
   },
 };
 
+const filtroDataConfig = {
+  hoje: "Hoje",
+  semana: "Esta semana",
+  mes: "Este mês",
+  "sem-data": "Sem data definida",
+};
+
 /* =========================================
    ELEMENTOS DA PÁGINA
 ========================================= */
@@ -477,6 +503,8 @@ const closeFilterButton = document.getElementById("close-filter-button");
 const filterPanel = document.getElementById("filter-panel");
 
 const activeFilterCount = document.getElementById("active-filter-count");
+
+const activeFiltersList = document.getElementById("active-filters-list");
 
 const statusFilterInputs = document.querySelectorAll(
   'input[name="statusFilter"]',
@@ -509,6 +537,16 @@ const ordersContentEyebrow = document.getElementById("orders-content-eyebrow");
 const ordersContentTitle = document.getElementById("orders-content-title");
 
 const ordersCount = document.getElementById("orders-count");
+
+const ordersContentHint = document.querySelector(".orders-content__hint");
+
+const previousOrderButton = document.getElementById("previous-order-button");
+
+const nextOrderButton = document.getElementById("next-order-button");
+
+const ordersCarouselPosition = document.getElementById(
+  "orders-carousel-position",
+);
 
 const ordersList = document.getElementById("orders-list");
 
@@ -557,6 +595,10 @@ let filtrosAplicados = {
 };
 
 let ordemEmEdicaoId = null;
+
+let indiceAtualCarrossel = 0;
+
+let carouselAnimationFrame = null;
 
 let feedbackTimeout;
 
@@ -668,10 +710,24 @@ function mostrarFeedback(mensagem) {
   }, 2800);
 }
 
-function abrirDetalhes(ordemId) {
+function abrirDetalhes(ordem) {
+  if (!ordem) {
+    mostrarFeedback("Não foi possível identificar a ordem.");
+
+    return;
+  }
+
+  try {
+    sessionStorage.setItem(ORDER_PREVIEW_STORAGE_KEY, JSON.stringify(ordem));
+  } catch (error) {
+    console.warn("Não foi possível preparar a visualização da ordem.", error);
+  }
+
   const parametros = new URLSearchParams({
-    id: ordemId,
+    id: ordem.id,
+    codigo: ordem.codigo || ordem.id,
     perfil: "admin",
+    origem: "ordens",
   });
 
   window.location.href = `detalhes-solicitacao.html?${parametros.toString()}`;
@@ -719,14 +775,258 @@ function datasSaoIguais(dataA, dataB) {
    ARMAZENAMENTO LOCAL TEMPORÁRIO
 ========================================= */
 
+function normalizarStatusDaOrdemSalva(status) {
+  const statusNormalizado = normalizarTexto(status);
+
+  const statusMap = {
+    nova: "nova",
+    "nova-solicitacao": "nova",
+    analise: "nova",
+    "em-analise": "nova",
+
+    "aguardando-confirmacao": "aguardando-confirmacao",
+
+    agendada: "agendada",
+    agendado: "agendada",
+
+    "em-deslocamento": "em-deslocamento",
+
+    "em-atendimento": "em-atendimento",
+
+    concluida: "concluida",
+    concluido: "concluida",
+
+    cancelada: "cancelada",
+    cancelado: "cancelada",
+
+    recusada: "recusada",
+    recusado: "recusada",
+  };
+
+  return statusMap[statusNormalizado] || "nova";
+}
+
+function converterStatusParaArmazenamento(status) {
+  const statusMap = {
+    nova: "nova-solicitacao",
+
+    "aguardando-confirmacao": "aguardando-confirmacao",
+
+    agendada: "agendada",
+
+    "em-deslocamento": "em-deslocamento",
+
+    "em-atendimento": "em-atendimento",
+
+    concluida: "concluida",
+
+    cancelada: "cancelada",
+
+    recusada: "recusada",
+  };
+
+  return statusMap[status] || status;
+}
+
+function normalizarPrioridadeDaOrdemSalva(prioridade) {
+  const prioridadeNormalizada = normalizarTexto(prioridade);
+
+  const prioridadeMap = {
+    baixa: "baixa",
+    low: "baixa",
+
+    normal: "normal",
+
+    alta: "alta",
+    high: "alta",
+
+    urgente: "urgente",
+    critica: "urgente",
+    critical: "urgente",
+  };
+
+  return prioridadeMap[prioridadeNormalizada] || "normal";
+}
+
+function obterServicosDaOrdemSalva(ordem) {
+  if (!Array.isArray(ordem.servicos)) {
+    return [ordem.servicoPrincipal].filter(Boolean);
+  }
+
+  return ordem.servicos
+    .map((servico) => {
+      if (typeof servico === "string") {
+        return servico;
+      }
+
+      return servico?.servico || servico?.nome || "";
+    })
+    .filter(Boolean);
+}
+
+function obterEnderecoDaOrdemSalva(ordem) {
+  if (typeof ordem.endereco === "string") {
+    return ordem.endereco;
+  }
+
+  if (String(ordem.endereco?.resumo || "").trim()) {
+    return ordem.endereco.resumo;
+  }
+
+  const primeiraLinha = [
+    ordem.endereco?.logradouro || ordem.endereco?.rua,
+
+    ordem.endereco?.numero,
+
+    ordem.endereco?.complemento,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const cidadeEstado = [
+    ordem.endereco?.cidade,
+
+    ordem.endereco?.uf || ordem.endereco?.estado,
+  ]
+    .filter(Boolean)
+    .join("/");
+
+  const segundaLinha = [ordem.endereco?.bairro, cidadeEstado]
+    .filter(Boolean)
+    .join(" — ");
+
+  return (
+    [primeiraLinha, segundaLinha].filter(Boolean).join(" — ") ||
+    "Endereço não informado"
+  );
+}
+
+function normalizarOrdemSalvaParaLista(ordem, indice) {
+  const categorias =
+    Array.isArray(ordem.categorias) && ordem.categorias.length
+      ? ordem.categorias
+      : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const status = normalizarStatusDaOrdemSalva(ordem.status);
+
+  const dataPreferida =
+    ordem.atendimento?.dataPreferida || ordem.dataPreferida || "";
+
+  const dataAgendada =
+    ordem.dataAgendada ||
+    ordem.atendimento?.dataConfirmada ||
+    (status === "agendada" ? dataPreferida : null);
+
+  return {
+    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+
+    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
+
+    clienteId: ordem.cliente?.id || ordem.clienteId || "",
+
+    clienteNome:
+      ordem.cliente?.nome || ordem.clienteNome || "Cliente não informado",
+
+    titulo:
+      ordem.titulo ||
+      ordem.servicoPrincipal ||
+      (categorias.includes("vistoria")
+        ? "Vistoria técnica"
+        : "Ordem de serviço"),
+
+    categorias,
+
+    servicos: obterServicosDaOrdemSalva(ordem),
+
+    criadoEm: ordem.criadoEm || new Date().toISOString(),
+
+    dataAgendada,
+
+    periodo:
+      ordem.atendimento?.periodoConfirmado ||
+      ordem.periodo ||
+      ordem.atendimento?.periodo ||
+      "",
+
+    horario:
+      ordem.atendimento?.horarioConfirmado ||
+      ordem.horario ||
+      ordem.atendimento?.horarioPreferido ||
+      "",
+
+    endereco: obterEnderecoDaOrdemSalva(ordem),
+
+    responsavel: ordem.responsavel || "nao-definido",
+
+    status,
+
+    prioridade: normalizarPrioridadeDaOrdemSalva(
+      ordem.prioridade || ordem.vistoria?.prioridade,
+    ),
+
+    valor: ordem.valor ?? null,
+
+    pagamentoStatus: ordem.pagamentoStatus || "nao-informado",
+
+    observacaoAdmin: ordem.observacaoAdmin || ordem.observacoes?.interna || "",
+
+    perfilCriador: ordem.perfilCriador || "cliente",
+
+    tipoAtendimento:
+      ordem.tipoAtendimento ||
+      (categorias.includes("vistoria") ? "vistoria" : "servico"),
+  };
+}
+
 function carregarEstadoLocal() {
   try {
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "{}",
+    const dadosBrutos = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
     );
 
+    const ordensSalvas = Array.isArray(dadosBrutos) ? dadosBrutos : [];
+
+    const estadoLegado =
+      !Array.isArray(dadosBrutos) &&
+      dadosBrutos &&
+      typeof dadosBrutos === "object"
+        ? dadosBrutos
+        : {};
+
+    const ordensNormalizadas = ordensSalvas.map(normalizarOrdemSalvaParaLista);
+
+    ordensNormalizadas.forEach((ordemSalva) => {
+      const indiceExistente = ordensDeServico.findIndex((ordemAtual) => {
+        return (
+          ordemAtual.id === ordemSalva.id ||
+          (ordemAtual.codigo && ordemAtual.codigo === ordemSalva.codigo)
+        );
+      });
+
+      if (indiceExistente >= 0) {
+        ordensDeServico[indiceExistente] = {
+          ...ordensDeServico[indiceExistente],
+
+          ...ordemSalva,
+        };
+
+        return;
+      }
+
+      ordensDeServico.push(ordemSalva);
+    });
+
+    const estadoSalvo = JSON.parse(
+      localStorage.getItem(ORDERS_STATE_STORAGE_KEY) || "{}",
+    );
+
+    const estadoCompleto = {
+      ...estadoLegado,
+      ...estadoSalvo,
+    };
+
     ordensDeServico.forEach((ordem) => {
-      const alteracao = dadosSalvos[ordem.id];
+      const alteracao = estadoCompleto[ordem.id];
 
       if (!alteracao) {
         return;
@@ -734,15 +1034,31 @@ function carregarEstadoLocal() {
 
       ordem.status = alteracao.status ?? ordem.status;
 
+      ordem.prioridade = alteracao.prioridade ?? ordem.prioridade;
+
       ordem.responsavel = alteracao.responsavel ?? ordem.responsavel;
 
       ordem.dataAgendada = alteracao.dataAgendada ?? ordem.dataAgendada;
 
+      ordem.periodo = alteracao.periodo ?? ordem.periodo;
+
       ordem.horario = alteracao.horario ?? ordem.horario;
+
+      ordem.valor = alteracao.valor ?? ordem.valor;
+
+      ordem.pagamentoStatus =
+        alteracao.pagamentoStatus ?? ordem.pagamentoStatus;
 
       ordem.observacaoAdmin =
         alteracao.observacaoAdmin ?? ordem.observacaoAdmin;
     });
+
+    if (Object.keys(estadoLegado).length) {
+      localStorage.setItem(
+        ORDERS_STATE_STORAGE_KEY,
+        JSON.stringify(estadoCompleto),
+      );
+    }
   } catch (error) {
     console.warn("Não foi possível carregar as ordens temporárias.", error);
   }
@@ -750,23 +1066,100 @@ function carregarEstadoLocal() {
 
 function salvarEstadoLocal() {
   try {
-    const dadosParaSalvar = {};
+    const estadoParaSalvar = {};
 
     ordensDeServico.forEach((ordem) => {
-      dadosParaSalvar[ordem.id] = {
+      estadoParaSalvar[ordem.id] = {
         status: ordem.status,
+
+        prioridade: ordem.prioridade,
 
         responsavel: ordem.responsavel,
 
         dataAgendada: ordem.dataAgendada,
 
+        periodo: ordem.periodo,
+
         horario: ordem.horario,
+
+        valor: ordem.valor,
+
+        pagamentoStatus: ordem.pagamentoStatus,
 
         observacaoAdmin: ordem.observacaoAdmin,
       };
     });
 
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(dadosParaSalvar));
+    localStorage.setItem(
+      ORDERS_STATE_STORAGE_KEY,
+      JSON.stringify(estadoParaSalvar),
+    );
+
+    const ordensSalvas = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    if (!Array.isArray(ordensSalvas)) {
+      return;
+    }
+
+    const ordensAtualizadas = ordensSalvas.map((ordemSalva) => {
+      const ordemAtual = ordensDeServico.find((ordem) => {
+        return (
+          ordem.id === ordemSalva.id ||
+          (ordem.codigo && ordem.codigo === ordemSalva.codigo)
+        );
+      });
+
+      if (!ordemAtual) {
+        return ordemSalva;
+      }
+
+      return {
+        ...ordemSalva,
+
+        status: converterStatusParaArmazenamento(ordemAtual.status),
+
+        prioridade: ordemAtual.prioridade,
+
+        responsavel: ordemAtual.responsavel,
+
+        dataAgendada: ordemAtual.dataAgendada,
+
+        periodo: ordemAtual.periodo,
+
+        horario: ordemAtual.horario,
+
+        valor: ordemAtual.valor,
+
+        pagamentoStatus: ordemAtual.pagamentoStatus,
+
+        observacaoAdmin: ordemAtual.observacaoAdmin,
+
+        atualizadoEm: new Date().toISOString(),
+
+        atendimento: {
+          ...(ordemSalva.atendimento || {}),
+
+          dataConfirmada:
+            ordemAtual.dataAgendada ||
+            ordemSalva.atendimento?.dataConfirmada ||
+            "",
+
+          periodoConfirmado:
+            ordemAtual.periodo ||
+            ordemSalva.atendimento?.periodoConfirmado ||
+            "",
+
+          horarioConfirmado:
+            ordemAtual.horario ||
+            ordemSalva.atendimento?.horarioConfirmado ||
+            "",
+        },
+      };
+    });
+
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(ordensAtualizadas));
   } catch (error) {
     console.warn("Não foi possível salvar as ordens temporárias.", error);
   }
@@ -849,14 +1242,18 @@ function atualizarAbas() {
 }
 
 function alterarAba(novaAba) {
-  if (!abasConfig[novaAba]) {
+  if (!ABAS_PERMITIDAS.includes(novaAba)) {
     return;
   }
 
   abaAtual = novaAba;
 
   atualizarAbas();
+
   fecharTodosOsMenus();
+
+  fecharTodosOsDetalhes();
+
   renderizarOrdens();
 }
 
@@ -880,6 +1277,7 @@ function correspondeAPesquisa(ordem) {
   const conteudoPesquisavel = normalizarTexto(
     [
       ordem.id,
+      ordem.codigo,
       ordem.clienteNome,
       ordem.titulo,
       ordem.servicos.join(" "),
@@ -978,6 +1376,22 @@ function sincronizarEstiloDosFiltros() {
   });
 }
 
+function sincronizarFormularioComFiltros() {
+  statusFilterInputs.forEach((input) => {
+    input.checked = filtrosAplicados.status.includes(input.value);
+  });
+
+  categoryFilter.value = filtrosAplicados.categoria;
+
+  employeeFilter.value = filtrosAplicados.responsavel;
+
+  periodFilter.value = filtrosAplicados.periodo;
+
+  dateFilter.value = filtrosAplicados.data;
+
+  sincronizarEstiloDosFiltros();
+}
+
 function contarFiltrosAtivos() {
   let quantidade = filtrosAplicados.status.length;
 
@@ -1006,6 +1420,113 @@ function atualizarContagemDeFiltros() {
   activeFilterCount.textContent = String(quantidade);
 
   activeFilterCount.hidden = quantidade === 0;
+}
+
+function criarChipDeFiltro(texto, removerFiltro) {
+  const chip = document.createElement("span");
+
+  chip.className = "active-filter-chip";
+
+  const label = document.createElement("span");
+
+  label.textContent = texto;
+
+  const button = document.createElement("button");
+
+  button.type = "button";
+
+  button.textContent = "×";
+
+  button.setAttribute("aria-label", `Remover filtro ${texto}`);
+
+  button.addEventListener("click", removerFiltro);
+
+  chip.append(label, button);
+
+  return chip;
+}
+
+function finalizarRemocaoDeFiltro() {
+  sincronizarFormularioComFiltros();
+
+  atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
+  renderizarOrdens();
+}
+
+function renderizarFiltrosAtivos() {
+  activeFiltersList.innerHTML = "";
+
+  filtrosAplicados.status.forEach((status) => {
+    const nome = statusConfig[status]?.nome || status;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.status = filtrosAplicados.status.filter(
+          (item) => item !== status,
+        );
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  });
+
+  if (filtrosAplicados.categoria) {
+    const nome =
+      categoriaConfig[filtrosAplicados.categoria] || filtrosAplicados.categoria;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.categoria = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.responsavel) {
+    const nome =
+      responsavelConfig[filtrosAplicados.responsavel] ||
+      filtrosAplicados.responsavel;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.responsavel = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.periodo) {
+    const nome =
+      periodoConfig[filtrosAplicados.periodo] || filtrosAplicados.periodo;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.periodo = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.data) {
+    const nome =
+      filtroDataConfig[filtrosAplicados.data] || filtrosAplicados.data;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.data = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  activeFiltersList.hidden = activeFiltersList.children.length === 0;
 }
 
 function abrirFiltros() {
@@ -1041,7 +1562,11 @@ function aplicarFiltros() {
   };
 
   atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
   renderizarOrdens();
+
   fecharFiltros();
 
   mostrarFeedback(
@@ -1054,15 +1579,6 @@ function aplicarFiltros() {
 function limparPesquisaEFiltros() {
   ordersSearch.value = "";
 
-  statusFilterInputs.forEach((input) => {
-    input.checked = false;
-  });
-
-  categoryFilter.value = "";
-  employeeFilter.value = "";
-  periodFilter.value = "";
-  dateFilter.value = "";
-
   filtrosAplicados = {
     status: [],
     categoria: "",
@@ -1073,9 +1589,18 @@ function limparPesquisaEFiltros() {
 
   abaAtual = "todos";
 
-  sincronizarEstiloDosFiltros();
+  sincronizarFormularioComFiltros();
+
   atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
   atualizarAbas();
+
+  fecharFiltros();
+
+  fecharOrdenacao();
+
   renderizarOrdens();
 
   mostrarFeedback("Pesquisa e filtros removidos.");
@@ -1114,56 +1639,54 @@ function ordenarOrdens(lista) {
   const copia = [...lista];
 
   if (ordenacaoAtual === "mais-antigas") {
-    return copia.sort((a, b) => {
-      return new Date(a.criadoEm) - new Date(b.criadoEm);
-    });
+    return copia.sort(
+      (ordemA, ordemB) => new Date(ordemA.criadoEm) - new Date(ordemB.criadoEm),
+    );
   }
 
   if (ordenacaoAtual === "proxima-data") {
-    return copia.sort((a, b) => {
-      if (!a.dataAgendada && !b.dataAgendada) {
+    return copia.sort((ordemA, ordemB) => {
+      if (!ordemA.dataAgendada && !ordemB.dataAgendada) {
         return 0;
       }
 
-      if (!a.dataAgendada) {
+      if (!ordemA.dataAgendada) {
         return 1;
       }
 
-      if (!b.dataAgendada) {
+      if (!ordemB.dataAgendada) {
         return -1;
       }
 
-      return criarDataLocal(a.dataAgendada) - criarDataLocal(b.dataAgendada);
+      return (
+        criarDataLocal(ordemA.dataAgendada) -
+        criarDataLocal(ordemB.dataAgendada)
+      );
     });
   }
 
   if (ordenacaoAtual === "cliente") {
-    return copia.sort((a, b) => {
-      return a.clienteNome.localeCompare(b.clienteNome, "pt-BR");
-    });
+    return copia.sort((ordemA, ordemB) =>
+      ordemA.clienteNome.localeCompare(ordemB.clienteNome, "pt-BR"),
+    );
   }
 
-  return copia.sort((a, b) => {
-    return new Date(b.criadoEm) - new Date(a.criadoEm);
-  });
+  return copia.sort(
+    (ordemA, ordemB) => new Date(ordemB.criadoEm) - new Date(ordemA.criadoEm),
+  );
 }
 
 function alterarOrdenacao(novaOrdenacao) {
-  const opcoesPermitidas = [
-    "mais-recentes",
-    "mais-antigas",
-    "proxima-data",
-    "cliente",
-  ];
-
-  if (!opcoesPermitidas.includes(novaOrdenacao)) {
+  if (!ORDENACOES_PERMITIDAS.includes(novaOrdenacao)) {
     return;
   }
 
   ordenacaoAtual = novaOrdenacao;
 
   atualizarOpcoesDeOrdenacao();
+
   fecharOrdenacao();
+
   renderizarOrdens();
 
   mostrarFeedback("Ordenação atualizada.");
@@ -1285,9 +1808,11 @@ function salvarAtualizacaoDoModal(event) {
   salvarEstadoLocal();
 
   fecharModalDeAtualizacao();
+
   fecharTodosOsMenus();
 
   atualizarResumo();
+
   renderizarOrdens();
 
   mostrarFeedback("Ordem atualizada com sucesso.");
@@ -1312,6 +1837,78 @@ function fecharTodosOsMenus(excecao = null) {
     if (menu !== excecao) {
       button.setAttribute("aria-expanded", "false");
     }
+  });
+}
+
+/* =========================================
+   EXPANSÃO DOS CARDS
+========================================= */
+
+function fecharDetalhesDoCard(card) {
+  const details = card.querySelector(".order-card__details");
+
+  const toggle = card.querySelector(".order-card__toggle");
+
+  if (!details || !toggle) {
+    return;
+  }
+
+  details.hidden = true;
+
+  toggle.setAttribute("aria-expanded", "false");
+
+  toggle.setAttribute("aria-label", "Mostrar informações da ordem");
+
+  card.classList.remove("is-expanded");
+
+  const options = card.querySelector(".order-card__options");
+
+  const menuButton = card.querySelector(".order-card__menu");
+
+  if (options) {
+    options.hidden = true;
+  }
+
+  if (menuButton) {
+    menuButton.setAttribute("aria-expanded", "false");
+  }
+}
+
+function fecharTodosOsDetalhes(excecao = null) {
+  document.querySelectorAll(".order-card").forEach((card) => {
+    if (card !== excecao) {
+      fecharDetalhesDoCard(card);
+    }
+  });
+}
+
+function alternarDetalhesDoCard(card) {
+  const details = card.querySelector(".order-card__details");
+
+  const toggle = card.querySelector(".order-card__toggle");
+
+  if (!details || !toggle) {
+    return;
+  }
+
+  const seraAberto = details.hidden;
+
+  if (seraAberto) {
+    fecharTodosOsDetalhes(card);
+
+    details.hidden = false;
+
+    toggle.setAttribute("aria-expanded", "true");
+
+    toggle.setAttribute("aria-label", "Ocultar informações da ordem");
+
+    card.classList.add("is-expanded");
+  } else {
+    fecharDetalhesDoCard(card);
+  }
+
+  window.requestAnimationFrame(() => {
+    atualizarControlesDoCarrossel();
   });
 }
 
@@ -1394,6 +1991,7 @@ function atualizarOrdem(ordem, alteracoes, mensagem) {
   fecharTodosOsMenus();
 
   atualizarResumo();
+
   renderizarOrdens();
 
   mostrarFeedback(mensagem);
@@ -1611,9 +2209,13 @@ function preencherCard(ordem) {
 
   const title = card.querySelector(".order-card__title");
 
-  const services = card.querySelector(".order-card__services");
-
   const schedule = card.querySelector(".order-card__schedule > span");
+
+  const toggle = card.querySelector(".order-card__toggle");
+
+  const details = card.querySelector(".order-card__details");
+
+  const services = card.querySelector(".order-card__services");
 
   const address = card.querySelector(".order-card__address > span");
 
@@ -1645,6 +2247,13 @@ function preencherCard(ordem) {
   const pagamentoData =
     pagamentoConfig[ordem.pagamentoStatus] || pagamentoConfig["nao-informado"];
 
+  card.dataset.orderId = ordem.id;
+
+  card.setAttribute(
+    "aria-label",
+    `${ordem.id}, ${ordem.clienteNome}, ${ordem.titulo}`,
+  );
+
   priority.textContent = prioridadeData.nome;
 
   if (prioridadeData.classe) {
@@ -1659,7 +2268,7 @@ function preencherCard(ordem) {
 
   year.textContent = formatarAno(dataDoCard);
 
-  code.textContent = ordem.id;
+  code.textContent = ordem.codigo || ordem.id;
 
   status.textContent = statusData.nome;
 
@@ -1669,14 +2278,28 @@ function preencherCard(ordem) {
 
   title.textContent = ordem.titulo;
 
-  services.textContent = ordem.servicos.join(" • ");
-
   schedule.textContent = obterTextoAgendamento(ordem);
 
-  address.textContent = ordem.endereco;
+  services.textContent = ordem.servicos.join(" • ");
+
+  address.textContent = ordem.endereco || "Endereço não informado";
 
   employee.textContent =
     responsavelConfig[ordem.responsavel] || responsavelConfig["nao-definido"];
+
+  const detalheId = `order-details-${ordem.id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
+
+  details.id = detalheId;
+
+  toggle.setAttribute("aria-controls", detalheId);
+
+  toggle.setAttribute("aria-label", `Mostrar informações da ordem ${ordem.id}`);
+
+  toggle.addEventListener("click", () => {
+    alternarDetalhesDoCard(card);
+  });
 
   const mostrarFinanceiro =
     ordem.valor !== null || ordem.pagamentoStatus !== "nao-informado";
@@ -1697,7 +2320,7 @@ function preencherCard(ordem) {
   );
 
   detailsButton.addEventListener("click", () => {
-    abrirDetalhes(ordem.id);
+    abrirDetalhes(ordem);
   });
 
   const acaoPrincipal = obterAcaoPrincipal(ordem);
@@ -1752,6 +2375,134 @@ function preencherCard(ordem) {
 }
 
 /* =========================================
+   CONTROLE DO CARROSSEL
+========================================= */
+
+function obterCardsDoCarrossel() {
+  return Array.from(ordersList.querySelectorAll(".order-card"));
+}
+
+function obterIndiceMaisProximo() {
+  const cards = obterCardsDoCarrossel();
+
+  if (cards.length === 0) {
+    return 0;
+  }
+
+  const limiteEsquerdo = ordersList.getBoundingClientRect().left;
+
+  let indiceMaisProximo = 0;
+
+  let menorDistancia = Number.POSITIVE_INFINITY;
+
+  cards.forEach((card, indice) => {
+    const distancia = Math.abs(
+      card.getBoundingClientRect().left - limiteEsquerdo,
+    );
+
+    if (distancia < menorDistancia) {
+      menorDistancia = distancia;
+
+      indiceMaisProximo = indice;
+    }
+  });
+
+  return indiceMaisProximo;
+}
+
+function atualizarControlesDoCarrossel() {
+  const cards = obterCardsDoCarrossel();
+
+  const quantidade = cards.length;
+
+  if (quantidade === 0) {
+    indiceAtualCarrossel = 0;
+
+    ordersCarouselPosition.textContent = "0 de 0";
+
+    previousOrderButton.disabled = true;
+
+    nextOrderButton.disabled = true;
+
+    if (ordersContentHint) {
+      ordersContentHint.hidden = true;
+    }
+
+    return;
+  }
+
+  indiceAtualCarrossel = obterIndiceMaisProximo();
+
+  indiceAtualCarrossel = Math.min(
+    Math.max(indiceAtualCarrossel, 0),
+    quantidade - 1,
+  );
+
+  ordersCarouselPosition.textContent = `${indiceAtualCarrossel + 1} de ${quantidade}`;
+
+  previousOrderButton.disabled = indiceAtualCarrossel === 0;
+
+  nextOrderButton.disabled = indiceAtualCarrossel === quantidade - 1;
+
+  if (ordersContentHint) {
+    ordersContentHint.hidden = quantidade <= 1;
+  }
+}
+
+function agendarAtualizacaoDoCarrossel() {
+  if (carouselAnimationFrame) {
+    window.cancelAnimationFrame(carouselAnimationFrame);
+  }
+
+  carouselAnimationFrame = window.requestAnimationFrame(() => {
+    carouselAnimationFrame = null;
+
+    atualizarControlesDoCarrossel();
+  });
+}
+
+function rolarParaOrdem(indice) {
+  const cards = obterCardsDoCarrossel();
+
+  if (cards.length === 0) {
+    return;
+  }
+
+  const indiceSeguro = Math.min(Math.max(indice, 0), cards.length - 1);
+
+  const card = cards[indiceSeguro];
+
+  const containerRect = ordersList.getBoundingClientRect();
+
+  const cardRect = card.getBoundingClientRect();
+
+  const destino = ordersList.scrollLeft + cardRect.left - containerRect.left;
+
+  ordersList.scrollTo({
+    left: destino,
+    behavior: "smooth",
+  });
+
+  indiceAtualCarrossel = indiceSeguro;
+}
+
+function moverCarrossel(direcao) {
+  atualizarControlesDoCarrossel();
+
+  rolarParaOrdem(indiceAtualCarrossel + direcao);
+}
+
+function resetarCarrossel() {
+  indiceAtualCarrossel = 0;
+
+  ordersList.scrollLeft = 0;
+
+  window.requestAnimationFrame(() => {
+    atualizarControlesDoCarrossel();
+  });
+}
+
+/* =========================================
    RENDERIZAÇÃO
 ========================================= */
 
@@ -1771,6 +2522,14 @@ function renderizarOrdens() {
   ordersList.hidden = listaVazia;
 
   emptyState.hidden = !listaVazia;
+
+  if (listaVazia) {
+    atualizarControlesDoCarrossel();
+
+    return;
+  }
+
+  resetarCarrossel();
 }
 
 /* =========================================
@@ -1820,6 +2579,24 @@ sortOptionButtons.forEach((button) => {
 });
 
 /* =========================================
+   EVENTOS DO CARROSSEL
+========================================= */
+
+previousOrderButton.addEventListener("click", () => {
+  moverCarrossel(-1);
+});
+
+nextOrderButton.addEventListener("click", () => {
+  moverCarrossel(1);
+});
+
+ordersList.addEventListener("scroll", agendarAtualizacaoDoCarrossel, {
+  passive: true,
+});
+
+window.addEventListener("resize", agendarAtualizacaoDoCarrossel);
+
+/* =========================================
    EVENTOS DO MODAL
 ========================================= */
 
@@ -1858,14 +2635,27 @@ document.addEventListener("keydown", (event) => {
   }
 
   fecharTodosOsMenus();
+
   fecharOrdenacao();
 
   if (!filterPanel.hidden) {
     fecharFiltros();
+
+    openFilterButton.focus();
+
+    return;
   }
 
   if (!updateModal.hidden) {
     fecharModalDeAtualizacao();
+
+    return;
+  }
+
+  const cardExpandido = document.querySelector(".order-card.is-expanded");
+
+  if (cardExpandido) {
+    fecharDetalhesDoCard(cardExpandido);
   }
 });
 
@@ -1875,9 +2665,11 @@ document.addEventListener("keydown", (event) => {
 
 carregarEstadoLocal();
 
-sincronizarEstiloDosFiltros();
+sincronizarFormularioComFiltros();
 
 atualizarContagemDeFiltros();
+
+renderizarFiltrosAtivos();
 
 atualizarOpcoesDeOrdenacao();
 

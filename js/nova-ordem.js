@@ -78,15 +78,29 @@ const catalogoServicos = {
 
   "manutencao-geral": {
     nome: "Manutenção geral",
+
     servicos: [
-      "Vistoria do local",
       "Pequenos reparos",
       "Ajustar porta",
       "Ajustar janela",
       "Trocar fechadura",
       "Trocar maçaneta",
       "Reparo preventivo",
+      "Avaliação para pequenos reparos",
       "Outro serviço",
+    ],
+  },
+
+  vistoria: {
+    nome: "Vistoria técnica",
+
+    servicos: [
+      "Vistoria completa do condomínio",
+      "Vistoria para diagnóstico",
+      "Vistoria preventiva",
+      "Retorno de vistoria",
+      "Vistoria emergencial",
+      "Outro tipo de vistoria",
     ],
   },
 };
@@ -229,6 +243,9 @@ const feedbackMessage = document.getElementById("feedback-msg");
 ========================================= */
 
 const orderUrlParams = new URLSearchParams(window.location.search);
+const orderBackLink = document.getElementById("order-back-link");
+
+const orderCancelLink = document.getElementById("order-cancel-link");
 
 const orderProfileFromUrl = orderUrlParams.get("perfil");
 
@@ -244,6 +261,10 @@ let selectedFiles = [];
 const selectedServiceKeys = new Set();
 
 const maxPhotos = 6;
+
+const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
+
+const LAST_ORDER_STORAGE_KEY = "salvateckUltimaOrdemTeste";
 
 let feedbackTimeout;
 
@@ -361,7 +382,62 @@ function scrollToElement(element) {
     block: "center",
   });
 }
+/* =========================================
+   ARMAZENAMENTO TEMPORÁRIO DAS ORDENS
+========================================= */
 
+function loadTemporaryOrders() {
+  try {
+    const savedOrders = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    return Array.isArray(savedOrders) ? savedOrders : [];
+  } catch (error) {
+    console.warn("Não foi possível carregar as ordens temporárias.", error);
+
+    return [];
+  }
+}
+
+function generateOrderIdentifiers() {
+  const storedOrders = loadTemporaryOrders();
+
+  const highestNumber = storedOrders.reduce((highest, order) => {
+    const match = String(order.codigo || "").match(/\d+/);
+
+    const orderNumber = match ? Number(match[0]) : 0;
+
+    return Math.max(highest, orderNumber);
+  }, 0);
+
+  const nextNumber = highestNumber + 1;
+
+  const formattedNumber = String(nextNumber).padStart(4, "0");
+
+  return {
+    id: `ordem-${formattedNumber}`,
+    codigo: `OS-${formattedNumber}`,
+  };
+}
+
+function saveTemporaryOrder(orderData) {
+  const storedOrders = loadTemporaryOrders();
+
+  const existingIndex = storedOrders.findIndex(
+    (order) => order.id === orderData.id,
+  );
+
+  if (existingIndex >= 0) {
+    storedOrders[existingIndex] = orderData;
+  } else {
+    storedOrders.unshift(orderData);
+  }
+
+  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(storedOrders));
+
+  localStorage.setItem(LAST_ORDER_STORAGE_KEY, JSON.stringify(orderData));
+}
 /* =========================================
    DADOS DO CLIENTE
 ========================================= */
@@ -408,13 +484,25 @@ function handleClientEdit() {
 /* =========================================
    PERFIL CLIENTE OU ADMINISTRADOR
 ========================================= */
+function updateOrderNavigation() {
+  const principalTarget = `principal.html?perfil=${currentProfile}`;
 
+  if (orderBackLink) {
+    orderBackLink.href = principalTarget;
+  }
+
+  if (orderCancelLink) {
+    orderCancelLink.href = principalTarget;
+  }
+}
 function changeProfile(profile) {
   if (profile !== "cliente" && profile !== "admin") {
     return;
   }
 
   currentProfile = profile;
+
+  updateOrderNavigation();
 
   body.dataset.profile = profile;
 
@@ -599,6 +687,26 @@ function createServiceOption(category, service) {
   label.classList.toggle("is-selected", input.checked);
 
   input.addEventListener("change", () => {
+    if (input.checked && category === "vistoria") {
+      Array.from(selectedServiceKeys).forEach((selectedKey) => {
+        if (getCategoryFromServiceKey(selectedKey) === "vistoria") {
+          selectedServiceKeys.delete(selectedKey);
+        }
+      });
+
+      selectedServicesContainer
+        .querySelectorAll('input[name="servicos"][data-category="vistoria"]')
+        .forEach((otherInput) => {
+          if (otherInput !== input) {
+            otherInput.checked = false;
+
+            otherInput
+              .closest(".service-option")
+              ?.classList.remove("is-selected");
+          }
+        });
+    }
+
     if (input.checked) {
       selectedServiceKeys.add(key);
     } else {
@@ -671,8 +779,63 @@ function renderServices() {
   updateSummary();
   updateProgress();
 }
+function preselectCategoryFromURL() {
+  const requestedType = normalizeText(orderUrlParams.get("tipo"));
 
-function handleCategoryChange() {
+  if (requestedType !== "vistoria") {
+    return;
+  }
+
+  const inspectionInput = Array.from(categoryInputs).find(
+    (input) => input.value === "vistoria",
+  );
+
+  if (!inspectionInput) {
+    return;
+  }
+
+  categoryInputs.forEach((input) => {
+    input.checked = input === inspectionInput;
+  });
+
+  selectedServiceKeys.clear();
+
+  syncCategoryStyles();
+  renderServices();
+
+  window.setTimeout(() => {
+    scrollToElement(servicesSection);
+  }, 150);
+}
+function handleCategoryChange(event) {
+  const changedInput = event.target;
+
+  if (changedInput.value === "vistoria" && changedInput.checked) {
+    categoryInputs.forEach((input) => {
+      if (input !== changedInput) {
+        input.checked = false;
+      }
+    });
+
+    selectedServiceKeys.clear();
+  }
+
+  if (changedInput.value !== "vistoria" && changedInput.checked) {
+    const inspectionInput = Array.from(categoryInputs).find(
+      (input) => input.value === "vistoria",
+    );
+
+    if (inspectionInput?.checked) {
+      inspectionInput.checked = false;
+
+      Array.from(selectedServiceKeys).forEach((key) => {
+        if (getCategoryFromServiceKey(key) === "vistoria") {
+          selectedServiceKeys.delete(key);
+        }
+      });
+    }
+  }
+
   syncCategoryStyles();
 
   categoryError.hidden = true;
@@ -998,12 +1161,45 @@ function buildOrderData() {
     servico: getServiceFromServiceKey(key),
   }));
 
+  const isInspection = selectedCategories.includes("vistoria");
+
+  const mainService = isInspection
+    ? selectedServices.find((service) => service.categoria === "vistoria")
+    : selectedServices[0];
+
+  const identifiers = generateOrderIdentifiers();
+
+  const now = new Date().toISOString();
+
+  const initialStatus =
+    currentProfile === "admin"
+      ? document.getElementById("statusInicial")?.value || "nova-solicitacao"
+      : "nova-solicitacao";
+
   return {
-    criadoEm: new Date().toISOString(),
+    id: identifiers.id,
+
+    codigo: identifiers.codigo,
+
+    criadoEm: now,
+
+    atualizadoEm: now,
 
     perfilCriador: currentProfile,
 
+    tipoAtendimento: isInspection ? "vistoria" : "servico",
+
+    categoriaPrincipal: mainService?.categoria || selectedCategories[0] || "",
+
+    servicoPrincipal: mainService?.servico || "",
+
+    titulo:
+      mainService?.servico ||
+      (isInspection ? "Vistoria técnica" : "Nova ordem de serviço"),
+
     cliente: {
+      id: "",
+
       nome: nomeCliente.value.trim(),
 
       telefone: telefoneCliente.value.trim(),
@@ -1011,10 +1207,18 @@ function buildOrderData() {
       email: emailCliente.value.trim(),
     },
 
+    condominio: {
+      id: "",
+
+      nome: "",
+    },
+
     endereco: {
       tipo: getAddressMode(),
 
       enderecoCadastrado: getAddressMode() === "cadastrado",
+
+      resumo: getAddressSummary(),
 
       cep: cepAtendimento.value.trim(),
 
@@ -1050,12 +1254,34 @@ function buildOrderData() {
       interna: document.getElementById("observacaoInterna")?.value.trim() || "",
     },
 
-    status:
-      currentProfile === "admin"
-        ? document.getElementById("statusInicial")?.value || "nova-solicitacao"
-        : "nova-solicitacao",
+    status: initialStatus,
 
     quantidadeFotos: selectedFiles.length,
+
+    vistoria: isInspection
+      ? {
+          tipo: mainService?.servico || "Vistoria técnica",
+
+          status: "solicitada",
+
+          progresso: 0,
+
+          naoConformidades: 0,
+
+          pendenciasCriticas: 0,
+
+          quantidadeFotos: selectedFiles.length,
+
+          concluidaEm: "",
+        }
+      : null,
+
+    origem: {
+      tipo:
+        currentProfile === "admin" ? "cadastro-admin" : "solicitacao-cliente",
+
+      ordemOrigemId: "",
+    },
   };
 }
 
@@ -1077,15 +1303,26 @@ function handleSubmit(event) {
 
   const orderData = buildOrderData();
 
-  console.log("Ordem de serviço preparada:", orderData);
-
   try {
-    localStorage.setItem(
-      "salvateckUltimaOrdemTeste",
-      JSON.stringify(orderData),
-    );
+    saveTemporaryOrder(orderData);
+
+    console.log("Ordem salva com sucesso:", orderData);
+
+    console.table({
+      codigo: orderData.codigo,
+
+      tipoAtendimento: orderData.tipoAtendimento,
+
+      titulo: orderData.titulo,
+
+      status: orderData.status,
+    });
   } catch (error) {
-    console.warn("Não foi possível salvar o teste localmente.", error);
+    console.error("Não foi possível salvar a ordem.", error);
+
+    showFeedback("Não foi possível salvar a ordem.", "error");
+
+    return;
   }
 
   btnSalvarOrdem.disabled = true;
@@ -1095,12 +1332,17 @@ function handleSubmit(event) {
 
   showFeedback(
     currentProfile === "admin"
-      ? "Ordem de serviço criada com sucesso!"
-      : "Solicitação enviada com sucesso!",
+      ? `${orderData.codigo} criada com sucesso!`
+      : `${orderData.codigo} enviada com sucesso!`,
   );
 
+  const destination =
+    currentProfile === "admin" && orderData.tipoAtendimento === "vistoria"
+      ? "vistorias.html?perfil=admin"
+      : `solicitacoes.html?perfil=${currentProfile}`;
+
   window.setTimeout(() => {
-    window.location.href = `solicitacoes.html?perfil=${currentProfile}`;
+    window.location.href = destination;
   }, 1800);
 }
 
@@ -1197,6 +1439,8 @@ toggleSpecificTime();
 updateObservationCounter();
 
 changeProfile(currentProfile);
+
+preselectCategoryFromURL();
 
 updateSummary();
 

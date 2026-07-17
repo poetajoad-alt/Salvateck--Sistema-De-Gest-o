@@ -21,19 +21,19 @@ const profileConfig = {
       {
         title: "Serviços Agendados",
         description: "Veja datas e períodos já confirmados.",
-        target: "servicos-agendados.html",
+        target: "servicos-agendados.html?perfil=cliente",
         icon: "calendar",
       },
       {
         title: "Histórico",
         description: "Consulte serviços concluídos ou cancelados.",
-        target: "historico.html",
+        target: "historico.html?perfil=cliente",
         icon: "history",
       },
       {
         title: "Meus Dados",
         description: "Revise telefone, endereço e informações pessoais.",
-        target: "meus-dados.html",
+        target: "meus-dados.html?perfil=cliente",
         icon: "user",
       },
     ],
@@ -61,44 +61,56 @@ const profileConfig = {
       {
         title: "Agenda",
         description: "Consulte atendimentos confirmados e disponíveis.",
-        target: "agenda.html",
+        target: "agenda.html?perfil=admin",
         icon: "calendar",
       },
       {
         title: "Ordens de Serviço",
         description: "Gerencie todas as ordens e seus respectivos status.",
-        target: "ordens.html",
+        target: "ordens.html?perfil=admin",
         icon: "list",
       },
       {
+        title: "Vistorias",
+        description: "Acompanhe vistorias técnicas e não conformidades.",
+        target: "vistorias.html?perfil=admin",
+        icon: "inspection",
+      },
+      {
         title: "Clientes",
-        description: "Consulte cadastros, endereços e históricos.",
-        target: "clientes.html",
+        description: "Consulte cadastros, contatos e históricos.",
+        target: "clientes.html?perfil=admin",
         icon: "users",
       },
       {
-        title: "Financeiro",
-        description: "Controle recebimentos, despesas e valores pendentes.",
-        target: "financeiro.html",
-        icon: "wallet",
-      },
-      {
-        title: "Dashboard",
-        description: "Acompanhe indicadores operacionais e financeiros.",
-        target: "dashboard.html",
-        icon: "chart",
+        title: "Condomínios",
+        description: "Gerencie imóveis, equipamentos e clientes vinculados.",
+        target: "condominios.html?perfil=admin",
+        icon: "building",
       },
       {
         title: "Serviços",
-        description: "Configure categorias, mini serviços e valores.",
-        target: "servicos.html",
+        description: "Consulte categorias e serviços disponíveis.",
+        target: "servicos.html?perfil=admin",
         icon: "tools",
       },
       {
         title: "Funcionários",
         description: "Área preparada para a futura gestão da equipe.",
-        target: "funcionarios.html",
+        target: "funcionarios.html?perfil=admin",
         icon: "badge",
+      },
+      {
+        title: "Financeiro",
+        description: "Controle recebimentos, despesas e valores pendentes.",
+        target: "financeiro.html?perfil=admin",
+        icon: "wallet",
+      },
+      {
+        title: "Dashboard",
+        description: "Acompanhe indicadores operacionais e financeiros.",
+        target: "dashboard.html?perfil=admin",
+        icon: "chart",
       },
     ],
   },
@@ -167,6 +179,25 @@ const icons = {
       <circle cx="17" cy="9" r="2.5"></circle>
       <path d="M3 20c.7-3.8 2.8-5.7 6-5.7S14.3 16.2 15 20"></path>
       <path d="M14 15.5c3.8-.7 6.2.8 7 4.5"></path>
+    </svg>
+  `,
+  inspection: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 5h6"></path>
+      <path d="M9 3h6v4H9z"></path>
+      <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+      <path d="m8 14 2 2 5-5"></path>
+    </svg>
+  `,
+
+  building: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>
+      <path d="M16 9h2a2 2 0 0 1 2 2v10"></path>
+      <path d="M8 7h4"></path>
+      <path d="M8 11h4"></path>
+      <path d="M8 15h4"></path>
+      <path d="M2 21h20"></path>
     </svg>
   `,
 

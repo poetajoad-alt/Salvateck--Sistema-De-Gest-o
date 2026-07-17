@@ -4,6 +4,10 @@
 
 const STORAGE_KEY = "salvateckDetalhesSolicitacoesTeste";
 
+const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
+
+const ORDER_PREVIEW_STORAGE_KEY = "salvateckOrdemPreviewTemporaria";
+
 const statusConfig = {
   "nova-solicitacao": {
     nome: "Nova solicitação",
@@ -43,6 +47,7 @@ const categoriaConfig = {
   alvenaria: "Alvenaria",
   instalacoes: "Instalações",
   "manutencao-geral": "Manutenção geral",
+  vistoria: "Vistoria técnica",
 };
 
 const periodoConfig = {
@@ -608,7 +613,236 @@ const solicitacoes = [
     },
   },
 ];
+/* =========================================
+   INTEGRAÇÃO COM AS ORDENS SALVAS
+========================================= */
 
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizarStatusDaOrdem(status) {
+  const statusNormalizado = normalizarTexto(status);
+
+  const statusMap = {
+    nova: "nova-solicitacao",
+    "nova-solicitacao": "nova-solicitacao",
+
+    analise: "em-analise",
+    "em-analise": "em-analise",
+
+    "aguardando-confirmacao": "aguardando-confirmacao",
+
+    agendada: "agendada",
+    agendado: "agendada",
+
+    recusada: "recusada",
+    recusado: "recusada",
+
+    cancelada: "cancelada",
+    cancelado: "cancelada",
+  };
+
+  return statusMap[statusNormalizado] || "nova-solicitacao";
+}
+
+function normalizarPrioridadeDaOrdem(prioridade) {
+  const prioridadeNormalizada = normalizarTexto(prioridade);
+
+  const prioridadeMap = {
+    baixa: "baixa",
+    low: "baixa",
+
+    normal: "normal",
+
+    alta: "alta",
+    high: "alta",
+
+    urgente: "urgente",
+    critica: "urgente",
+    critical: "urgente",
+  };
+
+  return prioridadeMap[prioridadeNormalizada] || "normal";
+}
+
+function obterServicosDaOrdem(ordem) {
+  if (!Array.isArray(ordem.servicos)) {
+    return [ordem.servicoPrincipal].filter(Boolean);
+  }
+
+  return ordem.servicos
+    .map((servico) => {
+      if (typeof servico === "string") {
+        return servico;
+      }
+
+      return servico?.servico || servico?.nome || "";
+    })
+    .filter(Boolean);
+}
+
+function normalizarEnderecoDaOrdem(ordem) {
+  const endereco = ordem.endereco;
+
+  if (typeof endereco === "string") {
+    return {
+      logradouro: endereco,
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      uf: "",
+      referencia: "",
+    };
+  }
+
+  const resumo = String(endereco?.resumo || "").trim();
+
+  return {
+    logradouro:
+      endereco?.logradouro ||
+      endereco?.rua ||
+      resumo ||
+      "Endereço não informado",
+
+    numero: endereco?.numero || "",
+
+    complemento: endereco?.complemento || "",
+
+    bairro: endereco?.bairro || "",
+
+    cidade: endereco?.cidade || "",
+
+    uf: endereco?.uf || endereco?.estado || "",
+
+    referencia: endereco?.referencia || endereco?.pontoReferencia || "",
+  };
+}
+
+function normalizarOrdemParaDetalhes(ordem, indice) {
+  const categorias =
+    Array.isArray(ordem.categorias) && ordem.categorias.length
+      ? ordem.categorias
+      : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const cliente = {
+    nome:
+      ordem.cliente?.nome || ordem.clienteNome || "Cliente não identificado",
+
+    telefone: ordem.cliente?.telefone || ordem.telefoneCliente || "",
+
+    email: ordem.cliente?.email || ordem.emailCliente || "",
+  };
+
+  return {
+    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+
+    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
+
+    clienteId: ordem.cliente?.id || ordem.clienteId || "",
+
+    cliente,
+
+    perfilCriador: ordem.perfilCriador || "cliente",
+
+    tipoAtendimento:
+      ordem.tipoAtendimento ||
+      (categorias.includes("vistoria") ? "vistoria" : "servico"),
+
+    titulo:
+      ordem.titulo ||
+      ordem.servicoPrincipal ||
+      (categorias.includes("vistoria")
+        ? "Vistoria técnica"
+        : "Solicitação de serviço"),
+
+    descricao:
+      ordem.descricao ||
+      ordem.observacoes?.cliente ||
+      ordem.observacaoCliente ||
+      "Consulte as informações registradas para este atendimento.",
+
+    categorias,
+
+    servicos: obterServicosDaOrdem(ordem),
+
+    status: normalizarStatusDaOrdem(ordem.status),
+
+    prioridade: normalizarPrioridadeDaOrdem(
+      ordem.prioridade || ordem.vistoria?.prioridade,
+    ),
+
+    criadoEm: ordem.criadoEm || new Date().toISOString(),
+
+    atualizadoEm:
+      ordem.atualizadoEm || ordem.criadoEm || new Date().toISOString(),
+
+    endereco: normalizarEnderecoDaOrdem(ordem),
+
+    atendimento: {
+      dataPreferida:
+        ordem.atendimento?.dataPreferida || ordem.dataPreferida || "",
+
+      periodo: ordem.atendimento?.periodo || ordem.periodo || "",
+
+      horarioPreferido:
+        ordem.atendimento?.horarioPreferido || ordem.horarioPreferido || "",
+
+      dataConfirmada: ordem.atendimento?.dataConfirmada || "",
+
+      periodoConfirmado: ordem.atendimento?.periodoConfirmado || "",
+
+      horarioConfirmado: ordem.atendimento?.horarioConfirmado || "",
+    },
+
+    proposta: ordem.proposta || null,
+
+    fotos: Array.isArray(ordem.fotos) ? ordem.fotos : [],
+
+    observacoes: {
+      cliente: ordem.observacoes?.cliente || ordem.observacaoCliente || "",
+
+      resposta: ordem.observacoes?.resposta || ordem.observacaoResposta || "",
+
+      interna: ordem.observacoes?.interna || ordem.observacaoInterna || "",
+    },
+  };
+}
+
+function carregarOrdensTemporarias() {
+  try {
+    const ordensSalvas = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    if (!Array.isArray(ordensSalvas)) {
+      return;
+    }
+
+    ordensSalvas
+      .map(normalizarOrdemParaDetalhes)
+      .forEach((ordemNormalizada) => {
+        const indiceExistente = solicitacoes.findIndex(
+          (solicitacao) => solicitacao.id === ordemNormalizada.id,
+        );
+
+        if (indiceExistente >= 0) {
+          solicitacoes[indiceExistente] = ordemNormalizada;
+
+          return;
+        }
+
+        solicitacoes.unshift(ordemNormalizada);
+      });
+  } catch (error) {
+    console.warn("Não foi possível carregar as ordens salvas.", error);
+  }
+}
 /* =========================================
    ELEMENTOS
 ========================================= */
@@ -773,13 +1007,61 @@ const feedbackMessage = document.getElementById("feedback-message");
 
 const urlParams = new URLSearchParams(window.location.search);
 
-const requestId = urlParams.get("id") || "OS-0001";
+carregarOrdensTemporarias();
 
-let perfilAtual = urlParams.get("perfil") || body.dataset.profile || "cliente";
+const requestId = urlParams.get("id") || "";
 
-let solicitacaoAtual =
-  solicitacoes.find((solicitacao) => solicitacao.id === requestId) ||
-  solicitacoes[0];
+const requestCodeParam = urlParams.get("codigo") || "";
+
+let perfilAtual = urlParams.get("perfil") === "admin" ? "admin" : "cliente";
+
+let solicitacaoAtual = solicitacoes.find((solicitacao) => {
+  const idSolicitacao = String(solicitacao.id || "").trim();
+
+  const codigoSolicitacao = String(
+    solicitacao.codigo || solicitacao.id || "",
+  ).trim();
+
+  return (
+    idSolicitacao === requestId ||
+    codigoSolicitacao === requestId ||
+    idSolicitacao === requestCodeParam ||
+    codigoSolicitacao === requestCodeParam
+  );
+});
+
+if (!solicitacaoAtual) {
+  try {
+    const ordemPreview = JSON.parse(
+      sessionStorage.getItem(ORDER_PREVIEW_STORAGE_KEY) || "null",
+    );
+
+    const previewCorresponde =
+      ordemPreview &&
+      (String(ordemPreview.id || "") === requestId ||
+        String(ordemPreview.codigo || ordemPreview.id || "") ===
+          requestCodeParam);
+
+    if (previewCorresponde) {
+      solicitacaoAtual = normalizarOrdemParaDetalhes(ordemPreview, 0);
+    }
+  } catch (error) {
+    console.warn("Não foi possível carregar a ordem para visualização.", error);
+  }
+}
+
+if (!solicitacaoAtual) {
+  window.alert("Não foi possível localizar os dados desta ordem.");
+
+  const paginaRetorno =
+    urlParams.get("origem") === "ordens" ? "ordens.html" : "solicitacoes.html";
+
+  window.location.replace(`${paginaRetorno}?perfil=${perfilAtual}`);
+
+  throw new Error(
+    `Ordem não encontrada. ID: ${requestId}. Código: ${requestCodeParam}.`,
+  );
+}
 
 let modalCallback = null;
 let feedbackTimeout;
@@ -841,6 +1123,10 @@ function obterIniciais(nome) {
 }
 
 function obterClienteAtual() {
+  if (solicitacaoAtual.cliente?.nome) {
+    return solicitacaoAtual.cliente;
+  }
+
   return (
     clientes[solicitacaoAtual.clienteId] || {
       nome: "Cliente não identificado",
@@ -851,13 +1137,15 @@ function obterClienteAtual() {
 }
 
 function montarEnderecoCompleto() {
-  const endereco = solicitacaoAtual.endereco;
+  const endereco = solicitacaoAtual.endereco || {};
 
   return [
-    `${endereco.logradouro}, ${endereco.numero}`,
+    endereco.logradouro,
+    endereco.numero,
     endereco.complemento,
     endereco.bairro,
-    `${endereco.cidade}/${endereco.uf}`,
+    endereco.cidade,
+    endereco.uf,
   ]
     .filter(Boolean)
     .join(", ");
@@ -928,6 +1216,7 @@ function salvarAlteracoesLocais() {
 
     dadosSalvos[solicitacaoAtual.id] = {
       status: solicitacaoAtual.status,
+
       prioridade: solicitacaoAtual.prioridade,
 
       atualizadoEm: solicitacaoAtual.atualizadoEm,
@@ -940,6 +1229,51 @@ function salvarAlteracoesLocais() {
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosSalvos));
+
+    const ordensSalvas = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    if (!Array.isArray(ordensSalvas)) {
+      return;
+    }
+
+    const indiceOrdem = ordensSalvas.findIndex((ordem) => {
+      return (
+        ordem.id === solicitacaoAtual.id ||
+        ordem.codigo === solicitacaoAtual.codigo
+      );
+    });
+
+    if (indiceOrdem < 0) {
+      return;
+    }
+
+    const ordemAnterior = ordensSalvas[indiceOrdem];
+
+    ordensSalvas[indiceOrdem] = {
+      ...ordemAnterior,
+
+      status: solicitacaoAtual.status,
+
+      prioridade: solicitacaoAtual.prioridade,
+
+      atualizadoEm: solicitacaoAtual.atualizadoEm,
+
+      atendimento: {
+        ...(ordemAnterior.atendimento || {}),
+        ...solicitacaoAtual.atendimento,
+      },
+
+      proposta: solicitacaoAtual.proposta,
+
+      observacoes: {
+        ...(ordemAnterior.observacoes || {}),
+        ...solicitacaoAtual.observacoes,
+      },
+    };
+
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(ordensSalvas));
   } catch (error) {
     console.warn("Não foi possível salvar os dados localmente.", error);
   }
@@ -953,9 +1287,11 @@ function renderizarHero() {
   const status =
     statusConfig[solicitacaoAtual.status] || statusConfig["nova-solicitacao"];
 
-  document.title = `${solicitacaoAtual.id} | Salvateck`;
+  const codigoExibicao = solicitacaoAtual.codigo || solicitacaoAtual.id;
 
-  requestCode.textContent = solicitacaoAtual.id;
+  document.title = `${codigoExibicao} | Salvateck`;
+
+  requestCode.textContent = codigoExibicao;
 
   requestStatus.className = "details-hero__status";
 
@@ -965,7 +1301,9 @@ function renderizarHero() {
 
   requestTitle.textContent = solicitacaoAtual.titulo;
 
-  requestDescription.textContent = solicitacaoAtual.descricao;
+  requestDescription.textContent =
+    solicitacaoAtual.descricao ||
+    "Consulte todas as informações registradas para este atendimento.";
 
   requestCreatedAt.textContent = `Criada em ${formatarDataHora(
     solicitacaoAtual.criadoEm,
@@ -1088,13 +1426,21 @@ function renderizarServicos() {
 ========================================= */
 
 function renderizarEndereco() {
-  const endereco = solicitacaoAtual.endereco;
+  const endereco = solicitacaoAtual.endereco || {};
 
-  addressMain.textContent = `${endereco.logradouro}, ${endereco.numero}`;
+  const enderecoPrincipal = [endereco.logradouro, endereco.numero]
+    .filter(Boolean)
+    .join(", ");
+
+  const cidadeEstado = [endereco.cidade, endereco.uf].filter(Boolean).join("/");
+
+  addressMain.textContent = enderecoPrincipal || "Endereço não informado";
 
   addressComplement.textContent = endereco.complemento || "Sem complemento";
 
-  addressCity.textContent = `${endereco.bairro} — ${endereco.cidade}/${endereco.uf}`;
+  addressCity.textContent =
+    [endereco.bairro, cidadeEstado].filter(Boolean).join(" — ") ||
+    "Cidade não informada";
 
   addressReference.textContent =
     endereco.referencia || "Referência não informada";
@@ -1657,9 +2003,15 @@ function abrirEnderecoNoMapa() {
 }
 
 function abrirCadastroCliente() {
-  mostrarFeedback(
-    "A página de cadastro do cliente será conectada na próxima etapa.",
-  );
+  const parametros = new URLSearchParams({
+    perfil: "admin",
+  });
+
+  if (solicitacaoAtual.clienteId) {
+    parametros.set("cliente", solicitacaoAtual.clienteId);
+  }
+
+  window.location.href = `clientes.html?${parametros.toString()}`;
 }
 
 /* =========================================
@@ -1761,10 +2113,6 @@ const dataMinima = obterDataLocal();
 
 acceptDate.min = dataMinima;
 proposalDate.min = dataMinima;
-
-if (!solicitacoes.some((solicitacao) => solicitacao.id === requestId)) {
-  mostrarFeedback("Solicitação não encontrada. Exibindo um registro de teste.");
-}
 
 carregarAlteracoesLocais();
 

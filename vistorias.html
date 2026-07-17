@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Gestão de vistorias técnicas da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Vistorias | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/vistorias.css" />
+</head>
+
+<body data-page="vistorias" data-profile="admin">
+
+  <main class="inspections-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="inspections-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="inspections-header__content">
+
+        <p>
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Vistorias
+        </h1>
+
+      </div>
+
+      <div class="inspections-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="inspections-intro">
+
+      <div>
+
+        <span class="inspections-intro__badge">
+          Controle preventivo
+        </span>
+
+        <h2>
+          Vistorias técnicas
+        </h2>
+
+        <p>
+          Acompanhe inspeções, não conformidades, registros
+          fotográficos e ações necessárias em cada condomínio.
+        </p>
+
+      </div>
+
+      <a href="nova-ordem.html?perfil=admin&tipo=vistoria" class="new-inspection-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        Nova vistoria
+
+      </a>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="inspections-overview" aria-label="Resumo das vistorias">
+
+      <article class="overview-item">
+
+        <span>
+          Programadas
+        </span>
+
+        <strong id="summary-scheduled">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item">
+
+        <span>
+          Em andamento
+        </span>
+
+        <strong id="summary-progress">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item overview-item--warning">
+
+        <span>
+          Pendências críticas
+        </span>
+
+        <strong id="summary-critical">
+          0
+        </strong>
+
+      </article>
+
+      <article class="overview-item">
+
+        <span>
+          Concluídas no mês
+        </span>
+
+        <strong id="summary-completed">
+          0
+        </strong>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         ABAS
+    ====================================== -->
+
+    <nav class="inspection-tabs" aria-label="Visualização das vistorias">
+
+      <button type="button" class="inspection-tab is-active" data-inspection-view="all" aria-pressed="true">
+        Todas
+      </button>
+
+      <button type="button" class="inspection-tab" data-inspection-view="scheduled" aria-pressed="false">
+        Programadas
+      </button>
+
+      <button type="button" class="inspection-tab" data-inspection-view="progress" aria-pressed="false">
+        Em andamento
+      </button>
+
+      <button type="button" class="inspection-tab" data-inspection-view="completed" aria-pressed="false">
+        Concluídas
+      </button>
+
+      <button type="button" class="inspection-tab" data-inspection-view="overdue" aria-pressed="false">
+        Atrasadas
+      </button>
+
+    </nav>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="inspections-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input type="search" id="inspections-search" placeholder="Pesquisar condomínio, cliente ou vistoria" autocomplete="off" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        Filtros
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS ATIVOS
+    ====================================== -->
+
+    <div class="active-filters" id="active-filters-list" hidden></div>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <header class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a consulta
+          </p>
+
+          <h2>
+            Filtros de vistorias
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </header>
+
+      <div class="filter-grid">
+
+        <label class="filter-field">
+
+          <span>
+            Tipo de vistoria
+          </span>
+
+          <select id="type-filter">
+
+            <option value="">
+              Todos os tipos
+            </option>
+
+            <option value="preventive">
+              Preventiva
+            </option>
+
+            <option value="initial">
+              Vistoria inicial
+            </option>
+
+            <option value="return">
+              Retorno
+            </option>
+
+            <option value="emergency">
+              Emergencial
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="filter-field">
+
+          <span>
+            Prioridade
+          </span>
+
+          <select id="priority-filter">
+
+            <option value="">
+              Todas as prioridades
+            </option>
+
+            <option value="low">
+              Baixa
+            </option>
+
+            <option value="normal">
+              Normal
+            </option>
+
+            <option value="high">
+              Alta
+            </option>
+
+            <option value="critical">
+              Crítica
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="filter-field">
+
+          <span>
+            Período
+          </span>
+
+          <select id="period-filter">
+
+            <option value="">
+              Todos os períodos
+            </option>
+
+            <option value="today">
+              Hoje
+            </option>
+
+            <option value="next-7">
+              Próximos 7 dias
+            </option>
+
+            <option value="this-month">
+              Este mês
+            </option>
+
+            <option value="last-30">
+              Últimos 30 dias
+            </option>
+
+          </select>
+
+        </label>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar filtros
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         LISTAGEM
+    ====================================== -->
+
+    <section class="inspections-content">
+
+      <header class="inspections-content__heading">
+
+        <div>
+
+          <p id="inspections-content-eyebrow">
+            Acompanhamento técnico
+          </p>
+
+          <h2 id="inspections-content-title">
+            Todas as vistorias
+          </h2>
+
+        </div>
+
+        <span class="inspections-content__count" id="inspections-count">
+          0 vistorias
+        </span>
+
+      </header>
+
+      <div class="inspections-list" id="inspections-list"></div>
+
+      <button type="button" class="load-more-button" id="load-more-button" hidden>
+        Mostrar mais vistorias
+      </button>
+
+      <!-- ESTADO VAZIO -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 5h6"></path>
+            <path d="M9 3h6v4H9z"></path>
+            <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+            <path d="m8 14 2 2 5-5"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhuma vistoria encontrada
+        </h3>
+
+        <p>
+          Não existem vistorias correspondentes à pesquisa
+          ou aos filtros selecionados.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
+          Limpar pesquisa e filtros
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DA VISTORIA
+  ====================================== -->
+
+  <template id="inspection-item-template">
+
+    <article class="inspection-item">
+
+      <span class="inspection-item__indicator"></span>
+
+      <!-- RESUMO COMPACTO -->
+
+      <div class="inspection-item__summary">
+
+        <div class="inspection-item__summary-top">
+
+          <div class="inspection-item__identity">
+
+            <span class="inspection-item__code"></span>
+            <span class="inspection-item__type"></span>
+
+          </div>
+
+          <span class="inspection-item__status"></span>
+
+        </div>
+
+        <div class="inspection-item__summary-main">
+
+          <div class="inspection-item__summary-copy">
+
+            <h3 class="inspection-item__condominium"></h3>
+
+            <p class="inspection-item__reference"></p>
+
+          </div>
+
+          <div class="inspection-item__progress-summary">
+
+            <strong class="inspection-item__progress-value">
+              0%
+            </strong>
+
+            <span>
+              concluída
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="inspection-item__progress-bar">
+
+          <span class="inspection-item__progress-fill"></span>
+
+        </div>
+
+        <div class="inspection-item__summary-bottom">
+
+          <div class="inspection-item__mini-meta">
+
+            <span class="inspection-item__date"></span>
+            <span class="inspection-item__priority"></span>
+
+          </div>
+
+          <button type="button" class="inspection-item__toggle" aria-expanded="false">
+            Ver mais
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- DETALHES PROGRESSIVOS -->
+
+      <div class="inspection-item__details" hidden>
+
+        <div class="inspection-item__detail-grid">
+
+          <article>
+
+            <span>
+              Responsável
+            </span>
+
+            <strong class="inspection-item__responsible"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Cliente
+            </span>
+
+            <strong class="inspection-item__client"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Equipamentos avaliados
+            </span>
+
+            <strong class="inspection-item__equipment-count"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Não conformidades
+            </span>
+
+            <strong class="inspection-item__nonconformities"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Pendências críticas
+            </span>
+
+            <strong class="inspection-item__critical-count"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Registros fotográficos
+            </span>
+
+            <strong class="inspection-item__photo-count"></strong>
+
+          </article>
+
+        </div>
+
+        <div class="inspection-item__observation" hidden>
+
+          <span>
+            Observação
+          </span>
+
+          <p></p>
+
+        </div>
+
+        <div class="inspection-item__actions">
+
+          <a href="#" class="item-action item-action--secondary" data-inspection-action="view">
+            Ver detalhes
+          </a>
+
+          <a href="#" class="item-action item-action--primary" data-inspection-action="continue">
+            Continuar vistoria
+          </a>
+
+          <button type="button" class="item-action item-action--order" data-inspection-action="order">
+            Gerar OS
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/vistorias.js"></script>
+
+</body>
+
+</html>

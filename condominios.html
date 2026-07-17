@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Gestão de condomínios da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Condomínios | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/condominios.css" />
+</head>
+
+<body data-page="condominios" data-profile="admin">
+
+  <main class="condominiums-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="condominiums-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="condominiums-header__content">
+
+        <p class="condominiums-header__eyebrow">
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Condomínios
+        </h1>
+
+      </div>
+
+      <div class="condominiums-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="condominiums-intro">
+
+      <div class="condominiums-intro__copy">
+
+        <span class="condominiums-intro__badge">
+          Cadastros
+        </span>
+
+        <h2>
+          Centralize os locais atendidos
+        </h2>
+
+        <p>
+          Organize condomínios, responsáveis, equipamentos, documentos, ordens e vistorias em um único cadastro.
+        </p>
+
+      </div>
+
+      <button type="button" class="new-condominium-button" id="new-condominium-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Novo condomínio
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO COMPACTO
+    ====================================== -->
+
+    <section class="condominiums-overview" aria-label="Resumo dos condomínios">
+
+      <div class="overview-item">
+
+        <span>
+          Total
+        </span>
+
+        <strong id="summary-total">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item">
+
+        <span>
+          Ativos
+        </span>
+
+        <strong id="summary-active">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item">
+
+        <span>
+          Equipamentos
+        </span>
+
+        <strong id="summary-equipment">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item">
+
+        <span>
+          Com atenção
+        </span>
+
+        <strong id="summary-attention">
+          0
+        </strong>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         ABAS RÁPIDAS
+    ====================================== -->
+
+    <section class="status-tabs" aria-label="Filtrar condomínios por situação">
+
+      <button type="button" class="status-tab is-active" data-status-tab="todos" aria-pressed="true">
+        Todos
+      </button>
+
+      <button type="button" class="status-tab" data-status-tab="ativos" aria-pressed="false">
+        Ativos
+      </button>
+
+      <button type="button" class="status-tab" data-status-tab="atencao" aria-pressed="false">
+        Com atenção
+      </button>
+
+      <button type="button" class="status-tab" data-status-tab="inativos" aria-pressed="false">
+        Inativos
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="condominiums-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="condominiums-search" type="search" placeholder="Pesquisar condomínio, cidade ou responsável" autocomplete="off" aria-label="Pesquisar condomínios" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS ATIVOS
+    ====================================== -->
+
+    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a listagem
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="city-filter">
+            Cidade
+          </label>
+
+          <select id="city-filter" class="filter-select">
+
+            <option value="">
+              Todas as cidades
+            </option>
+
+            <option value="sao-paulo">
+              São Paulo
+            </option>
+
+            <option value="osasco">
+              Osasco
+            </option>
+
+            <option value="barueri">
+              Barueri
+            </option>
+
+            <option value="guarulhos">
+              Guarulhos
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="manager-filter">
+            Responsável
+          </label>
+
+          <select id="manager-filter" class="filter-select">
+
+            <option value="">
+              Todos os responsáveis
+            </option>
+
+            <option value="cliente-administradora">
+              Administradora Predial XYZ
+            </option>
+
+            <option value="cliente-joao">
+              João da Silva
+            </option>
+
+            <option value="cliente-maria">
+              Maria Oliveira
+            </option>
+
+            <option value="sem-responsavel">
+              Sem responsável
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="equipment-filter">
+            Estrutura ou equipamento
+          </label>
+
+          <select id="equipment-filter" class="filter-select">
+
+            <option value="">
+              Todos os equipamentos
+            </option>
+
+            <option value="elevador">
+              Elevador
+            </option>
+
+            <option value="bomba">
+              Bombas
+            </option>
+
+            <option value="portao">
+              Portão automático
+            </option>
+
+            <option value="piscina">
+              Piscina
+            </option>
+
+            <option value="gerador">
+              Gerador
+            </option>
+
+            <option value="sistema-incendio">
+              Sistema de incêndio
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="document-filter">
+            Documentação
+          </label>
+
+          <select id="document-filter" class="filter-select">
+
+            <option value="">
+              Qualquer situação
+            </option>
+
+            <option value="regular">
+              Documentação regular
+            </option>
+
+            <option value="pendente">
+              Documentação pendente
+            </option>
+
+            <option value="vencida">
+              Documento vencido
+            </option>
+
+            <option value="sem-documentos">
+              Sem documentos
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         LISTAGEM
+    ====================================== -->
+
+    <section class="condominiums-content">
+
+      <div class="condominiums-content__heading">
+
+        <div>
+
+          <p id="condominiums-content-eyebrow">
+            Todos os cadastros
+          </p>
+
+          <h2 id="condominiums-content-title">
+            Condomínios cadastrados
+          </h2>
+
+        </div>
+
+        <span class="condominiums-content__count" id="condominiums-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="condominiums-list" id="condominiums-list" aria-live="polite"></div>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 21V6l8-3 8 3v15"></path>
+            <path d="M9 21v-5h6v5"></path>
+            <path d="M8 8h1M8 11h1M15 8h1M15 11h1"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum condomínio encontrado
+        </h3>
+
+        <p>
+          Não existem condomínios correspondentes à pesquisa ou aos filtros selecionados.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
+          Limpar pesquisa e filtros
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CARD
+  ====================================== -->
+
+  <template id="condominium-card-template">
+
+    <article class="condominium-card">
+
+      <div class="condominium-card__summary">
+
+        <span class="condominium-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 21V6l8-3 8 3v15"></path>
+            <path d="M9 21v-5h6v5"></path>
+            <path d="M8 8h1M8 11h1M15 8h1M15 11h1"></path>
+          </svg>
+
+        </span>
+
+        <div class="condominium-card__content">
+
+          <div class="condominium-card__top">
+
+            <span class="condominium-card__code"></span>
+
+            <span class="condominium-card__status"></span>
+
+          </div>
+
+          <h3 class="condominium-card__name"></h3>
+
+          <span class="condominium-card__manager"></span>
+
+          <div class="condominium-card__indicators">
+
+            <span class="condominium-card__city"></span>
+
+            <span class="condominium-card__equipment-count"></span>
+
+            <span class="condominium-card__attention-count"></span>
+
+          </div>
+
+        </div>
+
+        <button type="button" class="condominium-card__toggle" aria-expanded="false" aria-label="Mostrar informações do condomínio">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <!-- Conteúdo recolhido -->
+
+      <div class="condominium-card__details" hidden>
+
+        <div class="condominium-card__information">
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Endereço
+            </span>
+
+            <strong class="condominium-card__address"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Contato principal
+            </span>
+
+            <strong class="condominium-card__contact"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Última vistoria
+            </span>
+
+            <strong class="condominium-card__last-inspection"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Última ordem
+            </span>
+
+            <strong class="condominium-card__last-order"></strong>
+
+          </div>
+
+        </div>
+
+        <div class="condominium-card__actions">
+
+          <button type="button" class="condominium-card__button condominium-card__button--secondary" data-condominium-action="order">
+            Nova ordem
+          </button>
+
+          <button type="button" class="condominium-card__button condominium-card__button--secondary" data-condominium-action="inspection">
+            Nova vistoria
+          </button>
+
+          <button type="button" class="condominium-card__button condominium-card__button--primary" data-condominium-action="open">
+            Abrir cadastro
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       MODAL DO CONDOMÍNIO
+  ====================================== -->
+
+  <div class="modal-backdrop" id="condominium-modal" hidden>
+
+    <section class="condominium-modal" role="dialog" aria-modal="true" aria-labelledby="condominium-modal-title">
+
+      <header class="condominium-modal__header">
+
+        <div>
+
+          <p id="condominium-modal-eyebrow">
+            Cadastro
+          </p>
+
+          <h2 id="condominium-modal-title">
+            Novo condomínio
+          </h2>
+
+        </div>
+
+        <button type="button" class="condominium-modal__close" id="close-condominium-modal-button" aria-label="Fechar cadastro do condomínio">
+          ×
+        </button>
+
+      </header>
+
+      <!-- =====================================
+           ABAS DO CADASTRO
+      ====================================== -->
+
+      <nav class="condominium-modal__tabs" aria-label="Seções do cadastro do condomínio">
+
+        <button type="button" class="condominium-modal__tab is-active" data-modal-tab="general" aria-pressed="true">
+          Dados gerais
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="contacts" aria-pressed="false">
+          Responsáveis
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="equipment" aria-pressed="false">
+          Equipamentos
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="documents" aria-pressed="false">
+          Documentos
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="history" aria-pressed="false">
+          Histórico
+        </button>
+
+      </nav>
+
+      <form id="condominium-form">
+
+        <input type="hidden" id="condominium-id" />
+
+        <!-- =====================================
+             DADOS GERAIS
+        ====================================== -->
+
+        <section class="modal-tab-panel is-active" data-modal-panel="general">
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Identificação
+              </p>
+
+              <h3>
+                Dados do condomínio
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field modal-field--wide">
+
+              <span>
+                Nome do condomínio
+              </span>
+
+              <input type="text" id="condominium-name" placeholder="Ex.: Residencial Jardim Azul" required />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Código
+              </span>
+
+              <input type="text" id="condominium-code" placeholder="Gerado automaticamente" readonly />
+
+            </label>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field">
+
+              <span>
+                CNPJ
+              </span>
+
+              <input type="text" id="condominium-document" placeholder="00.000.000/0000-00" inputmode="numeric" />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Situação
+              </span>
+
+              <select id="condominium-status">
+
+                <option value="ativo">
+                  Ativo
+                </option>
+
+                <option value="atencao">
+                  Com atenção
+                </option>
+
+                <option value="inativo">
+                  Inativo
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field">
+
+              <span>
+                Quantidade de blocos
+              </span>
+
+              <input type="number" id="condominium-blocks" min="0" value="1" />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Quantidade de unidades
+              </span>
+
+              <input type="number" id="condominium-units" min="0" value="0" />
+
+            </label>
+
+          </div>
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Localização
+              </p>
+
+              <h3>
+                Endereço
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field">
+
+              <span>
+                CEP
+              </span>
+
+              <input type="text" id="condominium-zip-code" placeholder="00000-000" inputmode="numeric" />
+
+            </label>
+
+            <label class="modal-field modal-field--wide">
+
+              <span>
+                Logradouro
+              </span>
+
+              <input type="text" id="condominium-street" placeholder="Rua, avenida ou travessa" />
+
+            </label>
+
+          </div>
+
+          <div class="modal-grid modal-grid--three">
+
+            <label class="modal-field">
+
+              <span>
+                Número
+              </span>
+
+              <input type="text" id="condominium-number" placeholder="Número" />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Complemento
+              </span>
+
+              <input type="text" id="condominium-complement" placeholder="Bloco, conjunto..." />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Bairro
+              </span>
+
+              <input type="text" id="condominium-neighborhood" placeholder="Bairro" />
+
+            </label>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field modal-field--wide">
+
+              <span>
+                Cidade
+              </span>
+
+              <input type="text" id="condominium-city" placeholder="Cidade" />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Estado
+              </span>
+
+              <select id="condominium-state">
+
+                <option value="SP">
+                  São Paulo
+                </option>
+
+                <option value="RJ">
+                  Rio de Janeiro
+                </option>
+
+                <option value="MG">
+                  Minas Gerais
+                </option>
+
+                <option value="PR">
+                  Paraná
+                </option>
+
+                <option value="SC">
+                  Santa Catarina
+                </option>
+
+                <option value="RS">
+                  Rio Grande do Sul
+                </option>
+
+                <option value="outro">
+                  Outro
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+          <label class="modal-field modal-field--spaced">
+
+            <span>
+              Observações gerais
+            </span>
+
+            <textarea id="condominium-notes" rows="4" placeholder="Informações importantes sobre acesso, horários, regras ou características do local"></textarea>
+
+          </label>
+
+        </section>
+
+        <!-- =====================================
+             RESPONSÁVEIS E CLIENTES VINCULADOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="contacts" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Relacionamentos
+              </p>
+
+              <h3>
+                Clientes e responsáveis vinculados
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="linked-clients-count">
+              0 vínculos
+            </span>
+
+          </div>
+
+          <div class="link-client-form">
+
+            <div class="modal-grid">
+
+              <label class="modal-field modal-field--wide">
+
+                <span>
+                  Cliente
+                </span>
+
+                <select id="linked-client-select">
+
+                  <option value="">
+                    Selecione um cliente
+                  </option>
+
+                  <option value="cliente-administradora">
+                    Administradora Predial XYZ
+                  </option>
+
+                  <option value="cliente-joao">
+                    João da Silva
+                  </option>
+
+                  <option value="cliente-maria">
+                    Maria Oliveira
+                  </option>
+
+                  <option value="cliente-carlos">
+                    Carlos Henrique
+                  </option>
+
+                </select>
+
+              </label>
+
+              <label class="modal-field">
+
+                <span>
+                  Papel no condomínio
+                </span>
+
+                <select id="linked-client-role">
+
+                  <option value="sindico">
+                    Síndico
+                  </option>
+
+                  <option value="subsindico">
+                    Subsindico
+                  </option>
+
+                  <option value="proprietario">
+                    Proprietário
+                  </option>
+
+                  <option value="gerente">
+                    Gerente
+                  </option>
+
+                  <option value="administradora">
+                    Administradora
+                  </option>
+
+                  <option value="zelador">
+                    Zelador
+                  </option>
+
+                  <option value="financeiro">
+                    Responsável financeiro
+                  </option>
+
+                  <option value="outro">
+                    Outro
+                  </option>
+
+                </select>
+
+              </label>
+
+            </div>
+
+            <div class="link-client-options">
+
+              <label class="check-option">
+
+                <input type="checkbox" id="linked-client-primary" />
+
+                <span>
+                  Contato principal
+                </span>
+
+              </label>
+
+              <label class="check-option">
+
+                <input type="checkbox" id="linked-client-financial" />
+
+                <span>
+                  Responsável financeiro
+                </span>
+
+              </label>
+
+              <button type="button" class="link-client-button" id="link-client-button">
+                Vincular cliente
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="linked-clients-list" id="linked-clients-list"></div>
+
+          <div class="modal-empty-state" id="linked-clients-empty">
+
+            <strong>
+              Nenhum responsável vinculado
+            </strong>
+
+            <p>
+              Vincule síndicos, proprietários, administradoras, gerentes ou outros responsáveis pelo condomínio.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             EQUIPAMENTOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="equipment" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Estrutura existente
+              </p>
+
+              <h3>
+                Equipamentos e áreas aplicáveis
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="selected-equipment-count">
+              0 selecionados
+            </span>
+
+          </div>
+
+          <p class="modal-section-description">
+            Selecione somente os itens existentes no condomínio. As futuras vistorias utilizarão essa seleção para gerar o checklist aplicável.
+          </p>
+
+          <div class="equipment-groups">
+
+            <!-- Segurança e acesso -->
+
+            <details class="equipment-group" open>
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Segurança e acesso
+                  </strong>
+
+                  <span>
+                    Portaria, portões e monitoramento
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="portaria" />
+
+                  <span>
+                    Portaria
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="portao-automatico" />
+
+                  <span>
+                    Portão automático
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="interfone" />
+
+                  <span>
+                    Interfone
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="cftv" />
+
+                  <span>
+                    Câmeras e CFTV
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="controle-acesso" />
+
+                  <span>
+                    Controle de acesso
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Elétrica -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Sistema elétrico
+                  </strong>
+
+                  <span>
+                    Quadros, iluminação e geração
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="quadro-eletrico" />
+
+                  <span>
+                    Quadros elétricos
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="iluminacao-emergencia" />
+
+                  <span>
+                    Iluminação de emergência
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="gerador" />
+
+                  <span>
+                    Gerador
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="spda" />
+
+                  <span>
+                    SPDA e para-raios
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Hidráulica -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Sistema hidráulico
+                  </strong>
+
+                  <span>
+                    Bombas, reservatórios e redes
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="bombas" />
+
+                  <span>
+                    Bombas
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="reservatorio-superior" />
+
+                  <span>
+                    Reservatório superior
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="reservatorio-inferior" />
+
+                  <span>
+                    Reservatório inferior
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="rede-hidraulica" />
+
+                  <span>
+                    Rede hidráulica
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Combate a incêndio -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Combate a incêndio
+                  </strong>
+
+                  <span>
+                    Equipamentos e sinalização
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="extintores" />
+
+                  <span>
+                    Extintores
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="hidrantes" />
+
+                  <span>
+                    Hidrantes
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="alarme-incendio" />
+
+                  <span>
+                    Alarme de incêndio
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="sinalizacao-emergencia" />
+
+                  <span>
+                    Sinalização de emergência
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Transporte -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Transporte
+                  </strong>
+
+                  <span>
+                    Elevadores e plataformas
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="elevador-social" />
+
+                  <span>
+                    Elevador social
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="elevador-servico" />
+
+                  <span>
+                    Elevador de serviço
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="plataforma-acessibilidade" />
+
+                  <span>
+                    Plataforma de acessibilidade
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Áreas comuns -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Áreas comuns
+                  </strong>
+
+                  <span>
+                    Lazer, convivência e circulação
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="piscina" />
+
+                  <span>
+                    Piscina
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="playground" />
+
+                  <span>
+                    Playground
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="academia" />
+
+                  <span>
+                    Academia
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="salao-festas" />
+
+                  <span>
+                    Salão de festas
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="garagem" />
+
+                  <span>
+                    Garagem
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="jardim" />
+
+                  <span>
+                    Jardins
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+            <!-- Estrutura predial -->
+
+            <details class="equipment-group">
+
+              <summary>
+
+                <div>
+
+                  <strong>
+                    Estrutura predial
+                  </strong>
+
+                  <span>
+                    Fachadas, coberturas e áreas técnicas
+                  </span>
+
+                </div>
+
+                <span class="equipment-group__count">
+                  0
+                </span>
+
+              </summary>
+
+              <div class="equipment-options">
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="fachada" />
+
+                  <span>
+                    Fachada
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="cobertura" />
+
+                  <span>
+                    Cobertura e telhado
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="escadas" />
+
+                  <span>
+                    Escadas e corrimãos
+                  </span>
+
+                </label>
+
+                <label class="equipment-option">
+
+                  <input type="checkbox" name="equipment" value="casa-maquinas" />
+
+                  <span>
+                    Casa de máquinas
+                  </span>
+
+                </label>
+
+              </div>
+
+            </details>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             DOCUMENTOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="documents" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Controle documental
+              </p>
+
+              <h3>
+                Documentos do condomínio
+              </h3>
+
+            </div>
+
+            <button type="button" class="add-document-button" id="add-document-button">
+              Adicionar documento
+            </button>
+
+          </div>
+
+          <div class="documents-list" id="documents-list"></div>
+
+          <div class="modal-empty-state" id="documents-empty">
+
+            <strong>
+              Nenhum documento cadastrado
+            </strong>
+
+            <p>
+              Cadastre laudos, certificados, contratos e documentos com data de vencimento.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             HISTÓRICO
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="history" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Linha do tempo
+              </p>
+
+              <h3>
+                Histórico operacional
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="condominium-history" id="condominium-history"></div>
+
+          <div class="modal-empty-state" id="history-empty">
+
+            <strong>
+              Ainda não existem registros
+            </strong>
+
+            <p>
+              Ordens, vistorias, atualizações e documentos aparecerão nesta linha do tempo.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             AÇÕES DO MODAL
+        ====================================== -->
+
+        <div class="condominium-modal__actions">
+
+          <button type="button" class="modal-button modal-button--secondary" id="cancel-condominium-button">
+            Cancelar
+          </button>
+
+          <button type="submit" class="modal-button modal-button--primary">
+            Salvar condomínio
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       TEMPLATE DO CLIENTE VINCULADO
+  ====================================== -->
+
+  <template id="linked-client-template">
+
+    <article class="linked-client-card">
+
+      <span class="linked-client-card__avatar"></span>
+
+      <div class="linked-client-card__content">
+
+        <div class="linked-client-card__top">
+
+          <strong class="linked-client-card__name"></strong>
+
+          <span class="linked-client-card__role"></span>
+
+        </div>
+
+        <div class="linked-client-card__badges">
+
+          <span class="linked-client-card__badge" data-primary-badge hidden>
+            Contato principal
+          </span>
+
+          <span class="linked-client-card__badge" data-financial-badge hidden>
+            Financeiro
+          </span>
+
+        </div>
+
+      </div>
+
+      <button type="button" class="linked-client-card__remove" aria-label="Desvincular cliente">
+        ×
+      </button>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO DOCUMENTO
+  ====================================== -->
+
+  <template id="document-template">
+
+    <article class="document-card">
+
+      <span class="document-card__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 3h8l4 4v14H6z"></path>
+          <path d="M14 3v5h5"></path>
+          <path d="M9 13h6M9 17h6"></path>
+        </svg>
+
+      </span>
+
+      <div class="document-card__content">
+
+        <strong class="document-card__name"></strong>
+
+        <span class="document-card__expiration"></span>
+
+      </div>
+
+      <span class="document-card__status"></span>
+
+      <button type="button" class="document-card__remove" aria-label="Remover documento">
+        ×
+      </button>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/condominios.js"></script>
+
+</body>
+
+</html>

@@ -4,6 +4,8 @@
 
 const AGENDA_STORAGE_KEY = "salvateckAgendaTemporaria";
 
+const MODOS_VISUALIZACAO = ["mes", "semana", "dia", "lista"];
+
 /* =========================================
    FUNÇÕES PARA DATAS TEMPORÁRIAS
 ========================================= */
@@ -21,13 +23,7 @@ function criarDataComOffset(dias) {
 
   data.setDate(data.getDate() + dias);
 
-  const ano = data.getFullYear();
-
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-
-  const dia = String(data.getDate()).padStart(2, "0");
-
-  return `${ano}-${mes}-${dia}`;
+  return obterDataISO(data);
 }
 
 /* =========================================
@@ -233,31 +229,37 @@ const statusConfig = {
   confirmado: {
     nome: "Confirmado",
     classe: "status--confirmado",
+    marcador: "calendar-marker--confirmado",
   },
 
   "a-confirmar": {
     nome: "A confirmar",
     classe: "status--a-confirmar",
+    marcador: "calendar-marker--a-confirmar",
   },
 
   "em-deslocamento": {
     nome: "Em deslocamento",
     classe: "status--em-deslocamento",
+    marcador: "calendar-marker--em-deslocamento",
   },
 
   "em-atendimento": {
     nome: "Em atendimento",
     classe: "status--em-atendimento",
+    marcador: "calendar-marker--em-atendimento",
   },
 
   concluido: {
     nome: "Concluído",
     classe: "status--concluido",
+    marcador: "calendar-marker--concluido",
   },
 
   cancelado: {
     nome: "Cancelado",
     classe: "status--cancelado",
+    marcador: "calendar-marker--cancelado",
   },
 };
 
@@ -316,6 +318,8 @@ const filterPanel = document.getElementById("filter-panel");
 
 const activeFilterCount = document.getElementById("active-filter-count");
 
+const activeFiltersList = document.getElementById("active-filters-list");
+
 const statusFilterInputs = document.querySelectorAll(
   'input[name="statusFilter"]',
 );
@@ -336,6 +340,32 @@ const agendaContentTitle = document.getElementById("agenda-content-title");
 
 const agendaCount = document.getElementById("agenda-count");
 
+const calendarView = document.getElementById("calendar-view");
+
+const calendarGrid = document.getElementById("calendar-grid");
+
+const calendarDayTemplate = document.getElementById("calendar-day-template");
+
+const daySelectionPlaceholder = document.getElementById(
+  "day-selection-placeholder",
+);
+
+const selectedDayPanel = document.getElementById("selected-day-panel");
+
+const selectedDayLabel = document.getElementById("selected-day-label");
+
+const selectedDayCount = document.getElementById("selected-day-count");
+
+const selectedDayAppointments = document.getElementById(
+  "selected-day-appointments",
+);
+
+const selectedDayEmpty = document.getElementById("selected-day-empty");
+
+const closeSelectedDayButton = document.getElementById(
+  "close-selected-day-button",
+);
+
 const agendaBoard = document.getElementById("agenda-board");
 
 const emptyState = document.getElementById("empty-state");
@@ -352,9 +382,11 @@ const feedbackMessage = document.getElementById("feedback-message");
    VARIÁVEIS DE CONTROLE
 ========================================= */
 
-let modoVisualizacao = "semana";
+let modoVisualizacao = "mes";
 
 let dataReferencia = obterInicioDoDia(new Date());
+
+let dataSelecionada = null;
 
 let filtrosAplicados = {
   status: [],
@@ -385,10 +417,6 @@ function criarDataLocal(valor) {
   return new Date(`${valor}T12:00:00`);
 }
 
-function formatarQuantidade(quantidade) {
-  return quantidade === 1 ? "1 item" : `${quantidade} itens`;
-}
-
 function obterDataISO(data) {
   const ano = data.getFullYear();
 
@@ -397,6 +425,10 @@ function obterDataISO(data) {
   const dia = String(data.getDate()).padStart(2, "0");
 
   return `${ano}-${mes}-${dia}`;
+}
+
+function formatarQuantidade(quantidade) {
+  return quantidade === 1 ? "1 item" : `${quantidade} itens`;
 }
 
 function formatarDiaDaSemana(data) {
@@ -421,6 +453,15 @@ function formatarDataCompleta(data) {
   const texto = data.toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function formatarMesEAno(data) {
+  const texto = data.toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
   });
@@ -462,7 +503,29 @@ function obterUltimoDiaDoMes(data) {
   return ultimoDia;
 }
 
+function obterInicioDoCalendarioMensal(data) {
+  const primeiroDiaDoMes = obterPrimeiroDiaDoMes(data);
+
+  return obterInicioDaSemana(primeiroDiaDoMes);
+}
+
+function obterFimDoCalendarioMensal(data) {
+  const inicio = obterInicioDoCalendarioMensal(data);
+
+  const fim = new Date(inicio);
+
+  fim.setDate(fim.getDate() + 41);
+
+  fim.setHours(23, 59, 59, 999);
+
+  return fim;
+}
+
 function datasSaoIguais(dataA, dataB) {
+  if (!dataA || !dataB) {
+    return false;
+  }
+
   return (
     dataA.getFullYear() === dataB.getFullYear() &&
     dataA.getMonth() === dataB.getMonth() &&
@@ -474,6 +537,21 @@ function obterNomeCategorias(categorias) {
   return categorias
     .map((categoria) => categoriaConfig[categoria] || categoria)
     .filter(Boolean);
+}
+
+function ordenarAtendimentos(lista) {
+  return [...lista].sort((atendimentoA, atendimentoB) => {
+    const diferencaData =
+      criarDataLocal(atendimentoA.data) - criarDataLocal(atendimentoB.data);
+
+    if (diferencaData !== 0) {
+      return diferencaData;
+    }
+
+    return String(atendimentoA.horario).localeCompare(
+      String(atendimentoB.horario),
+    );
+  });
 }
 
 function mostrarFeedback(mensagem) {
@@ -570,43 +648,33 @@ function obterIntervaloAtual() {
     };
   }
 
-  if (modoVisualizacao === "lista") {
+  if (modoVisualizacao === "semana") {
     return {
-      inicio: obterPrimeiroDiaDoMes(dataReferencia),
-
-      fim: obterUltimoDiaDoMes(dataReferencia),
+      inicio: obterInicioDaSemana(dataReferencia),
+      fim: obterFimDaSemana(dataReferencia),
     };
   }
 
   return {
-    inicio: obterInicioDaSemana(dataReferencia),
-
-    fim: obterFimDaSemana(dataReferencia),
+    inicio: obterPrimeiroDiaDoMes(dataReferencia),
+    fim: obterUltimoDiaDoMes(dataReferencia),
   };
 }
 
-function obterDatasDaVisualizacao() {
-  const intervalo = obterIntervaloAtual();
+function obterDatasDaSemana() {
+  const datas = [];
 
-  if (modoVisualizacao === "dia") {
-    return [obterInicioDoDia(intervalo.inicio)];
+  const inicio = obterInicioDaSemana(dataReferencia);
+
+  for (let indice = 0; indice < 7; indice += 1) {
+    const data = new Date(inicio);
+
+    data.setDate(inicio.getDate() + indice);
+
+    datas.push(data);
   }
 
-  if (modoVisualizacao === "semana") {
-    const datas = [];
-
-    const dataAtual = obterInicioDoDia(intervalo.inicio);
-
-    while (dataAtual <= intervalo.fim) {
-      datas.push(new Date(dataAtual));
-
-      dataAtual.setDate(dataAtual.getDate() + 1);
-    }
-
-    return datas;
-  }
-
-  return [];
+  return datas;
 }
 
 /* =========================================
@@ -614,6 +682,18 @@ function obterDatasDaVisualizacao() {
 ========================================= */
 
 function atualizarTituloDoPeriodo() {
+  if (modoVisualizacao === "mes") {
+    currentPeriodEyebrow.textContent = "Mês selecionado";
+
+    currentPeriodLabel.textContent = formatarMesEAno(dataReferencia);
+
+    agendaContentEyebrow.textContent = "Visão mensal";
+
+    agendaContentTitle.textContent = "Calendário de atendimentos";
+
+    return;
+  }
+
   if (modoVisualizacao === "dia") {
     currentPeriodEyebrow.textContent = "Dia selecionado";
 
@@ -629,17 +709,11 @@ function atualizarTituloDoPeriodo() {
   if (modoVisualizacao === "lista") {
     currentPeriodEyebrow.textContent = "Mês selecionado";
 
-    currentPeriodLabel.textContent = dataReferencia.toLocaleDateString(
-      "pt-BR",
-      {
-        month: "long",
-        year: "numeric",
-      },
-    );
+    currentPeriodLabel.textContent = formatarMesEAno(dataReferencia);
 
-    agendaContentEyebrow.textContent = "Visão mensal";
+    agendaContentEyebrow.textContent = "Visão em lista";
 
-    agendaContentTitle.textContent = "Lista de atendimentos";
+    agendaContentTitle.textContent = "Todos os atendimentos";
 
     return;
   }
@@ -654,16 +728,13 @@ function atualizarTituloDoPeriodo() {
     inicio.getMonth() === fim.getMonth() &&
     inicio.getFullYear() === fim.getFullYear()
   ) {
-    currentPeriodLabel.textContent = `${String(inicio.getDate()).padStart(
-      2,
-      "0",
-    )} a ${String(fim.getDate()).padStart(
-      2,
-      "0",
-    )} de ${inicio.toLocaleDateString("pt-BR", {
-      month: "long",
-      year: "numeric",
-    })}`;
+    currentPeriodLabel.textContent =
+      `${String(inicio.getDate()).padStart(2, "0")} a ` +
+      `${String(fim.getDate()).padStart(2, "0")} de ` +
+      inicio.toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      });
   } else {
     currentPeriodLabel.textContent = `${inicio.toLocaleDateString("pt-BR", {
       day: "2-digit",
@@ -677,7 +748,7 @@ function atualizarTituloDoPeriodo() {
 
   agendaContentEyebrow.textContent = "Programação semanal";
 
-  agendaContentTitle.textContent = "Atendimentos";
+  agendaContentTitle.textContent = "Atendimentos da semana";
 }
 
 /* =========================================
@@ -749,6 +820,26 @@ function correspondeAosFiltros(atendimento) {
   );
 }
 
+function obterAtendimentosFiltrados() {
+  return ordenarAtendimentos(
+    atendimentos.filter(correspondeAPesquisa).filter(correspondeAosFiltros),
+  );
+}
+
+function sincronizarFormularioComFiltros() {
+  statusFilterInputs.forEach((input) => {
+    input.checked = filtrosAplicados.status.includes(input.value);
+  });
+
+  categoryFilter.value = filtrosAplicados.categoria;
+
+  periodFilter.value = filtrosAplicados.periodo;
+
+  employeeFilter.value = filtrosAplicados.responsavel;
+
+  sincronizarEstiloDosFiltros();
+}
+
 function sincronizarEstiloDosFiltros() {
   document.querySelectorAll(".filter-option").forEach((opcao) => {
     const input = opcao.querySelector('input[name="statusFilter"]');
@@ -783,6 +874,100 @@ function atualizarContagemDeFiltros() {
   activeFilterCount.hidden = quantidade === 0;
 }
 
+function criarChipDeFiltro(texto, removerFiltro) {
+  const chip = document.createElement("span");
+
+  chip.className = "active-filter-chip";
+
+  const label = document.createElement("span");
+
+  label.textContent = texto;
+
+  const button = document.createElement("button");
+
+  button.type = "button";
+
+  button.textContent = "×";
+
+  button.setAttribute("aria-label", `Remover filtro ${texto}`);
+
+  button.addEventListener("click", removerFiltro);
+
+  chip.append(label, button);
+
+  return chip;
+}
+
+function renderizarFiltrosAtivos() {
+  activeFiltersList.innerHTML = "";
+
+  filtrosAplicados.status.forEach((status) => {
+    const nome = statusConfig[status]?.nome || status;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.status = filtrosAplicados.status.filter(
+          (item) => item !== status,
+        );
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  });
+
+  if (filtrosAplicados.categoria) {
+    const nome =
+      categoriaConfig[filtrosAplicados.categoria] || filtrosAplicados.categoria;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.categoria = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.periodo) {
+    const nome =
+      periodoConfig[filtrosAplicados.periodo] || filtrosAplicados.periodo;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.periodo = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  if (filtrosAplicados.responsavel) {
+    const nome =
+      responsavelConfig[filtrosAplicados.responsavel] ||
+      filtrosAplicados.responsavel;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(nome, () => {
+        filtrosAplicados.responsavel = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
+
+  activeFiltersList.hidden = activeFiltersList.children.length === 0;
+}
+
+function finalizarRemocaoDeFiltro() {
+  sincronizarFormularioComFiltros();
+
+  atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
+  renderizarAgenda();
+}
+
 function abrirFiltros() {
   filterPanel.hidden = false;
 
@@ -812,7 +997,11 @@ function aplicarFiltros() {
   };
 
   atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
   renderizarAgenda();
+
   fecharFiltros();
 
   mostrarFeedback(
@@ -823,14 +1012,6 @@ function aplicarFiltros() {
 }
 
 function limparFiltros() {
-  statusFilterInputs.forEach((input) => {
-    input.checked = false;
-  });
-
-  categoryFilter.value = "";
-  periodFilter.value = "";
-  employeeFilter.value = "";
-
   filtrosAplicados = {
     status: [],
     categoria: "",
@@ -838,39 +1019,39 @@ function limparFiltros() {
     responsavel: "",
   };
 
-  sincronizarEstiloDosFiltros();
+  sincronizarFormularioComFiltros();
+
   atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
   renderizarAgenda();
 
   mostrarFeedback("Filtros removidos.");
 }
 
 /* =========================================
-   OBTENÇÃO DOS ATENDIMENTOS
+   OBTENÇÃO DOS ATENDIMENTOS DO PERÍODO
 ========================================= */
 
 function obterAtendimentosDoPeriodo() {
   const intervalo = obterIntervaloAtual();
 
-  return atendimentos
-    .filter((atendimento) => {
-      const dataAtendimento = criarDataLocal(atendimento.data);
+  return obterAtendimentosFiltrados().filter((atendimento) => {
+    const dataAtendimento = criarDataLocal(atendimento.data);
 
-      return (
-        dataAtendimento >= intervalo.inicio && dataAtendimento <= intervalo.fim
-      );
-    })
-    .filter(correspondeAPesquisa)
-    .filter(correspondeAosFiltros)
-    .sort((a, b) => {
-      const diferencaData = criarDataLocal(a.data) - criarDataLocal(b.data);
+    return (
+      dataAtendimento >= intervalo.inicio && dataAtendimento <= intervalo.fim
+    );
+  });
+}
 
-      if (diferencaData !== 0) {
-        return diferencaData;
-      }
+function obterAtendimentosDaData(data) {
+  const dataISO = obterDataISO(data);
 
-      return String(a.horario).localeCompare(String(b.horario));
-    });
+  return obterAtendimentosFiltrados().filter(
+    (atendimento) => atendimento.data === dataISO,
+  );
 }
 
 /* =========================================
@@ -918,7 +1099,7 @@ function atualizarResumo() {
 }
 
 /* =========================================
-   MENU DOS CARDS
+   MENU E EXPANSÃO DOS CARDS
 ========================================= */
 
 function fecharTodosOsMenus(excecao = null) {
@@ -939,6 +1120,41 @@ function fecharTodosOsMenus(excecao = null) {
   });
 }
 
+function alternarDetalhesDoCard(card) {
+  const toggle = card.querySelector(".appointment-card__toggle");
+
+  const details = card.querySelector(".appointment-card__details");
+
+  const seraAberto = details.hidden;
+
+  details.hidden = !seraAberto;
+
+  toggle.setAttribute("aria-expanded", String(seraAberto));
+
+  toggle.setAttribute(
+    "aria-label",
+    seraAberto
+      ? "Ocultar detalhes do atendimento"
+      : "Mostrar detalhes do atendimento",
+  );
+
+  card.classList.toggle("is-expanded", seraAberto);
+
+  if (!seraAberto) {
+    const options = card.querySelector(".appointment-card__options");
+
+    const menuButton = card.querySelector(".appointment-card__menu");
+
+    if (options) {
+      options.hidden = true;
+    }
+
+    if (menuButton) {
+      menuButton.setAttribute("aria-expanded", "false");
+    }
+  }
+}
+
 /* =========================================
    AÇÕES DOS ATENDIMENTOS
 ========================================= */
@@ -951,6 +1167,7 @@ function alterarStatusDoAtendimento(atendimento, novoStatus, mensagem) {
   fecharTodosOsMenus();
 
   atualizarResumo();
+
   renderizarAgenda();
 
   mostrarFeedback(mensagem);
@@ -1017,6 +1234,8 @@ function preencherCard(atendimento) {
 
   const title = card.querySelector(".appointment-card__title");
 
+  const toggle = card.querySelector(".appointment-card__toggle");
+
   const services = card.querySelector(".appointment-card__services");
 
   const address = card.querySelector(".appointment-card__address span");
@@ -1038,6 +1257,8 @@ function preencherCard(atendimento) {
   const statusData =
     statusConfig[atendimento.status] || statusConfig.confirmado;
 
+  card.dataset.appointmentId = atendimento.id;
+
   timeStrong.textContent = atendimento.horario || "A definir";
 
   timePeriod.textContent = periodoConfig[atendimento.periodo] || "Período";
@@ -1054,10 +1275,15 @@ function preencherCard(atendimento) {
 
   services.textContent = atendimento.servicos.join(" • ");
 
-  address.textContent = atendimento.endereco;
+  address.textContent = atendimento.endereco || "Endereço não informado";
 
   employee.textContent =
     responsavelConfig[atendimento.responsavel] || "Responsável não definido";
+
+  toggle.setAttribute(
+    "aria-label",
+    `Mostrar detalhes da ordem ${atendimento.id}`,
+  );
 
   mapButton.setAttribute(
     "aria-label",
@@ -1065,6 +1291,10 @@ function preencherCard(atendimento) {
   );
 
   detailsButton.setAttribute("aria-label", `Abrir ordem ${atendimento.id}`);
+
+  toggle.addEventListener("click", () => {
+    alternarDetalhesDoCard(card);
+  });
 
   mapButton.addEventListener("click", () => {
     abrirEnderecoNoMapa(atendimento.endereco);
@@ -1116,7 +1346,7 @@ function preencherCard(atendimento) {
 }
 
 /* =========================================
-   CRIAÇÃO DO GRUPO DE DIA
+   GRUPO DO DIA
 ========================================= */
 
 function criarGrupoDoDia(data, atendimentosDoDia) {
@@ -1164,59 +1394,262 @@ function criarGrupoDoDia(data, atendimentosDoDia) {
 }
 
 /* =========================================
-   RENDERIZAÇÃO DA AGENDA
+   CALENDÁRIO MENSAL
 ========================================= */
 
-function renderizarAgenda() {
-  const lista = obterAtendimentosDoPeriodo();
+function criarMarcadoresDoDia(container, atendimentosDoDia) {
+  container.innerHTML = "";
 
+  const statusUnicos = [
+    ...new Set(atendimentosDoDia.map((atendimento) => atendimento.status)),
+  ].slice(0, 4);
+
+  statusUnicos.forEach((status) => {
+    const marcador = document.createElement("span");
+
+    marcador.className = [
+      "calendar-marker",
+      statusConfig[status]?.marcador || "calendar-marker--confirmado",
+    ].join(" ");
+
+    container.appendChild(marcador);
+  });
+}
+
+function selecionarDataDoCalendario(data) {
+  const foraDoMesAtual =
+    data.getMonth() !== dataReferencia.getMonth() ||
+    data.getFullYear() !== dataReferencia.getFullYear();
+
+  dataSelecionada = obterInicioDoDia(data);
+
+  if (foraDoMesAtual) {
+    dataReferencia = obterInicioDoDia(data);
+  }
+
+  renderizarAgenda();
+
+  window.requestAnimationFrame(() => {
+    selectedDayPanel.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  });
+}
+
+function fecharDiaSelecionado() {
+  dataSelecionada = null;
+
+  renderizarCalendarioMensal();
+}
+
+function renderizarPainelDoDiaSelecionado() {
+  selectedDayAppointments.innerHTML = "";
+
+  if (!dataSelecionada) {
+    daySelectionPlaceholder.hidden = false;
+
+    selectedDayPanel.hidden = true;
+
+    return;
+  }
+
+  daySelectionPlaceholder.hidden = true;
+
+  selectedDayPanel.hidden = false;
+
+  const lista = obterAtendimentosDaData(dataSelecionada);
+
+  selectedDayLabel.textContent = formatarDataCompleta(dataSelecionada);
+
+  selectedDayCount.textContent = formatarQuantidade(lista.length);
+
+  const semAtendimentos = lista.length === 0;
+
+  selectedDayAppointments.hidden = semAtendimentos;
+
+  selectedDayEmpty.hidden = !semAtendimentos;
+
+  lista.forEach((atendimento) => {
+    selectedDayAppointments.appendChild(preencherCard(atendimento));
+  });
+}
+
+function renderizarCalendarioMensal() {
+  calendarGrid.innerHTML = "";
+
+  const inicioCalendario = obterInicioDoCalendarioMensal(dataReferencia);
+
+  const hoje = obterInicioDoDia();
+
+  const atendimentosFiltrados = obterAtendimentosFiltrados();
+
+  for (let indice = 0; indice < 42; indice += 1) {
+    const data = new Date(inicioCalendario);
+
+    data.setDate(inicioCalendario.getDate() + indice);
+
+    const dataISO = obterDataISO(data);
+
+    const atendimentosDoDia = atendimentosFiltrados.filter(
+      (atendimento) => atendimento.data === dataISO,
+    );
+
+    const fragmento = calendarDayTemplate.content.cloneNode(true);
+
+    const dayButton = fragmento.querySelector(".calendar-day");
+
+    const dayNumber = fragmento.querySelector(".calendar-day__number");
+
+    const markers = fragmento.querySelector(".calendar-day__markers");
+
+    const count = fragmento.querySelector(".calendar-day__count");
+
+    dayNumber.textContent = String(data.getDate());
+
+    count.textContent = String(atendimentosDoDia.length);
+
+    dayButton.dataset.date = dataISO;
+
+    dayButton.setAttribute(
+      "aria-label",
+      `${formatarDataCompleta(data)}. ` +
+        `${formatarQuantidade(atendimentosDoDia.length)}.`,
+    );
+
+    const pertenceAoMes =
+      data.getMonth() === dataReferencia.getMonth() &&
+      data.getFullYear() === dataReferencia.getFullYear();
+
+    dayButton.classList.toggle("is-outside-month", !pertenceAoMes);
+
+    dayButton.classList.toggle("is-today", datasSaoIguais(data, hoje));
+
+    dayButton.classList.toggle(
+      "has-appointments",
+      atendimentosDoDia.length > 0,
+    );
+
+    const estaSelecionado = datasSaoIguais(data, dataSelecionada);
+
+    dayButton.classList.toggle("is-selected", estaSelecionado);
+
+    dayButton.setAttribute("aria-pressed", String(estaSelecionado));
+
+    criarMarcadoresDoDia(markers, atendimentosDoDia);
+
+    dayButton.addEventListener("click", () => {
+      selecionarDataDoCalendario(data);
+    });
+
+    calendarGrid.appendChild(fragmento);
+  }
+
+  renderizarPainelDoDiaSelecionado();
+}
+
+/* =========================================
+   VISÕES SEMANA, DIA E LISTA
+========================================= */
+
+function renderizarVisaoSemana(lista) {
+  const datas = obterDatasDaSemana();
+
+  const diasComAtendimentos = datas.filter((data) => {
+    const dataISO = obterDataISO(data);
+
+    return lista.some((atendimento) => atendimento.data === dataISO);
+  });
+
+  diasComAtendimentos.forEach((data) => {
+    const dataISO = obterDataISO(data);
+
+    const atendimentosDoDia = lista.filter(
+      (atendimento) => atendimento.data === dataISO,
+    );
+
+    agendaBoard.appendChild(criarGrupoDoDia(data, atendimentosDoDia));
+  });
+}
+
+function renderizarVisaoDia(lista) {
+  if (lista.length === 0) {
+    return;
+  }
+
+  agendaBoard.appendChild(criarGrupoDoDia(dataReferencia, lista));
+}
+
+function renderizarVisaoLista(lista) {
+  const grupos = new Map();
+
+  lista.forEach((atendimento) => {
+    if (!grupos.has(atendimento.data)) {
+      grupos.set(atendimento.data, []);
+    }
+
+    grupos.get(atendimento.data).push(atendimento);
+  });
+
+  grupos.forEach((atendimentosDoDia, dataISO) => {
+    agendaBoard.appendChild(
+      criarGrupoDoDia(criarDataLocal(dataISO), atendimentosDoDia),
+    );
+  });
+}
+
+function renderizarAgendaSecundaria(lista) {
   agendaBoard.innerHTML = "";
 
   agendaBoard.className = `agenda-board view--${modoVisualizacao}`;
 
-  if (modoVisualizacao === "dia" || modoVisualizacao === "semana") {
-    const datas = obterDatasDaVisualizacao();
-
-    datas.forEach((data) => {
-      const dataISO = obterDataISO(data);
-
-      const atendimentosDoDia = lista.filter(
-        (atendimento) => atendimento.data === dataISO,
-      );
-
-      agendaBoard.appendChild(criarGrupoDoDia(data, atendimentosDoDia));
-    });
-  } else {
-    const grupos = new Map();
-
-    lista.forEach((atendimento) => {
-      if (!grupos.has(atendimento.data)) {
-        grupos.set(atendimento.data, []);
-      }
-
-      grupos.get(atendimento.data).push(atendimento);
-    });
-
-    grupos.forEach((atendimentosDoDia, dataISO) => {
-      agendaBoard.appendChild(
-        criarGrupoDoDia(criarDataLocal(dataISO), atendimentosDoDia),
-      );
-    });
+  if (modoVisualizacao === "semana") {
+    renderizarVisaoSemana(lista);
   }
 
-  agendaCount.textContent = formatarQuantidade(lista.length);
+  if (modoVisualizacao === "dia") {
+    renderizarVisaoDia(lista);
+  }
+
+  if (modoVisualizacao === "lista") {
+    renderizarVisaoLista(lista);
+  }
 
   const listaVazia = lista.length === 0;
 
-  if (listaVazia) {
-    agendaBoard.hidden = true;
-    emptyState.hidden = false;
-  } else {
-    agendaBoard.hidden = false;
-    emptyState.hidden = true;
-  }
+  agendaBoard.hidden = listaVazia;
+
+  emptyState.hidden = !listaVazia;
+}
+
+/* =========================================
+   RENDERIZAÇÃO PRINCIPAL
+========================================= */
+
+function renderizarAgenda() {
+  fecharTodosOsMenus();
 
   atualizarTituloDoPeriodo();
+
+  const lista = obterAtendimentosDoPeriodo();
+
+  agendaCount.textContent = formatarQuantidade(lista.length);
+
+  const modoMensal = modoVisualizacao === "mes";
+
+  calendarView.hidden = !modoMensal;
+
+  agendaBoard.hidden = modoMensal;
+
+  emptyState.hidden = true;
+
+  if (modoMensal) {
+    renderizarCalendarioMensal();
+
+    return;
+  }
+
+  renderizarAgendaSecundaria(lista);
 }
 
 /* =========================================
@@ -1224,11 +1657,15 @@ function renderizarAgenda() {
 ========================================= */
 
 function alterarModoDeVisualizacao(novoModo) {
-  if (!["dia", "semana", "lista"].includes(novoModo)) {
+  if (!MODOS_VISUALIZACAO.includes(novoModo)) {
     return;
   }
 
   modoVisualizacao = novoModo;
+
+  if (novoModo !== "mes") {
+    dataSelecionada = null;
+  }
 
   viewModeButtons.forEach((button) => {
     const ativo = button.dataset.viewMode === novoModo;
@@ -1256,14 +1693,16 @@ function moverPeriodo(direcao) {
 
   dataReferencia = obterInicioDoDia(dataReferencia);
 
-  fecharTodosOsMenus();
+  dataSelecionada = null;
+
   renderizarAgenda();
 }
 
 function voltarParaHoje() {
   dataReferencia = obterInicioDoDia(new Date());
 
-  fecharTodosOsMenus();
+  dataSelecionada = null;
+
   renderizarAgenda();
 
   mostrarFeedback("Agenda posicionada no período atual.");
@@ -1297,6 +1736,8 @@ applyFiltersButton.addEventListener("click", aplicarFiltros);
 
 clearFiltersButton.addEventListener("click", limparFiltros);
 
+closeSelectedDayButton.addEventListener("click", fecharDiaSelecionado);
+
 statusFilterInputs.forEach((input) => {
   input.addEventListener("change", sincronizarEstiloDosFiltros);
 });
@@ -1318,6 +1759,14 @@ document.addEventListener("keydown", (event) => {
 
   if (!filterPanel.hidden) {
     fecharFiltros();
+
+    openFilterButton.focus();
+
+    return;
+  }
+
+  if (modoVisualizacao === "mes" && dataSelecionada) {
+    fecharDiaSelecionado();
   }
 });
 
@@ -1327,12 +1776,12 @@ document.addEventListener("keydown", (event) => {
 
 carregarEstadoLocal();
 
-sincronizarEstiloDosFiltros();
-
-alterarModoDeVisualizacao(modoVisualizacao);
+sincronizarFormularioComFiltros();
 
 atualizarContagemDeFiltros();
 
+renderizarFiltrosAtivos();
+
 atualizarResumo();
 
-renderizarAgenda();
+alterarModoDeVisualizacao(modoVisualizacao);

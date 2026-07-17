@@ -101,109 +101,59 @@
          RESUMO
     ====================================== -->
 
-    <section class="orders-summary" aria-label="Resumo das ordens de serviço">
+    <!-- =====================================
+     RESUMO COMPACTO
+====================================== -->
 
-      <article class="summary-card">
+    <section class="orders-overview" aria-label="Resumo das ordens de serviço">
 
-        <span class="summary-card__icon">
+      <div class="overview-item">
 
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 5h16v14H4z"></path>
-            <path d="M8 9h8"></path>
-            <path d="M8 13h5"></path>
-          </svg>
-
+        <span>
+          Total
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-total">
+          0
+        </strong>
 
-          <span>
-            Total
-          </span>
+      </div>
 
-          <strong id="summary-total">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-
+        <span>
+          Pendentes
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-pending">
+          0
+        </strong>
 
-          <span>
-            Pendentes
-          </span>
+      </div>
 
-          <strong id="summary-pending">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12l4 4L19 6"></path>
-          </svg>
-
+        <span>
+          Em andamento
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-progress">
+          0
+        </strong>
 
-          <span>
-            Em andamento
-          </span>
+      </div>
 
-          <strong id="summary-progress">
-            0
-          </strong>
+      <div class="overview-item">
 
-        </div>
-
-      </article>
-
-      <article class="summary-card">
-
-        <span class="summary-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 5h16v14H4z"></path>
-            <path d="M8 9h8"></path>
-            <path d="M8 13h5"></path>
-            <path d="M16 16h3"></path>
-          </svg>
-
+        <span>
+          Concluídas
         </span>
 
-        <div class="summary-card__copy">
+        <strong id="summary-completed">
+          0
+        </strong>
 
-          <span>
-            Concluídas
-          </span>
-
-          <strong id="summary-completed">
-            0
-          </strong>
-
-        </div>
-
-      </article>
+      </div>
 
     </section>
 
@@ -290,7 +240,11 @@
       </button>
 
     </section>
+    <!-- =====================================
+     FILTROS ATIVOS
+====================================== -->
 
+    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
     <!-- =====================================
          MENU DE ORDENAÇÃO
     ====================================== -->
@@ -603,11 +557,43 @@
 
         </div>
 
-        <span class="orders-content__count" id="orders-count">
-          0 itens
-        </span>
+        <div class="orders-content__controls">
+
+          <span class="orders-content__count" id="orders-count">
+            0 itens
+          </span>
+
+          <div class="orders-carousel-controls" aria-label="Navegação entre ordens">
+
+            <button type="button" class="orders-carousel-button" id="previous-order-button" aria-label="Ordem anterior">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+
+            </button>
+
+            <span class="orders-carousel-position" id="orders-carousel-position" aria-live="polite">
+              0 de 0
+            </span>
+
+            <button type="button" class="orders-carousel-button" id="next-order-button" aria-label="Próxima ordem">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+
+            </button>
+
+          </div>
+
+        </div>
 
       </div>
+
+      <p class="orders-content__hint">
+        Arraste os cards para o lado ou use as setas para visualizar outras ordens.
+      </p>
 
       <div class="orders-list" id="orders-list" aria-live="polite"></div>
 
@@ -647,9 +633,15 @@
        TEMPLATE DO CARD
   ====================================== -->
 
+  <!-- =====================================
+     TEMPLATE DO CARD COMPACTO
+====================================== -->
+
   <template id="order-card-template">
 
     <article class="order-card">
+
+      <!-- Lateral com prioridade e data -->
 
       <div class="order-card__side">
 
@@ -675,131 +667,163 @@
 
       </div>
 
-      <div class="order-card__content">
+      <div class="order-card__body">
 
-        <div class="order-card__top">
+        <!-- Conteúdo sempre visível -->
 
-          <span class="order-card__code"></span>
+        <div class="order-card__summary">
 
-          <span class="order-card__status"></span>
+          <div class="order-card__content">
 
-        </div>
+            <div class="order-card__top">
 
-        <span class="order-card__client"></span>
+              <span class="order-card__code"></span>
 
-        <h3 class="order-card__title"></h3>
+              <span class="order-card__status"></span>
 
-        <p class="order-card__services"></p>
+            </div>
 
-        <div class="order-card__information">
+            <span class="order-card__client"></span>
 
-          <span class="order-card__schedule">
+            <h3 class="order-card__title"></h3>
 
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+            <span class="order-card__schedule">
 
-              <path d="M7 3v4M17 3v4M3 10h18"></path>
-            </svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
 
-            <span></span>
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
 
-          </span>
+                <path d="M7 3v4M17 3v4M3 10h18"></path>
 
-          <span class="order-card__address">
+              </svg>
 
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
-              <circle cx="12" cy="9" r="2"></circle>
-            </svg>
+              <span></span>
 
-            <span></span>
-
-          </span>
-
-          <span class="order-card__employee">
-
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="8" r="4"></circle>
-              <path d="M4 21a8 8 0 0 1 16 0"></path>
-            </svg>
-
-            <span></span>
-
-          </span>
-
-        </div>
-
-        <div class="order-card__financial" hidden>
-
-          <div>
-
-            <span>
-              Valor
             </span>
-
-            <strong class="order-card__value"></strong>
 
           </div>
 
-          <span class="order-card__payment-status"></span>
-
-        </div>
-
-        <div class="order-card__actions">
-
-          <button type="button" class="order-card__button order-card__button--details">
-            Ver detalhes
-          </button>
-
-          <button type="button" class="order-card__button order-card__button--primary" data-primary-action>
-            Atualizar
-          </button>
-
-          <button type="button" class="order-card__menu" aria-label="Abrir opções da ordem" aria-expanded="false">
+          <button type="button" class="order-card__toggle" aria-expanded="false" aria-label="Mostrar informações da ordem">
 
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="5" cy="12" r="1"></circle>
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="19" cy="12" r="1"></circle>
+              <path d="m6 9 6 6 6-6"></path>
             </svg>
 
           </button>
 
         </div>
 
-        <div class="order-card__options" hidden>
+        <!-- Conteúdo inicialmente escondido -->
 
-          <button type="button" data-order-action="aceitar">
-            Aceitar solicitação
-          </button>
+        <div class="order-card__details" hidden>
 
-          <button type="button" data-order-action="propor-data">
-            Propor nova data
-          </button>
+          <p class="order-card__services"></p>
 
-          <button type="button" data-order-action="atribuir">
-            Definir responsável
-          </button>
+          <div class="order-card__information">
 
-          <button type="button" data-order-action="reagendar">
-            Reagendar atendimento
-          </button>
+            <span class="order-card__address">
 
-          <button type="button" data-order-action="iniciar">
-            Iniciar atendimento
-          </button>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
 
-          <button type="button" data-order-action="concluir">
-            Marcar como concluída
-          </button>
+                <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
 
-          <button type="button" data-order-action="cancelar">
-            Cancelar ordem
-          </button>
+                <circle cx="12" cy="9" r="2"></circle>
 
-          <button type="button" data-order-action="recusar">
-            Recusar solicitação
-          </button>
+              </svg>
+
+              <span></span>
+
+            </span>
+
+            <span class="order-card__employee">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+
+                <circle cx="12" cy="8" r="4"></circle>
+
+                <path d="M4 21a8 8 0 0 1 16 0"></path>
+
+              </svg>
+
+              <span></span>
+
+            </span>
+
+          </div>
+
+          <div class="order-card__financial" hidden>
+
+            <div>
+
+              <span>
+                Valor
+              </span>
+
+              <strong class="order-card__value"></strong>
+
+            </div>
+
+            <span class="order-card__payment-status"></span>
+
+          </div>
+
+          <div class="order-card__actions">
+
+            <button type="button" class="order-card__button order-card__button--details">
+              Abrir ordem
+            </button>
+
+            <button type="button" class="order-card__button order-card__button--primary" data-primary-action>
+              Atualizar
+            </button>
+
+            <button type="button" class="order-card__menu" aria-label="Abrir opções da ordem" aria-expanded="false">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="12" r="1"></circle>
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="19" cy="12" r="1"></circle>
+              </svg>
+
+            </button>
+
+          </div>
+
+          <div class="order-card__options" hidden>
+
+            <button type="button" data-order-action="aceitar">
+              Aceitar solicitação
+            </button>
+
+            <button type="button" data-order-action="propor-data">
+              Propor nova data
+            </button>
+
+            <button type="button" data-order-action="atribuir">
+              Definir responsável
+            </button>
+
+            <button type="button" data-order-action="reagendar">
+              Reagendar atendimento
+            </button>
+
+            <button type="button" data-order-action="iniciar">
+              Iniciar atendimento
+            </button>
+
+            <button type="button" data-order-action="concluir">
+              Marcar como concluída
+            </button>
+
+            <button type="button" data-order-action="cancelar">
+              Cancelar ordem
+            </button>
+
+            <button type="button" data-order-action="recusar">
+              Recusar solicitação
+            </button>
+
+          </div>
 
         </div>
 

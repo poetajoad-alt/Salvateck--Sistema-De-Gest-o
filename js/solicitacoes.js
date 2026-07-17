@@ -1,7 +1,7 @@
 /* =========================================
    DADOS TEMPORÁRIOS DAS SOLICITAÇÕES
 ========================================= */
-
+const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
 const solicitacoes = [
   {
     id: "OS-0001",
@@ -216,6 +216,16 @@ const categoriaConfig = {
       <path d="M10 20v-6h4v6"></path>
     `,
   },
+
+  vistoria: {
+    nome: "Vistoria técnica",
+    icone: `
+      <path d="M9 5h6"></path>
+      <path d="M9 3h6v4H9z"></path>
+      <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+      <path d="m8 14 2 2 5-5"></path>
+    `,
+  },
 };
 
 const prioridadeConfig = {
@@ -377,9 +387,15 @@ function mostrarFeedback(mensagem) {
   }, 2800);
 }
 
-function abrirDetalhes(solicitacaoId) {
+function abrirDetalhes(solicitacao) {
+  if (!solicitacao) {
+    mostrarFeedback("Não foi possível identificar esta solicitação.");
+    return;
+  }
+
   const parametros = new URLSearchParams({
-    id: solicitacaoId,
+    id: solicitacao.id,
+    codigo: solicitacao.codigo || solicitacao.id,
     perfil: perfilAtual,
   });
 
@@ -399,6 +415,189 @@ function obterIconePrincipal(solicitacao) {
     categoriaConfig[categoriaPrincipal]?.icone ||
     categoriaConfig["manutencao-geral"].icone
   );
+}
+
+/* =========================================
+   SOLICITAÇÕES SALVAS PELA NOVA ORDEM
+========================================= */
+
+function normalizarStatusDaOrdem(status) {
+  const statusNormalizado = normalizarTexto(status);
+
+  const statusMap = {
+    nova: "nova-solicitacao",
+    "nova-solicitacao": "nova-solicitacao",
+
+    analise: "em-analise",
+    "em-analise": "em-analise",
+
+    "aguardando-confirmacao": "aguardando-confirmacao",
+
+    agendada: "agendada",
+
+    recusada: "recusada",
+    recusado: "recusada",
+
+    cancelada: "cancelada",
+    cancelado: "cancelada",
+  };
+
+  return statusMap[statusNormalizado] || "nova-solicitacao";
+}
+
+function normalizarPrioridadeDaOrdem(prioridade) {
+  const prioridadeNormalizada = normalizarTexto(prioridade);
+
+  const prioridadeMap = {
+    baixa: "baixa",
+    low: "baixa",
+
+    normal: "normal",
+
+    alta: "alta",
+    high: "alta",
+
+    urgente: "urgente",
+    critica: "urgente",
+    critical: "urgente",
+  };
+
+  return prioridadeMap[prioridadeNormalizada] || "normal";
+}
+
+function obterEnderecoDaOrdem(ordem) {
+  if (String(ordem.endereco?.resumo || "").trim()) {
+    return ordem.endereco.resumo;
+  }
+
+  if (typeof ordem.endereco === "string") {
+    return ordem.endereco;
+  }
+
+  const primeiraLinha = [
+    ordem.endereco?.rua,
+    ordem.endereco?.numero,
+    ordem.endereco?.complemento,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const segundaLinha = [ordem.endereco?.bairro, ordem.endereco?.cidade]
+    .filter(Boolean)
+    .join(" — ");
+
+  return (
+    [primeiraLinha, segundaLinha].filter(Boolean).join(" | ") ||
+    "Endereço não informado"
+  );
+}
+
+function obterServicosDaOrdem(ordem) {
+  if (Array.isArray(ordem.servicos)) {
+    return ordem.servicos
+      .map((servico) => {
+        if (typeof servico === "string") {
+          return servico;
+        }
+
+        return servico?.servico || "";
+      })
+      .filter(Boolean);
+  }
+
+  return [ordem.servicoPrincipal].filter(Boolean);
+}
+
+function normalizarOrdemParaSolicitacao(ordem, indice) {
+  const categorias =
+    Array.isArray(ordem.categorias) && ordem.categorias.length
+      ? ordem.categorias
+      : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const perfilCriador = normalizarTexto(ordem.perfilCriador);
+
+  const clienteId =
+    ordem.cliente?.id ||
+    ordem.clienteId ||
+    (perfilCriador === "cliente" ? clienteAtualId : "");
+
+  const codigo = ordem.codigo || ordem.numero || `OS-TEMP-${indice + 1}`;
+
+  return {
+    perfilCriador: perfilCriador || "cliente",
+    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+
+    codigo,
+
+    clienteId,
+
+    clienteNome:
+      ordem.cliente?.nome || ordem.clienteNome || "Cliente não informado",
+
+    titulo:
+      ordem.titulo ||
+      ordem.servicoPrincipal ||
+      (categorias.includes("vistoria")
+        ? "Vistoria técnica"
+        : "Solicitação de serviço"),
+
+    categorias,
+
+    servicos: obterServicosDaOrdem(ordem),
+
+    tipoAtendimento:
+      ordem.tipoAtendimento ||
+      (categorias.includes("vistoria") ? "vistoria" : "servico"),
+
+    status: normalizarStatusDaOrdem(ordem.status),
+
+    prioridade: normalizarPrioridadeDaOrdem(
+      ordem.prioridade || ordem.vistoria?.prioridade,
+    ),
+
+    criadoEm: String(ordem.criadoEm || "").split("T")[0],
+
+    dataPreferida:
+      ordem.atendimento?.dataPreferida || ordem.dataPreferida || "",
+
+    periodo: ordem.atendimento?.periodo || ordem.periodo || "",
+
+    endereco: obterEnderecoDaOrdem(ordem),
+  };
+}
+
+function carregarSolicitacoesSalvas() {
+  try {
+    const dadosSalvos = JSON.parse(
+      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+    );
+
+    if (!Array.isArray(dadosSalvos)) {
+      return;
+    }
+
+    const ordensNormalizadas = dadosSalvos
+      .filter((ordem) => {
+        return Boolean(ordem && (ordem.id || ordem.codigo || ordem.titulo));
+      })
+      .map(normalizarOrdemParaSolicitacao);
+
+    ordensNormalizadas.forEach((ordemSalva) => {
+      const indiceExistente = solicitacoes.findIndex(
+        (solicitacao) => solicitacao.id === ordemSalva.id,
+      );
+
+      if (indiceExistente >= 0) {
+        solicitacoes[indiceExistente] = ordemSalva;
+
+        return;
+      }
+
+      solicitacoes.unshift(ordemSalva);
+    });
+  } catch (error) {
+    console.warn("Não foi possível carregar as solicitações salvas.", error);
+  }
 }
 
 /* =========================================
@@ -609,9 +808,15 @@ function obterSolicitacoesDoPerfil() {
     return [...solicitacoes];
   }
 
-  return solicitacoes.filter(
-    (solicitacao) => solicitacao.clienteId === clienteAtualId,
-  );
+  return solicitacoes.filter((solicitacao) => {
+    const perfilCriador = normalizarTexto(
+      solicitacao.perfilCriador || "cliente",
+    );
+
+    return (
+      perfilCriador === "cliente" && solicitacao.clienteId === clienteAtualId
+    );
+  });
 }
 
 function correspondeAPesquisa(solicitacao) {
@@ -735,7 +940,7 @@ function preencherCard(solicitacao) {
   const priorityData =
     prioridadeConfig[solicitacao.prioridade] || prioridadeConfig.normal;
 
-  code.textContent = solicitacao.id;
+  code.textContent = solicitacao.codigo || solicitacao.id;
 
   status.textContent = statusData.nome;
   status.classList.add(statusData.classe);
@@ -768,11 +973,11 @@ function preencherCard(solicitacao) {
   );
 
   mainButton.addEventListener("click", () => {
-    abrirDetalhes(solicitacao.id);
+    abrirDetalhes(solicitacao);
   });
 
   analyzeButton.addEventListener("click", () => {
-    abrirDetalhes(solicitacao.id);
+    abrirDetalhes(solicitacao);
   });
 
   return fragmento;
@@ -836,6 +1041,8 @@ document.addEventListener("keydown", (event) => {
 /* =========================================
    INICIALIZAÇÃO
 ========================================= */
+
+carregarSolicitacoesSalvas();
 
 sincronizarEstiloDosFiltros();
 

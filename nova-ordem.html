@@ -31,7 +31,7 @@
     <!-- Cabeçalho -->
     <header class="order-header">
 
-      <a href="principal.html" class="header-button" aria-label="Voltar para o painel de controle">
+      <a href="principal.html?perfil=cliente" class="header-button" id="order-back-link" aria-label="Voltar para o painel de controle">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
         </svg>
@@ -542,6 +542,31 @@
             </span>
 
           </label>
+          <label class="category-card">
+
+            <input type="checkbox" name="categorias" value="vistoria" />
+
+            <span class="category-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+
+                <path d="M9 5h6"></path>
+
+                <path d="M9 3h6v4H9z"></path>
+
+                <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+
+                <path d="m8 14 2 2 5-5"></path>
+
+              </svg>
+
+            </span>
+
+            <span class="category-card__label">
+              Vistoria técnica
+            </span>
+
+          </label>
 
         </div>
 
@@ -973,7 +998,7 @@
       <!-- Botões -->
       <div class="form-actions">
 
-        <a href="principal.html" class="button button--secondary">
+        <a href="principal.html?perfil=cliente" class="button button--secondary" id="order-cancel-link">
           Cancelar
         </a>
 

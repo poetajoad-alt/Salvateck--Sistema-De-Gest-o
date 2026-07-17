@@ -6,12 +6,19 @@
   display: none !important;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 body.modal-open {
   overflow: hidden;
 }
 
 .orders-shell {
-  width: min(100%, 920px);
+  width: min(100%, 1120px);
   min-height: 100vh;
 
   margin: 0 auto;
@@ -65,7 +72,7 @@ body.modal-open {
 .orders-header__eyebrow {
   margin: 0 0 4px;
 
-  font-size: 0.67rem;
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -76,7 +83,7 @@ body.modal-open {
 .orders-header h1 {
   margin: 0;
 
-  font-size: clamp(1.05rem, 4.5vw, 1.55rem);
+  font-size: clamp(1.1rem, 4.5vw, 1.6rem);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.035em;
@@ -111,26 +118,26 @@ body.modal-open {
 }
 
 /* =========================================
-   APRESENTAÇÃO
+   APRESENTAÇÃO COMPACTA
 ========================================= */
 
 .orders-intro {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 22px;
 
-  margin-top: 28px;
-  padding: clamp(22px, 6vw, 32px);
+  margin-top: 27px;
+  padding: clamp(20px, 5vw, 28px);
 
-  background-color: rgba(13, 56, 97, 0.86);
+  background-color: rgba(13, 56, 97, 0.87);
 
   border: 1px solid rgba(221, 154, 23, 0.35);
   border-radius: var(--radius-large);
 
   box-shadow: var(--shadow-soft);
 
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(12px);
 }
 
 .orders-intro__copy {
@@ -138,14 +145,14 @@ body.modal-open {
 }
 
 .orders-intro__badge {
-  min-height: 28px;
+  min-height: 27px;
 
   display: inline-flex;
   align-items: center;
 
-  padding: 6px 11px;
+  padding: 5px 11px;
 
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -157,28 +164,28 @@ body.modal-open {
 }
 
 .orders-intro h2 {
-  max-width: 520px;
+  max-width: 580px;
 
-  margin: 15px 0 8px;
+  margin: 13px 0 7px;
 
-  font-size: clamp(1.4rem, 6vw, 1.95rem);
+  font-size: clamp(1.25rem, 5vw, 1.78rem);
   font-weight: 800;
-  line-height: 1.16;
-  letter-spacing: -0.04em;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
 
   color: #f9f9f9;
 }
 
 .orders-intro p {
-  max-width: 590px;
+  max-width: 650px;
 
   margin: 0;
 
-  font-size: 0.79rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  line-height: 1.65;
+  line-height: 1.6;
 
-  color: rgba(249, 249, 249, 0.76);
+  color: rgba(249, 249, 249, 0.77);
 }
 
 .new-order-button {
@@ -191,9 +198,9 @@ body.modal-open {
   justify-content: center;
   gap: 9px;
 
-  padding: 0 16px;
+  padding: 0 17px;
 
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-align: center;
   text-decoration: none;
@@ -218,28 +225,17 @@ body.modal-open {
 }
 
 /* =========================================
-   RESUMO
+   RESUMO COMPACTO
 ========================================= */
 
-.orders-summary {
+.orders-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 11px;
 
-  margin-top: 20px;
-}
+  margin-top: 18px;
 
-.summary-card {
-  min-width: 0;
-  min-height: 86px;
+  overflow: hidden;
 
-  display: flex;
-  align-items: center;
-  gap: 11px;
-
-  padding: 14px;
-
-  color: #2b2f33;
   background-color: #f9f9f9;
 
   border: 1px solid rgba(43, 47, 51, 0.1);
@@ -248,55 +244,48 @@ body.modal-open {
   box-shadow: var(--shadow-card);
 }
 
-.summary-card__icon {
-  flex: 0 0 auto;
+.overview-item {
+  position: relative;
 
-  width: 41px;
-  height: 41px;
-
-  display: grid;
-  place-items: center;
-
-  color: #0d3861;
-  background-color: rgba(221, 154, 23, 0.17);
-
-  border-radius: 13px;
-}
-
-.summary-card__icon svg {
-  width: 21px;
-  height: 21px;
-
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.summary-card__copy {
   min-width: 0;
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 15px 17px;
 }
 
-.summary-card__copy > span,
-.summary-card__copy > strong {
-  display: block;
+.overview-item:not(:last-child)::after {
+  content: "";
+
+  position: absolute;
+  top: 16px;
+  right: 0;
+  bottom: 16px;
+
+  width: 1px;
+
+  background-color: rgba(43, 47, 51, 0.1);
 }
 
-.summary-card__copy > span {
-  font-size: 0.61rem;
+.overview-item span {
+  min-width: 0;
+
+  font-size: 0.72rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.35;
 
   color: #747c83;
 }
 
-.summary-card__copy > strong {
-  margin-top: 4px;
+.overview-item strong {
+  flex: 0 0 auto;
 
-  font-size: 1.22rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  line-height: 1.05;
 
   color: #0d3861;
 }
@@ -307,20 +296,23 @@ body.modal-open {
 
 .status-tabs {
   display: flex;
-  gap: 8px;
+  gap: 7px;
 
-  margin-top: 20px;
+  margin-top: 18px;
   padding: 5px;
 
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   scrollbar-width: none;
 
-  background-color: rgba(249, 249, 249, 0.92);
+  background-color: rgba(249, 249, 249, 0.94);
 
   border: 1px solid rgba(43, 47, 51, 0.1);
   border-radius: var(--radius-pill);
 
   box-shadow: var(--shadow-card);
+
+  -webkit-overflow-scrolling: touch;
 }
 
 .status-tabs::-webkit-scrollbar {
@@ -341,7 +333,7 @@ body.modal-open {
   cursor: pointer;
   white-space: nowrap;
 
-  font-size: 0.64rem;
+  font-size: 0.69rem;
   font-weight: 800;
 
   color: #687077;
@@ -361,7 +353,7 @@ body.modal-open {
 }
 
 /* =========================================
-   PESQUISA, FILTRO E ORDENAÇÃO
+   PESQUISA, FILTROS E ORDENAÇÃO
 ========================================= */
 
 .orders-tools {
@@ -369,11 +361,11 @@ body.modal-open {
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
 
-  margin-top: 20px;
+  margin-top: 18px;
 }
 
 .search-field {
-  min-height: 54px;
+  min-height: 52px;
 
   display: flex;
   align-items: center;
@@ -406,10 +398,9 @@ body.modal-open {
   width: 100%;
   min-width: 0;
 
-  padding: 15px 0;
+  padding: 14px 0;
 
-  font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 
   color: #2b2f33;
   background-color: transparent;
@@ -432,19 +423,20 @@ body.modal-open {
 
 .filter-button,
 .sort-button {
-  min-height: 54px;
+  min-height: 52px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 
-  padding: 0 17px;
+  padding: 0 16px;
 
   cursor: pointer;
 
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
+  white-space: nowrap;
 
   border-radius: var(--radius-pill);
 }
@@ -480,15 +472,16 @@ body.modal-open {
 }
 
 .filter-button__count {
-  min-width: 20px;
-  height: 20px;
+  min-width: 21px;
+  height: 21px;
 
   display: grid;
   place-items: center;
 
   padding: 0 5px;
 
-  font-size: 0.6rem;
+  font-size: 0.64rem;
+  font-weight: 800;
 
   color: #0d3861;
   background-color: #dd9a17;
@@ -497,11 +490,63 @@ body.modal-open {
 }
 
 /* =========================================
+   FILTROS ATIVOS
+========================================= */
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+.active-filter-chip {
+  min-height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 5px 7px 5px 11px;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border: 1px solid rgba(221, 154, 23, 0.35);
+  border-radius: var(--radius-pill);
+}
+
+.active-filter-chip button {
+  width: 24px;
+  height: 24px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 1rem;
+  line-height: 1;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: none;
+  border-radius: 50%;
+}
+
+/* =========================================
    MENU DE ORDENAÇÃO
 ========================================= */
 
 .sort-menu {
-  width: min(100%, 330px);
+  width: min(100%, 340px);
 
   display: grid;
   gap: 7px;
@@ -524,7 +569,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-align: left;
 
@@ -571,7 +616,7 @@ body.modal-open {
 .filter-panel__header p {
   margin: 0 0 4px;
 
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -622,7 +667,7 @@ body.modal-open {
 
   margin-bottom: 10px;
 
-  font-size: 0.71rem;
+  font-size: 0.75rem;
   font-weight: 800;
 
   color: #2b2f33;
@@ -659,7 +704,7 @@ body.modal-open {
 
   padding: 9px 13px;
 
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
 
   color: #4e565d;
@@ -683,8 +728,7 @@ body.modal-open {
 
   padding: 0 14px;
 
-  font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 600;
 
   color: #2b2f33;
@@ -720,7 +764,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.7rem;
+  font-size: 0.73rem;
   font-weight: 800;
 
   border-radius: var(--radius-pill);
@@ -745,12 +789,15 @@ body.modal-open {
 ========================================= */
 
 .orders-content {
-  margin-top: 22px;
-  padding: clamp(21px, 5vw, 30px);
+  margin-top: 20px;
+  padding: clamp(18px, 4vw, 28px);
+
+  overflow: hidden;
 
   color: #2b2f33;
   background-color: #eef1f3;
 
+  border: 1px solid rgba(249, 249, 249, 0.42);
   border-radius: var(--radius-large);
 
   box-shadow: var(--shadow-soft);
@@ -762,13 +809,17 @@ body.modal-open {
   justify-content: space-between;
   gap: 16px;
 
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+}
+
+.orders-content__heading > div:first-child {
+  min-width: 0;
 }
 
 .orders-content__heading p {
   margin: 0 0 5px;
 
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -786,12 +837,20 @@ body.modal-open {
   color: #0d3861;
 }
 
+.orders-content__controls {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
 .orders-content__count {
   flex: 0 0 auto;
 
   padding: 7px 10px;
 
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 800;
 
   color: #0d3861;
@@ -800,9 +859,104 @@ body.modal-open {
   border-radius: var(--radius-pill);
 }
 
-.orders-list {
+/* =========================================
+   CONTROLES DO CARROSSEL
+========================================= */
+
+.orders-carousel-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 4px;
+
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(13, 56, 97, 0.1);
+  border-radius: var(--radius-pill);
+}
+
+.orders-carousel-button {
+  width: 34px;
+  height: 34px;
+
   display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #0d3861;
+  background-color: rgba(13, 56, 97, 0.07);
+
+  border: none;
+  border-radius: 50%;
+}
+
+.orders-carousel-button svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.orders-carousel-button:disabled {
+  cursor: default;
+
+  opacity: 0.35;
+}
+
+.orders-carousel-position {
+  min-width: 48px;
+
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+
+  color: #0d3861;
+}
+
+.orders-content__hint {
+  margin: 0 0 14px;
+
+  font-size: 0.69rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  color: #737b82;
+}
+
+/* =========================================
+   CARROSSEL DE ORDENS
+========================================= */
+
+.orders-list {
+  display: flex;
   gap: 14px;
+
+  padding: 3px 12% 10px 1px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scroll-behavior: smooth;
+  scroll-padding-inline: 1px;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+}
+
+.orders-list::-webkit-scrollbar {
+  display: none;
 }
 
 /* =========================================
@@ -810,12 +964,17 @@ body.modal-open {
 ========================================= */
 
 .order-card {
+  flex: 0 0 min(88%, 510px);
+
   min-width: 0;
 
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr);
+  grid-template-columns: 86px minmax(0, 1fr);
 
   overflow: hidden;
+
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 
   background-color: #f9f9f9;
 
@@ -833,16 +992,16 @@ body.modal-open {
   align-items: center;
   justify-content: center;
 
-  padding: 16px 9px;
+  padding: 15px 8px;
 
   color: #0d3861;
-  background-color: rgba(221, 154, 23, 0.9);
+  background-color: rgba(221, 154, 23, 0.91);
 
   border-right: 1px solid rgba(13, 56, 97, 0.08);
 }
 
 .order-card__priority {
-  min-height: 24px;
+  min-height: 25px;
 
   display: inline-flex;
   align-items: center;
@@ -851,13 +1010,14 @@ body.modal-open {
   margin-bottom: 14px;
   padding: 4px 8px;
 
-  font-size: 0.51rem;
+  font-size: 0.56rem;
   font-weight: 800;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 
   color: #0d3861;
-  background-color: rgba(249, 249, 249, 0.58);
+  background-color: rgba(249, 249, 249, 0.62);
 
   border-radius: var(--radius-pill);
 }
@@ -878,8 +1038,9 @@ body.modal-open {
 }
 
 .order-card__date-label {
-  font-size: 0.53rem;
+  font-size: 0.57rem;
   font-weight: 800;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 
@@ -891,7 +1052,7 @@ body.modal-open {
 
   margin-top: 5px;
 
-  font-size: 1.8rem;
+  font-size: 1.75rem;
   font-weight: 800;
   line-height: 1;
 
@@ -901,7 +1062,7 @@ body.modal-open {
 .order-card__month {
   margin-top: 5px;
 
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -912,27 +1073,44 @@ body.modal-open {
 .order-card__year {
   margin-top: 4px;
 
-  font-size: 0.55rem;
+  font-size: 0.59rem;
   font-weight: 700;
 
   color: rgba(13, 56, 97, 0.68);
 }
 
+/* =========================================
+   CORPO DO CARD
+========================================= */
+
+.order-card__body {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.order-card__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: stretch;
+}
+
 .order-card__content {
   min-width: 0;
 
-  padding: 17px;
+  padding: 15px 14px;
 }
 
 .order-card__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 11px;
+  gap: 9px;
 }
 
 .order-card__code {
-  font-size: 0.62rem;
+  font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.04em;
 
@@ -940,16 +1118,22 @@ body.modal-open {
 }
 
 .order-card__status {
-  min-height: 25px;
+  min-height: 26px;
 
   display: inline-flex;
   align-items: center;
 
+  max-width: 155px;
+
   padding: 5px 9px;
 
-  font-size: 0.55rem;
+  overflow: hidden;
+
+  font-size: 0.61rem;
   font-weight: 800;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   border-radius: var(--radius-pill);
 }
@@ -957,12 +1141,16 @@ body.modal-open {
 .order-card__client {
   display: block;
 
-  margin-top: 12px;
+  margin-top: 11px;
 
-  font-size: 0.61rem;
+  overflow: hidden;
+
+  font-size: 0.65rem;
   font-weight: 800;
   text-transform: uppercase;
+  text-overflow: ellipsis;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 
   color: #a16d12;
 }
@@ -975,48 +1163,31 @@ body.modal-open {
   line-height: 1.35;
 
   color: #0d3861;
+
+  overflow-wrap: anywhere;
 }
 
-.order-card__services {
-  margin: 5px 0 0;
-
-  font-size: 0.67rem;
-  font-weight: 500;
-  line-height: 1.5;
-
-  color: #626a71;
-}
-
-.order-card__information {
-  display: grid;
-  gap: 8px;
-
-  margin-top: 13px;
-}
-
-.order-card__schedule,
-.order-card__address,
-.order-card__employee {
+.order-card__schedule {
   min-width: 0;
 
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
 
-  font-size: 0.62rem;
+  margin-top: 12px;
+
+  font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.45;
 
   color: #70787f;
 }
 
-.order-card__schedule svg,
-.order-card__address svg,
-.order-card__employee svg {
+.order-card__schedule svg {
   flex: 0 0 auto;
 
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
 
   fill: none;
   stroke: #a16d12;
@@ -1025,14 +1196,125 @@ body.modal-open {
   stroke-linejoin: round;
 }
 
-.order-card__schedule > span,
-.order-card__address > span,
-.order-card__employee > span {
+.order-card__schedule > span {
+  min-width: 0;
+
   overflow-wrap: anywhere;
 }
 
 /* =========================================
-   ÁREA FINANCEIRA DO CARD
+   BOTÃO DE EXPANSÃO
+========================================= */
+
+.order-card__toggle {
+  align-self: stretch;
+
+  width: 42px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #0d3861;
+  background-color: rgba(13, 56, 97, 0.045);
+
+  border: none;
+  border-left: 1px solid rgba(13, 56, 97, 0.08);
+}
+
+.order-card__toggle svg {
+  width: 19px;
+  height: 19px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  transition: transform 180ms ease;
+}
+
+.order-card__toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.order-card.is-expanded {
+  border-color: rgba(221, 154, 23, 0.48);
+
+  box-shadow: 0 13px 27px rgba(13, 56, 97, 0.15);
+}
+
+/* =========================================
+   DETALHES RECOLHÍVEIS
+========================================= */
+
+.order-card__details {
+  padding: 14px;
+
+  background-color: rgba(13, 56, 97, 0.025);
+
+  border-top: 1px solid rgba(13, 56, 97, 0.08);
+}
+
+.order-card__services {
+  margin: 0;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.55;
+
+  color: #626a71;
+}
+
+.order-card__information {
+  display: grid;
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.order-card__address,
+.order-card__employee {
+  min-width: 0;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  color: #70787f;
+}
+
+.order-card__address svg,
+.order-card__employee svg {
+  flex: 0 0 auto;
+
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+  stroke: #a16d12;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.order-card__address > span,
+.order-card__employee > span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+/* =========================================
+   ÁREA FINANCEIRA
 ========================================= */
 
 .order-card__financial {
@@ -1041,8 +1323,8 @@ body.modal-open {
   justify-content: space-between;
   gap: 14px;
 
-  margin-top: 14px;
-  padding: 12px 13px;
+  margin-top: 13px;
+  padding: 11px 12px;
 
   background-color: rgba(13, 56, 97, 0.05);
 
@@ -1060,7 +1342,7 @@ body.modal-open {
 }
 
 .order-card__financial div > span {
-  font-size: 0.57rem;
+  font-size: 0.62rem;
   font-weight: 700;
 
   color: #747c83;
@@ -1069,7 +1351,7 @@ body.modal-open {
 .order-card__value {
   margin-top: 3px;
 
-  font-size: 0.77rem;
+  font-size: 0.78rem;
   font-weight: 800;
 
   color: #0d3861;
@@ -1078,14 +1360,14 @@ body.modal-open {
 .order-card__payment-status {
   flex: 0 0 auto;
 
-  min-height: 25px;
+  min-height: 26px;
 
   display: inline-flex;
   align-items: center;
 
   padding: 5px 9px;
 
-  font-size: 0.54rem;
+  font-size: 0.61rem;
   font-weight: 800;
 
   border-radius: var(--radius-pill);
@@ -1120,7 +1402,7 @@ body.modal-open {
   grid-template-columns: 1fr 1fr 42px;
   gap: 8px;
 
-  margin-top: 15px;
+  margin-top: 14px;
 }
 
 .order-card__button,
@@ -1135,7 +1417,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-align: center;
 
@@ -1198,7 +1480,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-align: left;
 
@@ -1272,7 +1554,7 @@ body.modal-open {
 
   text-align: center;
 
-  background-color: rgba(249, 249, 249, 0.7);
+  background-color: rgba(249, 249, 249, 0.72);
 
   border: 1px dashed rgba(13, 56, 97, 0.22);
   border-radius: var(--radius-medium);
@@ -1305,18 +1587,18 @@ body.modal-open {
 .empty-state h3 {
   margin: 17px 0 7px;
 
-  font-size: 0.91rem;
+  font-size: 0.92rem;
   font-weight: 800;
 
   color: #0d3861;
 }
 
 .empty-state p {
-  max-width: 360px;
+  max-width: 380px;
 
   margin: 0;
 
-  font-size: 0.69rem;
+  font-size: 0.74rem;
   line-height: 1.55;
 
   color: #70787f;
@@ -1334,7 +1616,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.67rem;
+  font-size: 0.72rem;
   font-weight: 800;
 
   color: #dd9a17;
@@ -1394,7 +1676,7 @@ body.modal-open {
 .modal-card__header p {
   margin: 0 0 5px;
 
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -1459,7 +1741,7 @@ body.modal-open {
 
   margin-bottom: 8px;
 
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
 
   color: #2b2f33;
@@ -1470,8 +1752,7 @@ body.modal-open {
 .modal-field textarea {
   width: 100%;
 
-  font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 600;
 
   color: #2b2f33;
@@ -1533,7 +1814,7 @@ body.modal-open {
 
   cursor: pointer;
 
-  font-size: 0.7rem;
+  font-size: 0.73rem;
   font-weight: 800;
 
   border-radius: var(--radius-pill);
@@ -1554,6 +1835,30 @@ body.modal-open {
 }
 
 /* =========================================
+   FOCO VISÍVEL
+========================================= */
+
+.header-button:focus-visible,
+.new-order-button:focus-visible,
+.status-tab:focus-visible,
+.filter-button:focus-visible,
+.sort-button:focus-visible,
+.sort-option:focus-visible,
+.filter-panel__close:focus-visible,
+.filter-action:focus-visible,
+.orders-carousel-button:focus-visible,
+.order-card__toggle:focus-visible,
+.order-card__button:focus-visible,
+.order-card__menu:focus-visible,
+.order-card__options button:focus-visible,
+.empty-state__button:focus-visible,
+.modal-card__close:focus-visible,
+.modal-button:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 3px;
+}
+
+/* =========================================
    FEEDBACK
 ========================================= */
 
@@ -1569,7 +1874,7 @@ body.modal-open {
 
   transform: translateX(-50%);
 
-  font-size: 0.73rem;
+  font-size: 0.76rem;
   font-weight: 800;
   text-align: center;
 
@@ -1589,13 +1894,14 @@ body.modal-open {
 @media (hover: hover) and (pointer: fine) {
   .header-button,
   .new-order-button,
-  .summary-card,
   .status-tab,
   .filter-button,
   .sort-button,
   .sort-option,
   .filter-action,
+  .orders-carousel-button,
   .order-card,
+  .order-card__toggle,
   .order-card__button,
   .order-card__menu,
   .order-card__options button,
@@ -1629,7 +1935,9 @@ body.modal-open {
   .status-tab:not(.is-active):hover,
   .sort-button:hover,
   .order-card__menu:hover,
-  .modal-card__close:hover {
+  .order-card__toggle:hover,
+  .modal-card__close:hover,
+  .orders-carousel-button:not(:disabled):hover {
     color: #dd9a17;
     background-color: #0d3861;
   }
@@ -1653,8 +1961,6 @@ body.modal-open {
   }
 
   .order-card:hover {
-    transform: translateY(-2px);
-
     border-color: rgba(221, 154, 23, 0.48);
 
     box-shadow: 0 15px 28px rgba(13, 56, 97, 0.16);
@@ -1675,20 +1981,49 @@ body.modal-open {
 }
 
 /* =========================================
-   TABLETS E TELAS MAIORES
+   TABLET
 ========================================= */
 
-@media (min-width: 760px) {
+@media (min-width: 620px) and (max-width: 959px) {
+  .order-card {
+    flex-basis: min(68%, 520px);
+  }
+
+  .orders-list {
+    padding-right: 25%;
+  }
+}
+
+/* =========================================
+   DESKTOP
+========================================= */
+
+@media (min-width: 960px) {
   .orders-shell {
     padding-top: 36px;
   }
 
+  .orders-carousel-controls,
+  .orders-content__hint {
+    display: none;
+  }
+
   .orders-list {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+
+    padding: 3px 1px 10px;
+
+    overflow: visible;
+
+    scroll-snap-type: none;
   }
 
   .order-card {
-    grid-template-columns: 82px minmax(0, 1fr);
+    width: auto;
+
+    flex: initial;
   }
 }
 
@@ -1697,8 +2032,16 @@ body.modal-open {
 ========================================= */
 
 @media (max-width: 820px) {
-  .orders-summary {
+  .orders-overview {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-item:nth-child(2)::after {
+    display: none;
+  }
+
+  .overview-item:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(43, 47, 51, 0.1);
   }
 
   .orders-tools {
@@ -1708,17 +2051,13 @@ body.modal-open {
   .sort-button {
     grid-column: 2;
   }
-
-  .sort-menu {
-    margin-left: auto;
-  }
 }
 
 /* =========================================
    CELULARES
 ========================================= */
 
-@media (max-width: 600px) {
+@media (max-width: 660px) {
   .orders-intro {
     align-items: stretch;
     flex-direction: column;
@@ -1731,9 +2070,18 @@ body.modal-open {
   .filter-grid {
     grid-template-columns: 1fr;
   }
+
+  .orders-content__heading {
+    align-items: flex-start;
+  }
+
+  .orders-content__controls {
+    align-items: flex-end;
+    flex-direction: column;
+  }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 540px) {
   .orders-tools {
     grid-template-columns: 1fr 1fr;
   }
@@ -1755,11 +2103,19 @@ body.modal-open {
     width: 100%;
   }
 
-  .orders-content__heading {
-    align-items: flex-start;
+  .orders-content {
+    padding-inline: 13px;
+  }
+
+  .orders-list {
+    gap: 11px;
+
+    padding-right: 11%;
   }
 
   .order-card {
+    flex-basis: 91%;
+
     grid-template-columns: 76px minmax(0, 1fr);
   }
 
@@ -1768,7 +2124,11 @@ body.modal-open {
   }
 
   .order-card__content {
-    padding: 14px 12px;
+    padding: 13px 11px;
+  }
+
+  .order-card__status {
+    max-width: 125px;
   }
 
   .order-card__actions {
@@ -1776,13 +2136,17 @@ body.modal-open {
   }
 }
 
-@media (max-width: 440px) {
-  .orders-summary {
-    grid-template-columns: 1fr;
+@media (max-width: 450px) {
+  .orders-content__heading {
+    flex-direction: column;
   }
 
-  .summary-card {
-    min-height: 68px;
+  .orders-content__controls {
+    width: 100%;
+
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
   }
 
   .filter-panel__actions,
@@ -1795,41 +2159,25 @@ body.modal-open {
   }
 
   .order-card {
-    grid-template-columns: 1fr;
-  }
-
-  .order-card__side {
-    min-height: 64px;
-
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 7px;
-
-    padding: 11px 13px;
-
-    border-right: none;
-    border-bottom: 1px solid rgba(13, 56, 97, 0.08);
+    grid-template-columns: 70px minmax(0, 1fr);
   }
 
   .order-card__priority {
-    margin: 0 8px 0 0;
-  }
+    padding-inline: 6px;
 
-  .order-card__date-label {
-    margin-right: 2px;
+    font-size: 0.51rem;
   }
 
   .order-card__day {
-    margin-top: 0;
-
-    font-size: 0.87rem;
+    font-size: 1.5rem;
   }
 
-  .order-card__month,
-  .order-card__year {
-    margin-top: 0;
+  .order-card__summary {
+    grid-template-columns: minmax(0, 1fr) 38px;
+  }
 
-    font-size: 0.58rem;
+  .order-card__toggle {
+    width: 38px;
   }
 
   .order-card__actions {
@@ -1841,7 +2189,7 @@ body.modal-open {
   }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 390px) {
   .orders-shell {
     padding-inline: 12px;
   }
@@ -1857,7 +2205,23 @@ body.modal-open {
   }
 
   .orders-header h1 {
-    font-size: 0.96rem;
+    font-size: 1rem;
+  }
+
+  .orders-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-item {
+    min-height: 57px;
+  }
+
+  .overview-item:not(:last-child) {
+    border-bottom: 1px solid rgba(43, 47, 51, 0.1);
+  }
+
+  .overview-item::after {
+    display: none;
   }
 
   .orders-tools {
@@ -1870,13 +2234,22 @@ body.modal-open {
     grid-column: auto;
   }
 
-  .orders-content {
-    padding-inline: 15px;
+  .orders-content__controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .order-card {
+    flex-basis: 94%;
   }
 
   .order-card__top {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .order-card__status {
+    max-width: 100%;
   }
 
   .order-card__financial {
