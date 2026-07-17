@@ -432,16 +432,18 @@
     border-color 180ms ease;
 }
 
-.quick-card:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .quick-card:hover {
+    transform: translateY(-2px);
 
-  border-color: rgba(221, 154, 23, 0.55);
+    border-color: rgba(221, 154, 23, 0.55);
 
-  box-shadow: 0 16px 30px rgba(13, 56, 97, 0.18);
+    box-shadow: 0 16px 30px rgba(13, 56, 97, 0.18);
+  }
 }
 
 .quick-card:active {
-  transform: scale(0.98);
+  transform: none;
 }
 
 .quick-card__icon {

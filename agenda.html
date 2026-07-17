@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Agenda administrativa de atendimentos da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Agenda | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/agenda.css" />
+</head>
+
+<body data-page="agenda" data-profile="admin">
+
+  <main class="agenda-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="agenda-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" id="back-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="agenda-header__content">
+
+        <p class="agenda-header__eyebrow">
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Agenda
+        </h1>
+
+      </div>
+
+      <div class="agenda-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="agenda-intro">
+
+      <div class="agenda-intro__copy">
+
+        <span class="agenda-intro__badge">
+          Operação
+        </span>
+
+        <h2>
+          Organize os atendimentos da equipe
+        </h2>
+
+        <p>
+          Consulte horários confirmados, acompanhe a disponibilidade e acesse rapidamente cada ordem de serviço.
+        </p>
+
+      </div>
+
+      <a href="nova-ordem.html?perfil=admin" class="new-order-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Nova ordem
+        </span>
+
+      </a>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO DA AGENDA
+    ====================================== -->
+
+    <section class="agenda-summary" aria-label="Resumo da agenda">
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Hoje
+          </span>
+
+          <strong id="summary-today">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Esta semana
+          </span>
+
+          <strong id="summary-week">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            A confirmar
+          </span>
+
+          <strong id="summary-pending">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Confirmados
+          </span>
+
+          <strong id="summary-confirmed">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         NAVEGAÇÃO DE DATA E VISUALIZAÇÃO
+    ====================================== -->
+
+    <section class="agenda-navigation">
+
+      <div class="agenda-navigation__date">
+
+        <button type="button" class="date-navigation-button" id="previous-period-button" aria-label="Período anterior">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+
+        </button>
+
+        <div class="agenda-navigation__current">
+
+          <span id="current-period-eyebrow">
+            Semana atual
+          </span>
+
+          <strong id="current-period-label">
+            Carregando período...
+          </strong>
+
+        </div>
+
+        <button type="button" class="date-navigation-button" id="next-period-button" aria-label="Próximo período">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <div class="agenda-navigation__actions">
+
+        <button type="button" class="today-button" id="today-button">
+          Hoje
+        </button>
+
+        <div class="view-mode" role="group" aria-label="Modo de visualização">
+
+          <button type="button" class="view-mode__button" data-view-mode="dia" aria-pressed="false">
+            Dia
+          </button>
+
+          <button type="button" class="view-mode__button is-active" data-view-mode="semana" aria-pressed="true">
+            Semana
+          </button>
+
+          <button type="button" class="view-mode__button" data-view-mode="lista" aria-pressed="false">
+            Lista
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="agenda-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="agenda-search" type="search" placeholder="Pesquisar cliente, ordem ou serviço" autocomplete="off" aria-label="Pesquisar na agenda" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a agenda
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-group">
+
+        <span class="filter-group__label">
+          Status
+        </span>
+
+        <div class="filter-options">
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="confirmado" />
+
+            <span>
+              Confirmado
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="a-confirmar" />
+
+            <span>
+              A confirmar
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="em-deslocamento" />
+
+            <span>
+              Em deslocamento
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="em-atendimento" />
+
+            <span>
+              Em atendimento
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="concluido" />
+
+            <span>
+              Concluído
+            </span>
+
+          </label>
+
+        </div>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="category-filter">
+            Categoria
+          </label>
+
+          <select id="category-filter" class="filter-select">
+
+            <option value="">
+              Todas as categorias
+            </option>
+
+            <option value="hidraulica">
+              Hidráulica
+            </option>
+
+            <option value="eletrica">
+              Elétrica
+            </option>
+
+            <option value="pintura">
+              Pintura
+            </option>
+
+            <option value="alvenaria">
+              Alvenaria
+            </option>
+
+            <option value="instalacoes">
+              Instalações
+            </option>
+
+            <option value="manutencao-geral">
+              Manutenção geral
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="period-filter">
+            Período
+          </label>
+
+          <select id="period-filter" class="filter-select">
+
+            <option value="">
+              Todos os períodos
+            </option>
+
+            <option value="manha">
+              Manhã
+            </option>
+
+            <option value="tarde">
+              Tarde
+            </option>
+
+            <option value="noite">
+              Noite
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-group">
+
+        <label class="filter-group__label" for="employee-filter">
+          Responsável
+        </label>
+
+        <select id="employee-filter" class="filter-select">
+
+          <option value="">
+            Todos os responsáveis
+          </option>
+
+          <option value="jose">
+            José
+          </option>
+
+          <option value="equipe-apoio">
+            Equipe de apoio
+          </option>
+
+          <option value="nao-definido">
+            Não definido
+          </option>
+
+        </select>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CONTEÚDO DA AGENDA
+    ====================================== -->
+
+    <section class="agenda-content">
+
+      <div class="agenda-content__heading">
+
+        <div>
+
+          <p id="agenda-content-eyebrow">
+            Programação semanal
+          </p>
+
+          <h2 id="agenda-content-title">
+            Atendimentos
+          </h2>
+
+        </div>
+
+        <span class="agenda-content__count" id="agenda-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="agenda-board" id="agenda-board" aria-live="polite"></div>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum atendimento encontrado
+        </h3>
+
+        <p>
+          Não existem agendamentos correspondentes ao período, à pesquisa ou aos filtros selecionados.
+        </p>
+
+        <a href="nova-ordem.html?perfil=admin" class="empty-state__button">
+          Criar nova ordem
+        </a>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO DIA
+  ====================================== -->
+
+  <template id="agenda-day-template">
+
+    <section class="agenda-day">
+
+      <header class="agenda-day__header">
+
+        <div class="agenda-day__date">
+
+          <span class="agenda-day__weekday"></span>
+
+          <strong class="agenda-day__day"></strong>
+
+          <span class="agenda-day__month"></span>
+
+        </div>
+
+        <span class="agenda-day__count"></span>
+
+      </header>
+
+      <div class="agenda-day__appointments"></div>
+
+      <div class="agenda-day__empty" hidden>
+        Nenhum atendimento neste dia.
+      </div>
+
+    </section>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO ATENDIMENTO
+  ====================================== -->
+
+  <template id="appointment-card-template">
+
+    <article class="appointment-card">
+
+      <div class="appointment-card__time">
+
+        <strong></strong>
+
+        <span></span>
+
+      </div>
+
+      <div class="appointment-card__content">
+
+        <div class="appointment-card__top">
+
+          <span class="appointment-card__code"></span>
+
+          <span class="appointment-card__status"></span>
+
+        </div>
+
+        <span class="appointment-card__client"></span>
+
+        <h3 class="appointment-card__title"></h3>
+
+        <p class="appointment-card__services"></p>
+
+        <div class="appointment-card__information">
+
+          <span class="appointment-card__address">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="appointment-card__employee">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"></circle>
+              <path d="M4 21a8 8 0 0 1 16 0"></path>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+        </div>
+
+        <div class="appointment-card__actions">
+
+          <button type="button" class="appointment-card__button appointment-card__button--map">
+            Endereço
+          </button>
+
+          <button type="button" class="appointment-card__button appointment-card__button--details">
+            Ver ordem
+          </button>
+
+          <button type="button" class="appointment-card__menu" aria-label="Abrir opções do atendimento" aria-expanded="false">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="5" cy="12" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+            </svg>
+
+          </button>
+
+        </div>
+
+        <div class="appointment-card__options" hidden>
+
+          <button type="button" data-appointment-action="reagendar">
+            Reagendar
+          </button>
+
+          <button type="button" data-appointment-action="iniciar">
+            Iniciar atendimento
+          </button>
+
+          <button type="button" data-appointment-action="concluir">
+            Marcar como concluído
+          </button>
+
+          <button type="button" data-appointment-action="cancelar">
+            Cancelar atendimento
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/agenda.js"></script>
+
+</body>
+
+</html>

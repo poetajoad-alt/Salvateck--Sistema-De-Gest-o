@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Serviços agendados do cliente Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Serviços Agendados | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+
+  <link rel="stylesheet" href="css/servicos-agendados.css" />
+</head>
+
+<body data-page="servicos-agendados" data-profile="cliente">
+
+  <main class="schedule-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="schedule-header">
+
+      <a href="principal.html?perfil=cliente" class="header-button" id="back-button" aria-label="Voltar para o painel do cliente">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="schedule-header__content">
+
+        <p class="schedule-header__eyebrow">
+          Área do Cliente
+        </p>
+
+        <h1>
+          Serviços Agendados
+        </h1>
+
+      </div>
+
+      <div class="schedule-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="schedule-intro">
+
+      <div class="schedule-intro__copy">
+
+        <span class="schedule-intro__badge">
+          Sua agenda
+        </span>
+
+        <h2>
+          Acompanhe seus próximos atendimentos
+        </h2>
+
+        <p>
+          Consulte datas, horários, endereços e informações dos serviços já confirmados.
+        </p>
+
+      </div>
+
+      <a href="nova-ordem.html?perfil=cliente" class="new-request-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Nova solicitação
+        </span>
+
+      </a>
+
+    </section>
+
+    <!-- =====================================
+         PRÓXIMO ATENDIMENTO
+    ====================================== -->
+
+    <section class="next-service" id="next-service" aria-labelledby="next-service-title">
+
+      <div class="next-service__top">
+
+        <div>
+
+          <p>
+            Próximo atendimento
+          </p>
+
+          <h2 id="next-service-title">
+            Carregando agenda...
+          </h2>
+
+        </div>
+
+        <span class="next-service__status" id="next-service-status">
+          Confirmado
+        </span>
+
+      </div>
+
+      <div class="next-service__content">
+
+        <div class="next-service__date">
+
+          <span class="next-service__day" id="next-service-day">
+            --
+          </span>
+
+          <span class="next-service__month" id="next-service-month">
+            ---
+          </span>
+
+        </div>
+
+        <div class="next-service__information">
+
+          <div class="next-service__information-item">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v5l3 2"></path>
+            </svg>
+
+            <span id="next-service-time">
+              Horário não informado
+            </span>
+
+          </div>
+
+          <div class="next-service__information-item">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span id="next-service-address">
+              Endereço não informado
+            </span>
+
+          </div>
+
+          <div class="next-service__information-item">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v14H4z"></path>
+              <path d="M8 9h8"></path>
+              <path d="M8 13h5"></path>
+            </svg>
+
+            <span id="next-service-code">
+              Ordem não identificada
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="next-service__actions">
+
+        <button type="button" class="next-service__button next-service__button--secondary" id="open-next-map-button">
+          Ver endereço
+        </button>
+
+        <button type="button" class="next-service__button next-service__button--primary" id="open-next-details-button">
+          Ver detalhes
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="schedule-summary" aria-label="Resumo dos serviços agendados">
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <span>
+            Agendados
+          </span>
+
+          <strong id="summary-total">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <span>
+            Neste mês
+          </span>
+
+          <strong id="summary-month">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <span>
+            Mais próximo
+          </span>
+
+          <strong id="summary-next">
+            --
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="schedule-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="schedule-search" type="search" placeholder="Pesquisar serviço agendado" autocomplete="off" aria-label="Pesquisar serviço agendado" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine sua agenda
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-group">
+
+        <span class="filter-group__label">
+          Período
+        </span>
+
+        <div class="filter-options">
+
+          <label class="filter-option">
+
+            <input type="radio" name="periodFilter" value="" checked />
+
+            <span>
+              Todos
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="radio" name="periodFilter" value="hoje" />
+
+            <span>
+              Hoje
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="radio" name="periodFilter" value="semana" />
+
+            <span>
+              Esta semana
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="radio" name="periodFilter" value="mes" />
+
+            <span>
+              Este mês
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="radio" name="periodFilter" value="proximos" />
+
+            <span>
+              Próximos meses
+            </span>
+
+          </label>
+
+        </div>
+
+      </div>
+
+      <div class="filter-group">
+
+        <label class="filter-group__label" for="category-filter">
+          Categoria
+        </label>
+
+        <select id="category-filter" class="filter-select">
+
+          <option value="">
+            Todas as categorias
+          </option>
+
+          <option value="hidraulica">
+            Hidráulica
+          </option>
+
+          <option value="eletrica">
+            Elétrica
+          </option>
+
+          <option value="pintura">
+            Pintura
+          </option>
+
+          <option value="alvenaria">
+            Alvenaria
+          </option>
+
+          <option value="instalacoes">
+            Instalações
+          </option>
+
+          <option value="manutencao-geral">
+            Manutenção geral
+          </option>
+
+        </select>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         LISTA DE SERVIÇOS
+    ====================================== -->
+
+    <section class="services-section">
+
+      <div class="services-section__heading">
+
+        <div>
+
+          <p>
+            Atendimentos confirmados
+          </p>
+
+          <h2>
+            Próximos serviços
+          </h2>
+
+        </div>
+
+        <span class="services-section__count" id="services-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="services-list" id="services-list" aria-live="polite"></div>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum serviço encontrado
+        </h3>
+
+        <p>
+          Não existem atendimentos correspondentes à pesquisa ou aos filtros selecionados.
+        </p>
+
+        <a href="nova-ordem.html?perfil=cliente" class="empty-state__button">
+          Criar nova solicitação
+        </a>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CARD
+  ====================================== -->
+
+  <template id="service-card-template">
+
+    <article class="service-card">
+
+      <div class="service-card__date">
+
+        <span class="service-card__day"></span>
+
+        <span class="service-card__month"></span>
+
+        <span class="service-card__year"></span>
+
+      </div>
+
+      <div class="service-card__content">
+
+        <div class="service-card__top">
+
+          <span class="service-card__code"></span>
+
+          <span class="service-card__status">
+            Confirmado
+          </span>
+
+        </div>
+
+        <h3 class="service-card__title"></h3>
+
+        <p class="service-card__services"></p>
+
+        <div class="service-card__information">
+
+          <span class="service-card__time">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v5l3 2"></path>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="service-card__address">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+        </div>
+
+        <div class="service-card__actions">
+
+          <button type="button" class="service-card__button service-card__button--map">
+            Ver endereço
+          </button>
+
+          <button type="button" class="service-card__button service-card__button--details">
+            Ver detalhes
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/servicos-agendados.js"></script>
+
+</body>
+
+</html>

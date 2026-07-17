@@ -72,9 +72,51 @@ button {
   border: none;
 }
 
-button,
-a {
+/* Remove camadas e efeitos nativos de toque */
+html {
   -webkit-tap-highlight-color: transparent;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+label,
+[role="button"],
+[tabindex] {
+  touch-action: manipulation;
+
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+a,
+button,
+label,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Remove o contorno apenas em cliques e toques */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Mantém acessibilidade para navegação por teclado */
+:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 3px;
+}
+
+/* Evita seleção azul de textos */
+::selection {
+  color: inherit;
+  background-color: rgba(221, 154, 23, 0.22);
 }
 
 img {

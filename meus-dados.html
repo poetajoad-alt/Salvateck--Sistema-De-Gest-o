@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Dados pessoais e endereço do cliente Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Meus Dados | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/meus-dados.css" />
+</head>
+
+<body data-page="meus-dados" data-profile="cliente">
+
+  <main class="profile-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="profile-header">
+
+      <a href="principal.html?perfil=cliente" class="header-button" aria-label="Voltar para o painel do cliente">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="profile-header__content">
+
+        <p class="profile-header__eyebrow">
+          Área do Cliente
+        </p>
+
+        <h1>
+          Meus Dados
+        </h1>
+
+      </div>
+
+      <div class="profile-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="profile-intro">
+
+      <div class="profile-intro__copy">
+
+        <span class="profile-intro__badge">
+          Meu cadastro
+        </span>
+
+        <h2>
+          Mantenha suas informações atualizadas
+        </h2>
+
+        <p>
+          Esses dados são usados para contato, identificação e realização dos atendimentos.
+        </p>
+
+      </div>
+
+      <button type="button" class="edit-profile-button" id="edit-profile-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"></path>
+          <path d="m14 7 3 3"></path>
+        </svg>
+
+        <span>
+          Editar dados
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO DO PERFIL
+    ====================================== -->
+
+    <section class="profile-summary">
+
+      <div class="profile-avatar" id="profile-avatar" aria-hidden="true">
+        JS
+      </div>
+
+      <div class="profile-summary__identity">
+
+        <span>
+          Cliente Salvateck
+        </span>
+
+        <h2 id="profile-summary-name">
+          João da Silva
+        </h2>
+
+        <p id="profile-summary-email">
+          joao@email.com
+        </p>
+
+      </div>
+
+      <div class="profile-summary__completion">
+
+        <div class="profile-summary__completion-top">
+
+          <span>
+            Cadastro
+          </span>
+
+          <strong id="profile-completion-value">
+            100%
+          </strong>
+
+        </div>
+
+        <div class="profile-progress" role="progressbar" aria-label="Preenchimento do cadastro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+
+          <span id="profile-progress-bar"></span>
+
+        </div>
+
+        <p id="profile-completion-message">
+          Seus dados principais estão completos.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         FORMULÁRIO
+    ====================================== -->
+
+    <form class="profile-form" id="profile-form" novalidate>
+
+      <!-- =====================================
+           DADOS PESSOAIS
+      ====================================== -->
+
+      <section class="form-section">
+
+        <header class="form-section__header">
+
+          <span class="form-section__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"></circle>
+              <path d="M4 21a8 8 0 0 1 16 0"></path>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <p>
+              Identificação
+            </p>
+
+            <h2>
+              Dados pessoais
+            </h2>
+
+          </div>
+
+        </header>
+
+        <div class="form-grid">
+
+          <label class="form-field form-field--full">
+
+            <span>
+              Nome completo
+            </span>
+
+            <input type="text" id="full-name" name="fullName" value="João da Silva" placeholder="Informe seu nome completo" autocomplete="name" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              E-mail de acesso
+            </span>
+
+            <input type="email" id="email" name="email" value="joao@email.com" autocomplete="email" readonly disabled />
+
+            <small>
+              O e-mail está vinculado ao seu acesso.
+            </small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Telefone
+            </span>
+
+            <input type="tel" id="phone" name="phone" value="(11) 99999-0000" placeholder="(00) 00000-0000" autocomplete="tel" inputmode="tel" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           CONTATO
+      ====================================== -->
+
+      <section class="form-section">
+
+        <header class="form-section__header">
+
+          <span class="form-section__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v12H8l-4 4V5Z"></path>
+              <path d="M8 9h8"></path>
+              <path d="M8 13h5"></path>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <p>
+              Comunicação
+            </p>
+
+            <h2>
+              Preferências de contato
+            </h2>
+
+          </div>
+
+        </header>
+
+        <div class="form-grid">
+
+          <label class="form-field">
+
+            <span>
+              Canal preferido
+            </span>
+
+            <select id="preferred-contact" name="preferredContact" disabled>
+
+              <option value="whatsapp" selected>
+                WhatsApp
+              </option>
+
+              <option value="telefone">
+                Ligação telefônica
+              </option>
+
+              <option value="email">
+                E-mail
+              </option>
+
+            </select>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Melhor período para contato
+            </span>
+
+            <select id="preferred-period" name="preferredPeriod" disabled>
+
+              <option value="qualquer">
+                Qualquer período
+              </option>
+
+              <option value="manha">
+                Manhã
+              </option>
+
+              <option value="tarde" selected>
+                Tarde
+              </option>
+
+              <option value="noite">
+                Noite
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+        <div class="notification-options">
+
+          <label class="notification-option">
+
+            <input type="checkbox" id="status-notifications" name="statusNotifications" checked disabled />
+
+            <span class="notification-option__switch"></span>
+
+            <span class="notification-option__copy">
+
+              <strong>
+                Atualizações da solicitação
+              </strong>
+
+              <small>
+                Receber avisos quando o status de uma solicitação mudar.
+              </small>
+
+            </span>
+
+          </label>
+
+          <label class="notification-option">
+
+            <input type="checkbox" id="schedule-notifications" name="scheduleNotifications" checked disabled />
+
+            <span class="notification-option__switch"></span>
+
+            <span class="notification-option__copy">
+
+              <strong>
+                Lembretes de atendimento
+              </strong>
+
+              <small>
+                Receber lembretes antes da data confirmada.
+              </small>
+
+            </span>
+
+          </label>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           ENDEREÇO
+      ====================================== -->
+
+      <section class="form-section">
+
+        <header class="form-section__header">
+
+          <span class="form-section__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <p>
+              Local do atendimento
+            </p>
+
+            <h2>
+              Endereço principal
+            </h2>
+
+          </div>
+
+        </header>
+
+        <div class="form-grid">
+
+          <label class="form-field">
+
+            <span>
+              CEP
+            </span>
+
+            <div class="input-with-action">
+
+              <input type="text" id="postal-code" name="postalCode" value="01001-000" placeholder="00000-000" autocomplete="postal-code" inputmode="numeric" maxlength="9" required disabled />
+
+              <button type="button" id="search-postal-code-button" disabled>
+                Buscar
+              </button>
+
+            </div>
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Estado
+            </span>
+
+            <select id="state" name="state" autocomplete="address-level1" required disabled>
+
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="SP" selected>
+                São Paulo
+              </option>
+
+              <option value="RJ">
+                Rio de Janeiro
+              </option>
+
+              <option value="MG">
+                Minas Gerais
+              </option>
+
+              <option value="PR">
+                Paraná
+              </option>
+
+            </select>
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field form-field--full">
+
+            <span>
+              Rua ou avenida
+            </span>
+
+            <input type="text" id="street" name="street" value="Rua Exemplo" placeholder="Informe o logradouro" autocomplete="address-line1" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Número
+            </span>
+
+            <input type="text" id="address-number" name="addressNumber" value="150" placeholder="Número" autocomplete="address-line2" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Complemento
+            </span>
+
+            <input type="text" id="address-complement" name="addressComplement" value="Casa 2" placeholder="Apartamento, bloco, casa..." disabled />
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Bairro
+            </span>
+
+            <input type="text" id="district" name="district" value="Centro" placeholder="Informe o bairro" autocomplete="address-level3" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field">
+
+            <span>
+              Cidade
+            </span>
+
+            <input type="text" id="city" name="city" value="São Paulo" placeholder="Informe a cidade" autocomplete="address-level2" required disabled />
+
+            <small class="form-field__error"></small>
+
+          </label>
+
+          <label class="form-field form-field--full">
+
+            <span>
+              Referência para localização
+            </span>
+
+            <textarea id="address-reference" name="addressReference" rows="3" placeholder="Exemplo: próximo ao mercado, portão azul..." disabled>Próximo à praça principal.</textarea>
+
+          </label>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           OBSERVAÇÕES
+      ====================================== -->
+
+      <section class="form-section">
+
+        <header class="form-section__header">
+
+          <span class="form-section__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v14H4z"></path>
+              <path d="M8 9h8"></path>
+              <path d="M8 13h5"></path>
+            </svg>
+
+          </span>
+
+          <div>
+
+            <p>
+              Informações adicionais
+            </p>
+
+            <h2>
+              Observações do cadastro
+            </h2>
+
+          </div>
+
+        </header>
+
+        <label class="form-field">
+
+          <span>
+            Informações úteis para os atendimentos
+          </span>
+
+          <textarea id="service-notes" name="serviceNotes" rows="4" placeholder="Informe detalhes importantes sobre o acesso ao imóvel ou preferências de atendimento" disabled>Entrar em contato antes de chegar ao endereço.</textarea>
+
+        </label>
+
+      </section>
+
+      <!-- =====================================
+           AÇÕES DA EDIÇÃO
+      ====================================== -->
+
+      <div class="form-actions" id="form-actions" hidden>
+
+        <button type="button" class="form-button form-button--secondary" id="cancel-edit-button">
+          Cancelar alterações
+        </button>
+
+        <button type="submit" class="form-button form-button--primary" id="save-profile-button">
+
+          <span class="button-label">
+            Salvar dados
+          </span>
+
+          <span class="button-loading" hidden>
+            Salvando...
+          </span>
+
+        </button>
+
+      </div>
+
+    </form>
+
+    <!-- =====================================
+         SEGURANÇA
+    ====================================== -->
+
+    <section class="security-section">
+
+      <div class="security-section__content">
+
+        <span class="security-section__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="10" width="14" height="11" rx="2"></rect>
+
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            <path d="M12 14v3"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Segurança da conta
+          </p>
+
+          <h2>
+            Senha de acesso
+          </h2>
+
+          <span>
+            Enviaremos um link para o seu e-mail cadastrado.
+          </span>
+
+        </div>
+
+      </div>
+
+      <button type="button" class="password-button" id="password-reset-button">
+        Alterar senha
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         INFORMAÇÃO DE PRIVACIDADE
+    ====================================== -->
+
+    <section class="privacy-box">
+
+      <span class="privacy-box__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3 4 6v5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-3Z"></path>
+          <path d="m9 12 2 2 4-5"></path>
+        </svg>
+
+      </span>
+
+      <div>
+
+        <strong>
+          Seus dados são protegidos
+        </strong>
+
+        <p>
+          As informações do cadastro são utilizadas apenas para comunicação e execução dos serviços solicitados.
+        </p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Dados atualizados com sucesso.
+  </div>
+
+  <script src="js/meus-dados.js"></script>
+
+</body>
+
+</html>

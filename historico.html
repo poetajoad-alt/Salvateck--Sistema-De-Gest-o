@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Histórico de atendimentos do cliente Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Histórico | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/historico.css" />
+</head>
+
+<body data-page="historico" data-profile="cliente">
+
+  <main class="history-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="history-header">
+
+      <a href="principal.html?perfil=cliente" class="header-button" aria-label="Voltar para o painel do cliente">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="history-header__content">
+
+        <p class="history-header__eyebrow">
+          Área do Cliente
+        </p>
+
+        <h1>
+          Histórico
+        </h1>
+
+      </div>
+
+      <div class="history-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="history-intro">
+
+      <div class="history-intro__copy">
+
+        <span class="history-intro__badge">
+          Seus atendimentos
+        </span>
+
+        <h2>
+          Consulte os serviços já encerrados
+        </h2>
+
+        <p>
+          Veja atendimentos concluídos, solicitações canceladas e os detalhes de cada serviço realizado.
+        </p>
+
+      </div>
+
+      <a href="nova-ordem.html?perfil=cliente" class="new-request-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Nova solicitação
+        </span>
+
+      </a>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="history-summary" aria-label="Resumo do histórico">
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Concluídos
+          </span>
+
+          <strong id="summary-completed">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m9 9 6 6M15 9l-6 6"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Cancelados
+          </span>
+
+          <strong id="summary-cancelled">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Este ano
+          </span>
+
+          <strong id="summary-year">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="history-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="history-search" type="search" placeholder="Pesquisar serviço ou ordem" autocomplete="off" aria-label="Pesquisar no histórico" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine o histórico
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-group">
+
+        <span class="filter-group__label">
+          Status
+        </span>
+
+        <div class="filter-options">
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="concluido" />
+
+            <span>
+              Concluído
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="cancelado" />
+
+            <span>
+              Cancelado
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="recusado" />
+
+            <span>
+              Recusado
+            </span>
+
+          </label>
+
+        </div>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="category-filter">
+            Categoria
+          </label>
+
+          <select id="category-filter" class="filter-select">
+
+            <option value="">
+              Todas as categorias
+            </option>
+
+            <option value="hidraulica">
+              Hidráulica
+            </option>
+
+            <option value="eletrica">
+              Elétrica
+            </option>
+
+            <option value="pintura">
+              Pintura
+            </option>
+
+            <option value="alvenaria">
+              Alvenaria
+            </option>
+
+            <option value="instalacoes">
+              Instalações
+            </option>
+
+            <option value="manutencao-geral">
+              Manutenção geral
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="year-filter">
+            Ano
+          </label>
+
+          <select id="year-filter" class="filter-select">
+
+            <option value="">
+              Todos os anos
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         LISTA DO HISTÓRICO
+    ====================================== -->
+
+    <section class="history-content">
+
+      <div class="history-content__heading">
+
+        <div>
+
+          <p>
+            Registros anteriores
+          </p>
+
+          <h2>
+            Atendimentos encerrados
+          </h2>
+
+        </div>
+
+        <span class="history-content__count" id="history-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="history-list" id="history-list" aria-live="polite"></div>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+            <path d="M3 3v5h5M12 7v5l3 2"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum registro encontrado
+        </h3>
+
+        <p>
+          Não existem atendimentos correspondentes à pesquisa ou aos filtros selecionados.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
+          Limpar pesquisa e filtros
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CARD
+  ====================================== -->
+
+  <template id="history-card-template">
+
+    <article class="history-card">
+
+      <div class="history-card__date">
+
+        <span class="history-card__day"></span>
+
+        <span class="history-card__month"></span>
+
+        <span class="history-card__year"></span>
+
+      </div>
+
+      <div class="history-card__content">
+
+        <div class="history-card__top">
+
+          <span class="history-card__code"></span>
+
+          <span class="history-card__status"></span>
+
+        </div>
+
+        <h3 class="history-card__title"></h3>
+
+        <p class="history-card__services"></p>
+
+        <div class="history-card__information">
+
+          <span class="history-card__address">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="history-card__finished">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+              <path d="M7 3v4M17 3v4M3 10h18"></path>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+        </div>
+
+        <div class="history-card__financial" hidden>
+
+          <span>
+            Valor do serviço
+          </span>
+
+          <strong class="history-card__value"></strong>
+
+        </div>
+
+        <div class="history-card__actions">
+
+          <button type="button" class="history-card__button history-card__button--details">
+            Ver detalhes
+          </button>
+
+          <button type="button" class="history-card__button history-card__button--request">
+            Solicitar novamente
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/historico.js"></script>
+
+</body>
+
+</html>

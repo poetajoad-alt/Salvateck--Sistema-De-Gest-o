@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Detalhes da solicitação de serviço da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Detalhes da Solicitação | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/detalhes-solicitacao.css" />
+</head>
+
+<body data-page="detalhes-solicitacao" data-profile="cliente">
+  <main class="details-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="details-header">
+
+      <a href="solicitacoes.html" class="header-button" id="back-button" aria-label="Voltar para as solicitações">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+      </a>
+
+      <div class="details-header__content">
+
+        <p class="details-header__eyebrow">
+          Salvateck
+        </p>
+
+        <h1>
+          Detalhes da Solicitação
+        </h1>
+
+      </div>
+
+      <div class="details-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         IDENTIFICAÇÃO E STATUS
+    ====================================== -->
+
+    <section class="details-hero">
+
+      <div class="details-hero__top">
+
+        <span class="details-hero__code" id="request-code">
+          OS-0001
+        </span>
+
+        <span class="details-hero__status" id="request-status">
+          Nova solicitação
+        </span>
+
+      </div>
+
+      <h2 id="request-title">
+        Carregando solicitação...
+      </h2>
+
+      <p id="request-description">
+        Consulte todas as informações fornecidas para este atendimento.
+      </p>
+
+      <div class="details-hero__meta">
+
+        <span>
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+          <span id="request-created-at">
+            Criada em --
+          </span>
+
+        </span>
+
+        <span>
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+
+          <span id="request-last-update">
+            Atualizada recentemente
+          </span>
+
+        </span>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         SELETOR TEMPORÁRIO DE PERFIL
+    ====================================== -->
+
+    <section class="profile-mode" aria-label="Modo temporário de visualização">
+
+      <div class="profile-mode__copy">
+
+        <span>
+          Visualizando como
+        </span>
+
+        <small>
+          Esta opção será definida pelo login futuramente.
+        </small>
+
+      </div>
+
+      <div class="profile-mode__buttons">
+
+        <button type="button" class="profile-mode__button is-active" data-profile-button="cliente" aria-pressed="true">
+          Cliente
+        </button>
+
+        <button type="button" class="profile-mode__button" data-profile-button="admin" aria-pressed="false">
+          Administrador
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         ACOMPANHAMENTO DO STATUS
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Acompanhamento
+          </p>
+
+          <h2>
+            Andamento da solicitação
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="status-timeline" id="status-timeline">
+
+        <article class="timeline-item is-completed" data-timeline-step="solicitacao">
+
+          <span class="timeline-item__marker"></span>
+
+          <div>
+
+            <strong>
+              Solicitação enviada
+            </strong>
+
+            <p>
+              O pedido foi recebido pela Salvateck.
+            </p>
+
+          </div>
+
+        </article>
+
+        <article class="timeline-item" data-timeline-step="analise">
+
+          <span class="timeline-item__marker"></span>
+
+          <div>
+
+            <strong>
+              Análise da equipe
+            </strong>
+
+            <p>
+              A equipe avalia os detalhes do serviço.
+            </p>
+
+          </div>
+
+        </article>
+
+        <article class="timeline-item" data-timeline-step="confirmacao">
+
+          <span class="timeline-item__marker"></span>
+
+          <div>
+
+            <strong>
+              Confirmação da data
+            </strong>
+
+            <p>
+              A data será confirmada ou uma nova opção será proposta.
+            </p>
+
+          </div>
+
+        </article>
+
+        <article class="timeline-item" data-timeline-step="agendamento">
+
+          <span class="timeline-item__marker"></span>
+
+          <div>
+
+            <strong>
+              Atendimento agendado
+            </strong>
+
+            <p>
+              O serviço entra oficialmente na agenda.
+            </p>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         DADOS DO CLIENTE
+    ====================================== -->
+
+    <section class="details-card admin-visible" id="client-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M4 21a8 8 0 0 1 16 0"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Solicitante
+          </p>
+
+          <h2>
+            Dados do cliente
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="client-information">
+
+        <div class="client-information__avatar" id="client-avatar">
+          JS
+        </div>
+
+        <div class="client-information__copy">
+
+          <strong id="client-name">
+            João da Silva
+          </strong>
+
+          <a href="#" id="client-phone">
+            (11) 99999-9999
+          </a>
+
+          <a href="#" id="client-email">
+            joao@email.com
+          </a>
+
+        </div>
+
+        <button type="button" class="client-information__button" id="open-client-button">
+          Ver cadastro
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         SERVIÇOS SOLICITADOS
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m14 6 4-4 4 4-4 4"></path>
+            <path d="m16 8-9.5 9.5a2.1 2.1 0 0 1-3-3L13 5"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Manutenção
+          </p>
+
+          <h2>
+            Serviços solicitados
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="category-tags" id="category-tags"></div>
+
+      <div class="services-list" id="services-list"></div>
+
+    </section>
+
+    <!-- =====================================
+         ENDEREÇO
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+            <circle cx="12" cy="9" r="2.3"></circle>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Local do atendimento
+          </p>
+
+          <h2>
+            Endereço
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="address-box">
+
+        <strong id="address-main">
+          Rua Exemplo, 150
+        </strong>
+
+        <span id="address-complement">
+          Casa 2
+        </span>
+
+        <span id="address-city">
+          Centro — São Paulo/SP
+        </span>
+
+        <span id="address-reference">
+          Referência não informada
+        </span>
+
+      </div>
+
+      <button type="button" class="outline-button" id="open-map-button">
+        Abrir endereço no mapa
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         DATA SOLICITADA
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Preferência informada
+          </p>
+
+          <h2>
+            Data e período
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="schedule-information">
+
+        <article>
+
+          <span>
+            Data solicitada
+          </span>
+
+          <strong id="requested-date">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Melhor período
+          </span>
+
+          <strong id="requested-period">
+            --
+          </strong>
+
+        </article>
+
+        <article id="requested-time-card">
+
+          <span>
+            Horário
+          </span>
+
+          <strong id="requested-time">
+            Não informado
+          </strong>
+
+        </article>
+
+      </div>
+
+      <div class="proposed-schedule" id="proposed-schedule" hidden>
+
+        <div class="proposed-schedule__header">
+
+          <span>
+            Nova data proposta
+          </span>
+
+          <strong id="proposal-status">
+            Aguardando confirmação
+          </strong>
+
+        </div>
+
+        <div class="proposed-schedule__details">
+
+          <span id="proposed-date">
+            --
+          </span>
+
+          <span id="proposed-period">
+            --
+          </span>
+
+          <span id="proposed-time">
+            --
+          </span>
+
+        </div>
+
+        <p id="proposal-message">
+          A equipe sugeriu uma nova data para o atendimento.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         FOTOS
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <circle cx="8.5" cy="10" r="1.5"></circle>
+
+            <path d="m5 18 4-4 3 3 2-2 5 5"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Imagens do problema
+          </p>
+
+          <h2>
+            Fotos adicionadas
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="request-photos" id="request-photos"></div>
+
+      <div class="photos-empty" id="photos-empty" hidden>
+        Nenhuma foto foi adicionada nesta solicitação.
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         OBSERVAÇÕES
+    ====================================== -->
+
+    <section class="details-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h16v13H8l-4 4z"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Informações adicionais
+          </p>
+
+          <h2>
+            Observações
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="observation-box">
+
+        <span>
+          Observação do cliente
+        </span>
+
+        <p id="client-observation">
+          Nenhuma observação informada.
+        </p>
+
+      </div>
+
+      <div class="observation-box observation-box--response" id="response-observation-box" hidden>
+
+        <span>
+          Resposta da Salvateck
+        </span>
+
+        <p id="response-observation">
+          Nenhuma resposta adicionada.
+        </p>
+
+      </div>
+
+      <div class="observation-box observation-box--internal admin-only" id="internal-observation-box" hidden>
+
+        <span>
+          Observação interna
+        </span>
+
+        <p id="internal-observation">
+          Nenhuma observação interna registrada.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         PRIORIDADE ADMINISTRATIVA
+    ====================================== -->
+
+    <section class="details-card admin-only" id="priority-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 3v18"></path>
+            <path d="M6 4h11l-2 4 2 4H6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Organização interna
+          </p>
+
+          <h2>
+            Prioridade
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="priority-options">
+
+        <label class="priority-option">
+
+          <input type="radio" name="prioridade" value="baixa" />
+
+          <span>
+            Baixa
+          </span>
+
+        </label>
+
+        <label class="priority-option">
+
+          <input type="radio" name="prioridade" value="normal" />
+
+          <span>
+            Normal
+          </span>
+
+        </label>
+
+        <label class="priority-option">
+
+          <input type="radio" name="prioridade" value="alta" />
+
+          <span>
+            Alta
+          </span>
+
+        </label>
+
+        <label class="priority-option">
+
+          <input type="radio" name="prioridade" value="urgente" />
+
+          <span>
+            Urgente
+          </span>
+
+        </label>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         AÇÕES DO ADMINISTRADOR
+    ====================================== -->
+
+    <section class="details-card admin-only admin-actions-card" id="admin-actions-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v18"></path>
+            <path d="M3 12h18"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Decisão administrativa
+          </p>
+
+          <h2>
+            Analisar solicitação
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="admin-actions-card__description">
+        Escolha como deseja prosseguir com este atendimento.
+      </p>
+
+      <div class="admin-actions">
+
+        <button type="button" class="action-button action-button--accept" id="accept-request-button">
+          Aceitar solicitação
+        </button>
+
+        <button type="button" class="action-button action-button--proposal" id="propose-date-button">
+          Propor nova data
+        </button>
+
+        <button type="button" class="action-button action-button--reject" id="reject-request-button">
+          Recusar solicitação
+        </button>
+
+      </div>
+
+      <!-- Aceitar solicitação -->
+
+      <form class="action-form" id="accept-form" hidden>
+
+        <div class="action-form__header">
+
+          <div>
+
+            <p>
+              Confirmar atendimento
+            </p>
+
+            <h3>
+              Aceitar solicitação
+            </h3>
+
+          </div>
+
+          <button type="button" class="action-form__close" data-close-action aria-label="Fechar formulário">
+            ×
+          </button>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="accept-date">
+            Data confirmada
+          </label>
+
+          <input id="accept-date" name="acceptDate" type="date" class="input" required />
+
+        </div>
+
+        <div class="form-grid form-grid--2">
+
+          <div class="form-group">
+
+            <label class="form-label" for="accept-period">
+              Período
+            </label>
+
+            <select id="accept-period" name="acceptPeriod" class="input" required>
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="manha">
+                Manhã
+              </option>
+
+              <option value="tarde">
+                Tarde
+              </option>
+
+              <option value="noite">
+                Noite
+              </option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="accept-time">
+              Horário
+            </label>
+
+            <input id="accept-time" name="acceptTime" type="time" class="input" />
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="accept-message">
+            Mensagem para o cliente
+          </label>
+
+          <textarea id="accept-message" name="acceptMessage" class="input textarea" rows="4">Olá! Sua solicitação foi aceita e o atendimento foi confirmado para a data informada.</textarea>
+
+        </div>
+
+        <button type="submit" class="submit-action-button">
+          Confirmar agendamento
+        </button>
+
+      </form>
+
+      <!-- Propor nova data -->
+
+      <form class="action-form" id="proposal-form" hidden>
+
+        <div class="action-form__header">
+
+          <div>
+
+            <p>
+              Alteração de disponibilidade
+            </p>
+
+            <h3>
+              Propor nova data
+            </h3>
+
+          </div>
+
+          <button type="button" class="action-form__close" data-close-action aria-label="Fechar formulário">
+            ×
+          </button>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="proposal-date">
+            Nova data proposta
+          </label>
+
+          <input id="proposal-date" name="proposalDate" type="date" class="input" required />
+
+        </div>
+
+        <div class="form-grid form-grid--2">
+
+          <div class="form-group">
+
+            <label class="form-label" for="proposal-period">
+              Período
+            </label>
+
+            <select id="proposal-period" name="proposalPeriod" class="input" required>
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="manha">
+                Manhã
+              </option>
+
+              <option value="tarde">
+                Tarde
+              </option>
+
+              <option value="noite">
+                Noite
+              </option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="proposal-time-input">
+              Horário
+            </label>
+
+            <input id="proposal-time-input" name="proposalTime" type="time" class="input" />
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="proposal-message-input">
+            Mensagem para o cliente
+          </label>
+
+          <textarea id="proposal-message-input" name="proposalMessage" class="input textarea" rows="4">Olá! Não temos disponibilidade na data solicitada. Podemos realizar o atendimento nesta nova data?</textarea>
+
+        </div>
+
+        <button type="submit" class="submit-action-button">
+          Enviar nova proposta
+        </button>
+
+      </form>
+
+      <!-- Recusar solicitação -->
+
+      <form class="action-form" id="reject-form" hidden>
+
+        <div class="action-form__header">
+
+          <div>
+
+            <p>
+              Encerrar solicitação
+            </p>
+
+            <h3>
+              Recusar solicitação
+            </h3>
+
+          </div>
+
+          <button type="button" class="action-form__close" data-close-action aria-label="Fechar formulário">
+            ×
+          </button>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="reject-reason">
+            Motivo da recusa
+          </label>
+
+          <select id="reject-reason" name="rejectReason" class="input" required>
+            <option value="">
+              Selecione o motivo
+            </option>
+
+            <option value="fora-area">
+              Atendimento fora da área atendida
+            </option>
+
+            <option value="servico-indisponivel">
+              Serviço não realizado pela empresa
+            </option>
+
+            <option value="sem-disponibilidade">
+              Sem disponibilidade para atendimento
+            </option>
+
+            <option value="informacoes-insuficientes">
+              Informações insuficientes
+            </option>
+
+            <option value="outro">
+              Outro motivo
+            </option>
+          </select>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="reject-message">
+            Mensagem para o cliente
+          </label>
+
+          <textarea id="reject-message" name="rejectMessage" class="input textarea" rows="4">Olá! No momento não poderemos atender esta solicitação. Entre em contato conosco em caso de dúvidas.</textarea>
+
+        </div>
+
+        <button type="submit" class="submit-action-button submit-action-button--danger">
+          Confirmar recusa
+        </button>
+
+      </form>
+
+    </section>
+
+    <!-- =====================================
+         AÇÃO DO CLIENTE PARA NOVA PROPOSTA
+    ====================================== -->
+
+    <section class="details-card client-proposal-card" id="client-proposal-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v18"></path>
+            <path d="M3 12h18"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Confirmação necessária
+          </p>
+
+          <h2>
+            Responda à nova data
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="client-proposal-card__description">
+        A Salvateck propôs uma nova data. Confirme se ela funciona para você.
+      </p>
+
+      <div class="client-proposal-actions">
+
+        <button type="button" class="action-button action-button--accept" id="accept-proposal-button">
+          Aceitar nova data
+        </button>
+
+        <button type="button" class="action-button action-button--reject" id="decline-proposal-button">
+          Não posso nesta data
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CANCELAMENTO DO CLIENTE
+    ====================================== -->
+
+    <section class="details-card client-only" id="client-actions-card">
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m9 9 6 6M15 9l-6 6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Gerenciar pedido
+          </p>
+
+          <h2>
+            Outras ações
+          </h2>
+
+        </div>
+
+      </div>
+
+      <button type="button" class="outline-button outline-button--danger" id="cancel-request-button">
+        Cancelar solicitação
+      </button>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       MODAL DE CONFIRMAÇÃO
+  ====================================== -->
+
+  <div class="confirmation-modal" id="confirmation-modal" hidden>
+
+    <div class="confirmation-modal__backdrop" data-close-modal></div>
+
+    <section class="confirmation-modal__content" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+
+      <span class="confirmation-modal__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 8v5"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+
+      </span>
+
+      <h2 id="confirmation-title">
+        Confirmar ação
+      </h2>
+
+      <p id="confirmation-description">
+        Deseja continuar?
+      </p>
+
+      <div class="confirmation-modal__actions">
+
+        <button type="button" class="modal-button modal-button--secondary" data-close-modal>
+          Voltar
+        </button>
+
+        <button type="button" class="modal-button modal-button--primary" id="confirm-modal-button">
+          Confirmar
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Alteração realizada com sucesso.
+  </div>
+
+  <script src="js/detalhes-solicitacao.js"></script>
+</body>
+
+</html>

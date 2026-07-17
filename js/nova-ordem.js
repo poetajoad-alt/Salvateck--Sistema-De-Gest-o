@@ -102,6 +102,7 @@ const form = document.getElementById("formNovaOrdem");
 const profileButtons = document.querySelectorAll("[data-form-profile]");
 
 const adminOnlyElements = document.querySelectorAll(".admin-only");
+const clientOnlyElements = document.querySelectorAll(".client-only");
 
 const btnSalvarOrdem = document.getElementById("btnSalvarOrdem");
 
@@ -227,7 +228,14 @@ const feedbackMessage = document.getElementById("feedback-msg");
    VARIÁVEIS DE CONTROLE
 ========================================= */
 
-let currentProfile = body.dataset.profile || "cliente";
+const orderUrlParams = new URLSearchParams(window.location.search);
+
+const orderProfileFromUrl = orderUrlParams.get("perfil");
+
+let currentProfile =
+  orderProfileFromUrl === "admin" || orderProfileFromUrl === "cliente"
+    ? orderProfileFromUrl
+    : body.dataset.profile || "cliente";
 
 let clientEditing = false;
 
@@ -410,6 +418,12 @@ function changeProfile(profile) {
 
   body.dataset.profile = profile;
 
+  const currentUrl = new URL(window.location.href);
+
+  currentUrl.searchParams.set("perfil", profile);
+
+  window.history.replaceState({}, "", currentUrl);
+
   profileButtons.forEach((button) => {
     const active = button.dataset.formProfile === profile;
 
@@ -420,6 +434,9 @@ function changeProfile(profile) {
 
   adminOnlyElements.forEach((element) => {
     element.hidden = profile !== "admin";
+  });
+  clientOnlyElements.forEach((element) => {
+    element.hidden = profile !== "cliente";
   });
 
   if (profile === "admin") {
@@ -1071,8 +1088,6 @@ function handleSubmit(event) {
     console.warn("Não foi possível salvar o teste localmente.", error);
   }
 
-  const originalButtonText = btnSalvarOrdem.textContent;
-
   btnSalvarOrdem.disabled = true;
 
   btnSalvarOrdem.textContent =
@@ -1085,10 +1100,8 @@ function handleSubmit(event) {
   );
 
   window.setTimeout(() => {
-    btnSalvarOrdem.disabled = false;
-
-    btnSalvarOrdem.textContent = originalButtonText;
-  }, 2200);
+    window.location.href = `solicitacoes.html?perfil=${currentProfile}`;
+  }, 1800);
 }
 
 /* =========================================

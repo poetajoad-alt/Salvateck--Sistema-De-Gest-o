@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Gestão administrativa de clientes da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Clientes | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/clientes.css" />
+</head>
+
+<body data-page="clientes" data-profile="admin">
+
+  <main class="customers-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="customers-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="customers-header__content">
+
+        <p class="customers-header__eyebrow">
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Clientes
+        </h1>
+
+      </div>
+
+      <div class="customers-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="customers-intro">
+
+      <div class="customers-intro__copy">
+
+        <span class="customers-intro__badge">
+          Relacionamento
+        </span>
+
+        <h2>
+          Gerencie os clientes da Salvateck
+        </h2>
+
+        <p>
+          Consulte contatos, endereços, histórico de serviços e informações importantes de cada cliente.
+        </p>
+
+      </div>
+
+      <button type="button" class="new-customer-button" id="new-customer-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="9" cy="8" r="4"></circle>
+          <path d="M3 21a6 6 0 0 1 12 0"></path>
+          <path d="M19 8v6"></path>
+          <path d="M16 11h6"></path>
+        </svg>
+
+        <span>
+          Novo cliente
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="customers-summary" aria-label="Resumo dos clientes">
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="4"></circle>
+            <path d="M3 21a6 6 0 0 1 12 0"></path>
+            <path d="M17 11a4 4 0 0 1 4 4v6"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Total
+          </span>
+
+          <strong id="summary-total">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Ativos
+          </span>
+
+          <strong id="summary-active">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Novos no mês
+          </span>
+
+          <strong id="summary-new-month">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <span class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
+
+        </span>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Com serviços
+          </span>
+
+          <strong id="summary-with-orders">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         ABAS RÁPIDAS
+    ====================================== -->
+
+    <section class="customer-tabs" aria-label="Filtro rápido de clientes">
+
+      <button type="button" class="customer-tab is-active" data-customer-tab="todos" aria-pressed="true">
+        Todos
+      </button>
+
+      <button type="button" class="customer-tab" data-customer-tab="ativos" aria-pressed="false">
+        Ativos
+      </button>
+
+      <button type="button" class="customer-tab" data-customer-tab="novos" aria-pressed="false">
+        Novos
+      </button>
+
+      <button type="button" class="customer-tab" data-customer-tab="com-pendencias" aria-pressed="false">
+        Com pendências
+      </button>
+
+      <button type="button" class="customer-tab" data-customer-tab="inativos" aria-pressed="false">
+        Inativos
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="customers-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="customers-search" type="search" placeholder="Pesquisar nome, telefone, e-mail ou endereço" autocomplete="off" aria-label="Pesquisar clientes" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+      <button type="button" class="sort-button" id="sort-button" aria-expanded="false" aria-controls="sort-menu">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 6h12"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 18h4"></path>
+          <path d="m4 4-2 2 2 2"></path>
+        </svg>
+
+        <span>
+          Ordenar
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         MENU DE ORDENAÇÃO
+    ====================================== -->
+
+    <section class="sort-menu" id="sort-menu" hidden>
+
+      <button type="button" class="sort-option is-active" data-sort-option="nome">
+        Nome do cliente
+      </button>
+
+      <button type="button" class="sort-option" data-sort-option="mais-recentes">
+        Cadastros mais recentes
+      </button>
+
+      <button type="button" class="sort-option" data-sort-option="mais-antigos">
+        Cadastros mais antigos
+      </button>
+
+      <button type="button" class="sort-option" data-sort-option="mais-servicos">
+        Maior quantidade de serviços
+      </button>
+
+      <button type="button" class="sort-option" data-sort-option="maior-valor">
+        Maior valor movimentado
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a listagem
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-group">
+
+        <span class="filter-group__label">
+          Situação do cadastro
+        </span>
+
+        <div class="filter-options">
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="ativo" />
+
+            <span>
+              Ativo
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="inativo" />
+
+            <span>
+              Inativo
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="cadastro-incompleto" />
+
+            <span>
+              Cadastro incompleto
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="com-pendencia" />
+
+            <span>
+              Com pendência
+            </span>
+
+          </label>
+
+        </div>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="city-filter">
+            Cidade
+          </label>
+
+          <select id="city-filter" class="filter-select">
+
+            <option value="">
+              Todas as cidades
+            </option>
+
+            <option value="sao-paulo">
+              São Paulo
+            </option>
+
+            <option value="osasco">
+              Osasco
+            </option>
+
+            <option value="barueri">
+              Barueri
+            </option>
+
+            <option value="carapicuiba">
+              Carapicuíba
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="contact-filter">
+            Canal preferido
+          </label>
+
+          <select id="contact-filter" class="filter-select">
+
+            <option value="">
+              Todos os canais
+            </option>
+
+            <option value="whatsapp">
+              WhatsApp
+            </option>
+
+            <option value="telefone">
+              Ligação telefônica
+            </option>
+
+            <option value="email">
+              E-mail
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="registration-filter">
+            Data de cadastro
+          </label>
+
+          <select id="registration-filter" class="filter-select">
+
+            <option value="">
+              Qualquer período
+            </option>
+
+            <option value="mes-atual">
+              Este mês
+            </option>
+
+            <option value="ultimos-30">
+              Últimos 30 dias
+            </option>
+
+            <option value="ultimos-90">
+              Últimos 90 dias
+            </option>
+
+            <option value="ano-atual">
+              Este ano
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="filter-group">
+
+          <label class="filter-group__label" for="orders-filter">
+            Histórico de serviços
+          </label>
+
+          <select id="orders-filter" class="filter-select">
+
+            <option value="">
+              Qualquer quantidade
+            </option>
+
+            <option value="sem-servicos">
+              Sem serviços
+            </option>
+
+            <option value="com-servicos">
+              Com serviços
+            </option>
+
+            <option value="mais-de-tres">
+              Mais de três serviços
+            </option>
+
+            <option value="servico-ativo">
+              Com serviço ativo
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         LISTAGEM
+    ====================================== -->
+
+    <section class="customers-content">
+
+      <div class="customers-content__heading">
+
+        <div>
+
+          <p id="customers-content-eyebrow">
+            Base de relacionamento
+          </p>
+
+          <h2 id="customers-content-title">
+            Clientes cadastrados
+          </h2>
+
+        </div>
+
+        <span class="customers-content__count" id="customers-count">
+          0 clientes
+        </span>
+
+      </div>
+
+      <div class="customers-list" id="customers-list" aria-live="polite"></div>
+
+      <!-- Estado vazio -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="4"></circle>
+            <path d="M3 21a6 6 0 0 1 12 0"></path>
+            <path d="M17 11a4 4 0 0 1 4 4v6"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum cliente encontrado
+        </h3>
+
+        <p>
+          Não existem clientes correspondentes à pesquisa ou aos filtros selecionados.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
+          Limpar pesquisa e filtros
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CLIENTE
+  ====================================== -->
+
+  <template id="customer-card-template">
+
+    <article class="customer-card">
+
+      <div class="customer-card__avatar">
+        --
+      </div>
+
+      <div class="customer-card__content">
+
+        <div class="customer-card__top">
+
+          <div class="customer-card__identity">
+
+            <span class="customer-card__code"></span>
+
+            <h3 class="customer-card__name"></h3>
+
+          </div>
+
+          <span class="customer-card__status"></span>
+
+        </div>
+
+        <div class="customer-card__contact">
+
+          <a href="#" class="customer-card__phone">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h4l2 5-3 2a14 14 0 0 0 5 5l2-3 5 2v4c0 1-1 2-2 2C10 21 3 14 3 6c0-1 1-2 2-2Z"></path>
+            </svg>
+
+            <span></span>
+
+          </a>
+
+          <a href="#" class="customer-card__email">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+
+              <path d="m4 7 8 6 8-6"></path>
+            </svg>
+
+            <span></span>
+
+          </a>
+
+        </div>
+
+        <div class="customer-card__information">
+
+          <span class="customer-card__address">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+              <circle cx="12" cy="9" r="2"></circle>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="customer-card__registration">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+              <path d="M7 3v4M17 3v4M3 10h18"></path>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+          <span class="customer-card__contact-preference">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v12H8l-4 4V5Z"></path>
+              <path d="M8 9h8"></path>
+              <path d="M8 13h5"></path>
+            </svg>
+
+            <span></span>
+
+          </span>
+
+        </div>
+
+        <div class="customer-card__metrics">
+
+          <div>
+
+            <span>
+              Serviços
+            </span>
+
+            <strong class="customer-card__orders-count">
+              0
+            </strong>
+
+          </div>
+
+          <div>
+
+            <span>
+              Ativos
+            </span>
+
+            <strong class="customer-card__active-orders">
+              0
+            </strong>
+
+          </div>
+
+          <div>
+
+            <span>
+              Movimentado
+            </span>
+
+            <strong class="customer-card__total-value">
+              R$ 0,00
+            </strong>
+
+          </div>
+
+        </div>
+
+        <div class="customer-card__warning" hidden>
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 2 21h20L12 3Z"></path>
+            <path d="M12 9v5"></path>
+            <path d="M12 18h.01"></path>
+          </svg>
+
+          <span></span>
+
+        </div>
+
+        <div class="customer-card__actions">
+
+          <button type="button" class="customer-card__button customer-card__button--details">
+            Ver cadastro
+          </button>
+
+          <button type="button" class="customer-card__button customer-card__button--order">
+            Nova ordem
+          </button>
+
+          <button type="button" class="customer-card__menu" aria-label="Abrir opções do cliente" aria-expanded="false">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="5" cy="12" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="19" cy="12" r="1"></circle>
+            </svg>
+
+          </button>
+
+        </div>
+
+        <div class="customer-card__options" hidden>
+
+          <button type="button" data-customer-action="whatsapp">
+            Abrir WhatsApp
+          </button>
+
+          <button type="button" data-customer-action="ligar">
+            Ligar para o cliente
+          </button>
+
+          <button type="button" data-customer-action="email">
+            Enviar e-mail
+          </button>
+
+          <button type="button" data-customer-action="ordens">
+            Ver ordens de serviço
+          </button>
+
+          <button type="button" data-customer-action="editar">
+            Editar cadastro
+          </button>
+
+          <button type="button" data-customer-action="status">
+            Alterar situação
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       MODAL DE CADASTRO
+  ====================================== -->
+
+  <div class="modal-backdrop" id="customer-modal" hidden>
+
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="customer-modal-title">
+
+      <header class="modal-card__header">
+
+        <div>
+
+          <p id="customer-modal-eyebrow">
+            Cadastro de cliente
+          </p>
+
+          <h2 id="customer-modal-title">
+            Novo cliente
+          </h2>
+
+        </div>
+
+        <button type="button" class="modal-card__close" id="close-customer-modal-button" aria-label="Fechar janela">
+          ×
+        </button>
+
+      </header>
+
+      <form id="customer-form" novalidate>
+
+        <input type="hidden" id="customer-id" />
+
+        <div class="modal-grid">
+
+          <label class="modal-field modal-field--full">
+
+            <span>
+              Nome completo
+            </span>
+
+            <input type="text" id="customer-name" placeholder="Informe o nome completo" autocomplete="name" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Telefone
+            </span>
+
+            <input type="tel" id="customer-phone" placeholder="(00) 00000-0000" autocomplete="tel" inputmode="tel" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              E-mail
+            </span>
+
+            <input type="email" id="customer-email" placeholder="cliente@email.com" autocomplete="email" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+        </div>
+
+        <div class="modal-grid">
+
+          <label class="modal-field">
+
+            <span>
+              CEP
+            </span>
+
+            <div class="modal-input-action">
+
+              <input type="text" id="customer-postal-code" placeholder="00000-000" inputmode="numeric" maxlength="9" required />
+
+              <button type="button" id="search-customer-postal-code-button">
+                Buscar
+              </button>
+
+            </div>
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Estado
+            </span>
+
+            <select id="customer-state" required>
+
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="SP">
+                São Paulo
+              </option>
+
+              <option value="RJ">
+                Rio de Janeiro
+              </option>
+
+              <option value="MG">
+                Minas Gerais
+              </option>
+
+              <option value="PR">
+                Paraná
+              </option>
+
+            </select>
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field modal-field--full">
+
+            <span>
+              Rua ou avenida
+            </span>
+
+            <input type="text" id="customer-street" placeholder="Informe o logradouro" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Número
+            </span>
+
+            <input type="text" id="customer-address-number" placeholder="Número" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Complemento
+            </span>
+
+            <input type="text" id="customer-address-complement" placeholder="Apartamento, bloco, casa..." />
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Bairro
+            </span>
+
+            <input type="text" id="customer-district" placeholder="Informe o bairro" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Cidade
+            </span>
+
+            <input type="text" id="customer-city" placeholder="Informe a cidade" required />
+
+            <small class="modal-field__error"></small>
+
+          </label>
+
+        </div>
+
+        <div class="modal-grid">
+
+          <label class="modal-field">
+
+            <span>
+              Canal preferido
+            </span>
+
+            <select id="customer-contact-preference">
+
+              <option value="whatsapp">
+                WhatsApp
+              </option>
+
+              <option value="telefone">
+                Ligação telefônica
+              </option>
+
+              <option value="email">
+                E-mail
+              </option>
+
+            </select>
+
+          </label>
+
+          <label class="modal-field">
+
+            <span>
+              Situação
+            </span>
+
+            <select id="customer-status">
+
+              <option value="ativo">
+                Ativo
+              </option>
+
+              <option value="inativo">
+                Inativo
+              </option>
+
+              <option value="cadastro-incompleto">
+                Cadastro incompleto
+              </option>
+
+              <option value="com-pendencia">
+                Com pendência
+              </option>
+
+            </select>
+
+          </label>
+
+        </div>
+
+        <label class="modal-field">
+
+          <span>
+            Observações administrativas
+          </span>
+
+          <textarea id="customer-notes" rows="4" placeholder="Adicione informações importantes sobre o cliente"></textarea>
+
+        </label>
+
+        <div class="modal-card__actions">
+
+          <button type="button" class="modal-button modal-button--secondary" id="cancel-customer-button">
+            Cancelar
+          </button>
+
+          <button type="submit" class="modal-button modal-button--primary" id="save-customer-button">
+
+            <span class="button-label">
+              Salvar cliente
+            </span>
+
+            <span class="button-loading" hidden>
+              Salvando...
+            </span>
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       MODAL DE DETALHES
+  ====================================== -->
+
+  <div class="modal-backdrop" id="customer-details-modal" hidden>
+
+    <section class="modal-card modal-card--details" role="dialog" aria-modal="true" aria-labelledby="customer-details-title">
+
+      <header class="modal-card__header">
+
+        <div>
+
+          <p>
+            Cadastro completo
+          </p>
+
+          <h2 id="customer-details-title">
+            Detalhes do cliente
+          </h2>
+
+        </div>
+
+        <button type="button" class="modal-card__close" id="close-customer-details-button" aria-label="Fechar detalhes">
+          ×
+        </button>
+
+      </header>
+
+      <div class="customer-details">
+
+        <div class="customer-details__identity">
+
+          <div class="customer-details__avatar" id="details-avatar">
+            --
+          </div>
+
+          <div>
+
+            <span id="details-code"></span>
+
+            <h3 id="details-name"></h3>
+
+            <p id="details-status"></p>
+
+          </div>
+
+        </div>
+
+        <div class="customer-details__grid">
+
+          <article>
+
+            <span>
+              Telefone
+            </span>
+
+            <strong id="details-phone"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              E-mail
+            </span>
+
+            <strong id="details-email"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Canal preferido
+            </span>
+
+            <strong id="details-contact"></strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Cadastro
+            </span>
+
+            <strong id="details-registration"></strong>
+
+          </article>
+
+        </div>
+
+        <article class="customer-details__section">
+
+          <span>
+            Endereço principal
+          </span>
+
+          <strong id="details-address"></strong>
+
+        </article>
+
+        <article class="customer-details__section">
+
+          <span>
+            Observações administrativas
+          </span>
+
+          <p id="details-notes"></p>
+
+        </article>
+
+        <div class="customer-details__metrics">
+
+          <article>
+
+            <span>
+              Ordens cadastradas
+            </span>
+
+            <strong id="details-orders">
+              0
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Serviços ativos
+            </span>
+
+            <strong id="details-active-orders">
+              0
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Valor movimentado
+            </span>
+
+            <strong id="details-total-value">
+              R$ 0,00
+            </strong>
+
+          </article>
+
+        </div>
+
+        <div class="customer-details__actions">
+
+          <button type="button" class="modal-button modal-button--secondary" id="details-edit-button">
+            Editar cadastro
+          </button>
+
+          <button type="button" class="modal-button modal-button--primary" id="details-new-order-button">
+            Criar ordem
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/clientes.js"></script>
+
+</body>
+
+</html>

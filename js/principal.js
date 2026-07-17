@@ -9,13 +9,13 @@ const profileConfig = {
       {
         title: "Nova Ordem de Serviço",
         description: "Solicite um novo atendimento de manutenção.",
-        target: "nova-ordem.html",
+        target: "nova-ordem.html?perfil=cliente",
         icon: "clipboard",
       },
       {
         title: "Minhas Solicitações",
         description: "Acompanhe pedidos enviados e respostas da equipe.",
-        target: "minhas-solicitacoes.html",
+        target: "solicitacoes.html?perfil=cliente",
         icon: "inbox",
       },
       {
@@ -49,13 +49,13 @@ const profileConfig = {
       {
         title: "Novas Solicitações",
         description: "Analise pedidos enviados pelos clientes.",
-        target: "novas-solicitacoes.html",
+        target: "solicitacoes.html?perfil=admin",
         icon: "bell",
       },
       {
         title: "Nova Ordem de Serviço",
         description: "Cadastre uma ordem manualmente para um cliente.",
-        target: "nova-ordem.html",
+        target: "nova-ordem.html?perfil=admin",
         icon: "clipboard",
       },
       {
@@ -229,7 +229,14 @@ const logoContainer = companyLogo.closest(".profile-logo");
 const backButton = document.getElementById("back-button");
 const logoutButton = document.getElementById("logout-button");
 
-let currentProfile = "cliente";
+const principalUrlParams = new URLSearchParams(window.location.search);
+
+const profileFromUrl = principalUrlParams.get("perfil");
+
+let currentProfile =
+  profileFromUrl === "admin" || profileFromUrl === "cliente"
+    ? profileFromUrl
+    : document.body.dataset.profile || "cliente";
 
 /* ==============================
    NORMALIZAÇÃO DA PESQUISA
@@ -400,4 +407,4 @@ if (companyLogo.complete && companyLogo.naturalWidth > 0) {
    INICIALIZAÇÃO
 ================================ */
 
-changeProfile("cliente");
+changeProfile(currentProfile);

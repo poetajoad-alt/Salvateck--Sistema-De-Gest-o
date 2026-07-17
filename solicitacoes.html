@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Solicitações de serviços da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Solicitações | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/solicitacoes.css" />
+</head>
+
+<body data-page="solicitacoes" data-profile="cliente">
+  <main class="requests-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="requests-header">
+
+      <a href="principal.html" class="header-button" id="requests-back-button" aria-label="Voltar para a página principal">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+      </a>
+
+      <div class="requests-header__content">
+
+        <p class="requests-header__eyebrow">
+          Salvateck
+        </p>
+
+        <h1 id="page-title">
+          Minhas Solicitações
+        </h1>
+
+      </div>
+
+      <div class="requests-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         INTRODUÇÃO
+    ====================================== -->
+
+    <section class="requests-intro">
+
+      <div class="requests-intro__copy">
+
+        <span class="requests-intro__badge" id="profile-badge">
+          Área do cliente
+        </span>
+
+        <h2 id="intro-title">
+          Acompanhe seus pedidos
+        </h2>
+
+        <p id="intro-description">
+          Veja o andamento das suas solicitações e consulte os detalhes de cada atendimento.
+        </p>
+
+      </div>
+
+      <a href="nova-ordem.html" class="new-request-button" id="new-request-button">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Nova solicitação
+        </span>
+      </a>
+
+    </section>
+
+    <!-- =====================================
+         SELETOR TEMPORÁRIO DE PERFIL
+    ====================================== -->
+
+    <section class="profile-mode" aria-label="Modo temporário de visualização">
+
+      <div class="profile-mode__copy">
+
+        <span>
+          Visualizando como
+        </span>
+
+        <small>
+          Será definido automaticamente após o login.
+        </small>
+
+      </div>
+
+      <div class="profile-mode__buttons">
+
+        <button type="button" class="profile-mode__button is-active" data-profile-button="cliente" aria-pressed="true">
+          Cliente
+        </button>
+
+        <button type="button" class="profile-mode__button" data-profile-button="admin" aria-pressed="false">
+          Administrador
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="requests-summary" aria-label="Resumo das solicitações">
+
+      <article class="summary-card">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span id="summary-total-label">
+            Total
+          </span>
+
+          <strong id="summary-total">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span id="summary-pending-label">
+            Em andamento
+          </span>
+
+          <strong id="summary-pending">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="summary-card">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span id="summary-confirmed-label">
+            Agendadas
+          </span>
+
+          <strong id="summary-confirmed">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA
+    ====================================== -->
+
+    <section class="requests-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="request-search" type="search" placeholder="Pesquisar solicitação" autocomplete="off" aria-label="Pesquisar solicitação" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-label="Abrir filtros" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a lista
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-group">
+
+        <span class="filter-group__label">
+          Status
+        </span>
+
+        <div class="filter-options">
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="nova-solicitacao" />
+
+            <span>
+              Nova solicitação
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="em-analise" />
+
+            <span>
+              Em análise
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="aguardando-confirmacao" />
+
+            <span>
+              Aguardando confirmação
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="agendada" />
+
+            <span>
+              Agendada
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="recusada" />
+
+            <span>
+              Recusada
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="cancelada" />
+
+            <span>
+              Cancelada
+            </span>
+
+          </label>
+
+        </div>
+
+      </div>
+
+      <div class="filter-group">
+
+        <label class="filter-group__label" for="category-filter">
+          Categoria
+        </label>
+
+        <select id="category-filter" class="filter-select">
+          <option value="">
+            Todas as categorias
+          </option>
+
+          <option value="hidraulica">
+            Hidráulica
+          </option>
+
+          <option value="eletrica">
+            Elétrica
+          </option>
+
+          <option value="pintura">
+            Pintura
+          </option>
+
+          <option value="alvenaria">
+            Alvenaria
+          </option>
+
+          <option value="instalacoes">
+            Instalações
+          </option>
+
+          <option value="manutencao-geral">
+            Manutenção geral
+          </option>
+        </select>
+
+      </div>
+
+      <div class="filter-group admin-filter" hidden>
+
+        <label class="filter-group__label" for="priority-filter">
+          Prioridade
+        </label>
+
+        <select id="priority-filter" class="filter-select">
+          <option value="">
+            Todas as prioridades
+          </option>
+
+          <option value="baixa">
+            Baixa
+          </option>
+
+          <option value="normal">
+            Normal
+          </option>
+
+          <option value="alta">
+            Alta
+          </option>
+
+          <option value="urgente">
+            Urgente
+          </option>
+        </select>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CABEÇALHO DA LISTA
+    ====================================== -->
+
+    <section class="requests-list-section">
+
+      <div class="requests-list__heading">
+
+        <div>
+
+          <p id="list-eyebrow">
+            Seus atendimentos
+          </p>
+
+          <h2 id="list-title">
+            Solicitações recentes
+          </h2>
+
+        </div>
+
+        <span class="requests-list__count" id="requests-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <!-- ===================================
+           LISTA GERADA PELO JAVASCRIPT
+      ==================================== -->
+
+      <div class="requests-list" id="requests-list" aria-live="polite"></div>
+
+      <!-- ===================================
+           ESTADO VAZIO
+      ==================================== -->
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <div class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
+
+        </div>
+
+        <h3 id="empty-state-title">
+          Nenhuma solicitação encontrada
+        </h3>
+
+        <p id="empty-state-description">
+          Crie uma nova solicitação ou altere os filtros utilizados.
+        </p>
+
+        <a href="nova-ordem.html" class="empty-state__button" id="empty-state-button">
+          Criar nova solicitação
+        </a>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CARD
+  ====================================== -->
+
+  <template id="request-card-template">
+
+    <article class="request-card">
+
+      <button type="button" class="request-card__main">
+
+        <div class="request-card__top">
+
+          <div class="request-card__identity">
+
+            <span class="request-card__code"></span>
+
+            <span class="request-card__status"></span>
+
+          </div>
+
+          <span class="request-card__date"></span>
+
+        </div>
+
+        <div class="request-card__content">
+
+          <div class="request-card__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11Z"></path>
+            </svg>
+
+          </div>
+
+          <div class="request-card__copy">
+
+            <span class="request-card__client" hidden></span>
+
+            <h3 class="request-card__title"></h3>
+
+            <p class="request-card__service"></p>
+
+            <div class="request-card__details">
+
+              <span class="request-card__address">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+                  <circle cx="12" cy="9" r="2"></circle>
+                </svg>
+
+                <span></span>
+
+              </span>
+
+              <span class="request-card__schedule">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                  <path d="M7 3v4M17 3v4M3 10h18"></path>
+                </svg>
+
+                <span></span>
+
+              </span>
+
+            </div>
+
+          </div>
+
+          <span class="request-card__arrow">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+
+          </span>
+
+        </div>
+
+      </button>
+
+      <div class="request-card__admin" hidden>
+
+        <div class="request-card__priority">
+
+          <span>
+            Prioridade
+          </span>
+
+          <strong></strong>
+
+        </div>
+
+        <button type="button" class="request-card__analyze">
+          Analisar solicitação
+        </button>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script src="js/solicitacoes.js"></script>
+</body>
+
+</html>
