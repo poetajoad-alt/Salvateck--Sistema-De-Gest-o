@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -21,17 +21,17 @@
 
   <!-- CSS global e CSS da página -->
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/nova-ordem.css" />
+  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.2" />
 </head>
 
-<body data-page="nova-ordem" data-profile="cliente">
+<body data-page="nova-ordem" data-allowed-roles="admin,cliente">
 
   <main class="order-shell">
 
     <!-- Cabeçalho -->
     <header class="order-header">
 
-      <a href="principal.html?perfil=cliente" class="header-button" id="order-back-link" aria-label="Voltar para o painel de controle">
+      <a href="principal.html" class="header-button" id="order-back-link" aria-label="Voltar para o painel de controle">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
         </svg>
@@ -98,34 +98,7 @@
 
     </section>
 
-    <!-- Alternância temporária para testes -->
-    <section class="profile-mode" aria-label="Visualização temporária do formulário">
 
-      <div>
-
-        <span class="profile-mode__label">
-          Preenchendo como
-        </span>
-
-        <small>
-          Esta opção será removida após o login.
-        </small>
-
-      </div>
-
-      <div class="profile-mode__buttons">
-
-        <button type="button" class="profile-mode__button is-active" data-form-profile="cliente" aria-pressed="true">
-          Cliente
-        </button>
-
-        <button type="button" class="profile-mode__button" data-form-profile="admin" aria-pressed="false">
-          Administrador
-        </button>
-
-      </div>
-
-    </section>
 
     <form id="formNovaOrdem" class="order-form" novalidate>
 
@@ -178,21 +151,21 @@
         <div class="client-summary">
 
           <div class="client-summary__avatar">
-            JS
+            CL
           </div>
 
           <div class="client-summary__copy">
 
             <strong id="resumoNomeCliente">
-              João da Silva
+              Carregando dados...
             </strong>
 
             <span id="resumoContatoCliente">
-              (11) 99999-9999
+              Telefone não informado
             </span>
 
             <span id="resumoEmailCliente">
-              joao@email.com
+              E-mail não informado
             </span>
 
           </div>
@@ -211,7 +184,7 @@
               Nome
             </label>
 
-            <input id="nomeCliente" name="nomeCliente" type="text" class="input" value="João da Silva" readonly required />
+            <input id="nomeCliente" name="nomeCliente" type="text" class="input" value="" readonly required />
 
           </div>
 
@@ -221,7 +194,7 @@
               Telefone
             </label>
 
-            <input id="telefoneCliente" name="telefoneCliente" type="tel" class="input" value="(11) 99999-9999" readonly required />
+            <input id="telefoneCliente" name="telefoneCliente" type="tel" class="input" value="" readonly required />
 
           </div>
 
@@ -233,12 +206,12 @@
             E-mail
           </label>
 
-          <input id="emailCliente" name="emailCliente" type="email" class="input" value="joao@email.com" readonly />
+          <input id="emailCliente" name="emailCliente" type="email" class="input" value="" readonly />
 
         </div>
 
         <p class="form-help">
-          Futuramente esses dados serão preenchidos automaticamente com as informações do cadastro.
+          Os dados foram preenchidos com as informações da conta conectada. Alterações feitas aqui valem somente para esta solicitação.
         </p>
 
       </section>
@@ -327,12 +300,12 @@
               Endereço principal
             </strong>
 
-            <span>
-              Rua Exemplo, 150, Casa 2
+            <span id="registered-address-line-1">
+              Verificando endereço cadastrado...
             </span>
 
-            <span>
-              Centro — São Paulo/SP
+            <span id="registered-address-line-2">
+              Aguarde um momento.
             </span>
 
           </div>
@@ -627,8 +600,8 @@
 
       </section>
 
-      <!-- Data -->
-      <section class="form-card" data-section="agenda">
+      <!-- Agendamento exclusivo do administrador -->
+      <section class="form-card admin-only" id="schedule-section" data-section="agenda" hidden>
 
         <div class="form-card__header">
 
@@ -722,7 +695,7 @@
 
         </div>
 
-        <div class="information-box client-only">
+        <div class="information-box">
 
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="9"></circle>
@@ -730,7 +703,7 @@
           </svg>
 
           <p>
-            A data escolhida é uma preferência. A equipe Salvateck analisará a solicitação e confirmará ou proporá uma nova data.
+            Defina a data somente depois de alinhar o atendimento, o orçamento e a disponibilidade com o cliente.
           </p>
 
         </div>
@@ -926,7 +899,7 @@
             </span>
 
             <strong id="summary-client">
-              João da Silva
+              Cliente não informado
             </strong>
 
           </div>
@@ -967,10 +940,10 @@
 
           </div>
 
-          <div class="order-summary__item">
+          <div class="order-summary__item admin-only" id="summary-schedule-item" hidden>
 
             <span>
-              Preferência
+              Agendamento
             </span>
 
             <strong id="summary-schedule">
@@ -998,7 +971,7 @@
       <!-- Botões -->
       <div class="form-actions">
 
-        <a href="principal.html?perfil=cliente" class="button button--secondary" id="order-cancel-link">
+        <a href="principal.html" class="button button--secondary" id="order-cancel-link">
           Cancelar
         </a>
 
@@ -1010,6 +983,55 @@
 
     </form>
 
+    <section class="order-success" id="order-success" aria-live="polite" hidden>
+
+      <span class="order-success__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 12l4 4L19 6"></path>
+        </svg>
+
+      </span>
+
+      <span class="order-success__eyebrow">
+        Solicitação criada
+      </span>
+
+      <h2>
+        <span id="success-order-code">OS criada</span>
+        com sucesso!
+      </h2>
+
+      <p id="success-order-description">
+        Envie a ordem pelo WhatsApp para conversar com a Salvateck sobre o orçamento e o agendamento.
+      </p>
+
+      <div class="order-success__summary">
+
+        <span>
+          Serviço
+        </span>
+
+        <strong id="success-order-title">
+          Serviço solicitado
+        </strong>
+
+      </div>
+
+      <div class="order-success__actions">
+
+        <button type="button" class="button button--primary order-success__whatsapp" id="whatsapp-order-button">
+          Enviar OS pelo WhatsApp
+        </button>
+
+        <a href="solicitacoes.html" class="button button--secondary">
+          Ver minhas solicitações
+        </a>
+
+      </div>
+
+    </section>
+
   </main>
 
   <!-- Feedback -->
@@ -1017,7 +1039,7 @@
     Solicitação enviada com sucesso!
   </div>
 
-  <script src="js/nova-ordem.js"></script>
+  <script type="module" src="js/nova-ordem.js?v=1.0.9"></script>
 </body>
 
 </html>

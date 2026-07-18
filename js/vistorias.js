@@ -58,7 +58,7 @@ const viewConfig = {
 
   scheduled: {
     eyebrow: "Próximos atendimentos",
-    title: "Vistorias solicitadas e programadas",
+    title: "Vistorias programadas",
   },
 
   progress: {
@@ -66,9 +66,14 @@ const viewConfig = {
     title: "Vistorias em andamento",
   },
 
-  completed: {
-    eyebrow: "Histórico recente",
-    title: "Vistorias concluídas",
+  pending: {
+    eyebrow: "Atenção necessária",
+    title: "Vistorias com pendências",
+  },
+
+  "completed-month": {
+    eyebrow: "Histórico do mês",
+    title: "Vistorias concluídas no mês",
   },
 
   overdue: {
@@ -88,6 +93,14 @@ const summaryProgress = document.getElementById("summary-progress");
 const summaryCritical = document.getElementById("summary-critical");
 
 const summaryCompleted = document.getElementById("summary-completed");
+
+const inspectionsOverviewHint = document.getElementById(
+  "inspections-overview-hint",
+);
+
+const inspectionsTools = document.querySelector(".inspections-tools");
+
+const inspectionsContent = document.querySelector(".inspections-content");
 
 const viewButtons = document.querySelectorAll("[data-inspection-view]");
 
@@ -145,7 +158,7 @@ const feedbackMessage = document.getElementById("feedback-message");
 
 let inspectionOrders = [];
 
-let currentView = "all";
+let currentView = "";
 
 let currentLimit = INSPECTIONS_PER_PAGE;
 
@@ -554,9 +567,17 @@ function updateSummary() {
     (inspection) => getStatusData(inspection).grupo === "progress",
   ).length;
 
-  const critical = inspectionOrders
-    .filter((inspection) => getStatusData(inspection).grupo !== "completed")
-    .reduce((total, inspection) => total + inspection.pendenciasCriticas, 0);
+  const pending = inspectionOrders.filter((inspection) => {
+    const statusGroup = getStatusData(inspection).grupo;
+
+    const isClosed = statusGroup === "completed" || statusGroup === "cancelled";
+
+    if (isClosed) {
+      return false;
+    }
+
+    return statusGroup === "overdue" || inspection.pendenciasCriticas > 0;
+  }).length;
 
   const completed = inspectionOrders.filter(
     (inspection) =>
@@ -568,7 +589,7 @@ function updateSummary() {
 
   summaryProgress.textContent = String(inProgress);
 
-  summaryCritical.textContent = String(critical);
+  summaryCritical.textContent = String(pending);
 
   summaryCompleted.textContent = String(completed);
 }
@@ -585,21 +606,61 @@ function updateViewHeading() {
   inspectionsContentTitle.textContent = configuration.title;
 }
 
-function changeView(view) {
-  currentView = view;
+function changeView(view, { forceOpen = false, scroll = true } = {}) {
+  const shouldClose = !forceOpen && currentView === view;
+
+  currentView = shouldClose ? "" : view;
 
   currentLimit = INSPECTIONS_PER_PAGE;
 
   viewButtons.forEach((button) => {
-    const active = button.dataset.inspectionView === view;
+    const active = button.dataset.inspectionView === currentView;
 
     button.classList.toggle("is-active", active);
 
     button.setAttribute("aria-pressed", String(active));
   });
 
+  const isOpen = Boolean(currentView);
+
+  inspectionsOverviewHint.hidden = isOpen;
+
+  inspectionsTools.hidden = !isOpen;
+
+  inspectionsContent.hidden = !isOpen;
+
+  if (!isOpen) {
+    closeFilters();
+
+    activeFiltersList.hidden = true;
+
+    inspectionsList.innerHTML = "";
+
+    inspectionsList.hidden = true;
+
+    emptyState.hidden = true;
+
+    loadMoreButton.hidden = true;
+
+    inspectionsCount.textContent = "0 vistorias";
+
+    return;
+  }
+
   updateViewHeading();
+
+  renderActiveFilters();
+
   renderInspections();
+
+  if (scroll) {
+    window.requestAnimationFrame(() => {
+      inspectionsContent.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
 }
 
 /* =========================================
@@ -700,11 +761,33 @@ function matchesFilters(inspection) {
 }
 
 function matchesCurrentView(inspection) {
+  if (!currentView) {
+    return false;
+  }
+
+  const statusGroup = getStatusData(inspection).grupo;
+
   if (currentView === "all") {
     return true;
   }
 
-  return getStatusData(inspection).grupo === currentView;
+  if (currentView === "pending") {
+    const isClosed = statusGroup === "completed" || statusGroup === "cancelled";
+
+    if (isClosed) {
+      return false;
+    }
+
+    return statusGroup === "overdue" || inspection.pendenciasCriticas > 0;
+  }
+
+  if (currentView === "completed-month") {
+    return (
+      statusGroup === "completed" && isCurrentMonth(inspection.concluidaEm)
+    );
+  }
+
+  return statusGroup === currentView;
 }
 
 function getFilteredInspections() {
@@ -1148,6 +1231,18 @@ function createInspectionItem(inspection) {
 ========================================= */
 
 function renderInspections() {
+  if (!currentView) {
+    inspectionsList.innerHTML = "";
+
+    inspectionsList.hidden = true;
+
+    emptyState.hidden = true;
+
+    loadMoreButton.hidden = true;
+
+    return;
+  }
+
   const filteredInspections = getFilteredInspections();
 
   inspectionsList.innerHTML = "";
@@ -1193,6 +1288,34 @@ function openInspectionFromURL() {
   if (!inspectionId) {
     return;
   }
+
+  const selectedInspection = inspectionOrders.find(
+    (inspection) => inspection.id === inspectionId,
+  );
+
+  if (!selectedInspection) {
+    return;
+  }
+
+  const statusGroup = getStatusData(selectedInspection).grupo;
+
+  let targetView = statusGroup;
+
+  if (statusGroup === "overdue" || selectedInspection.pendenciasCriticas > 0) {
+    targetView = "pending";
+  } else if (
+    statusGroup === "completed" &&
+    isCurrentMonth(selectedInspection.concluidaEm)
+  ) {
+    targetView = "completed-month";
+  } else if (statusGroup === "completed") {
+    targetView = "all";
+  }
+
+  changeView(targetView, {
+    forceOpen: true,
+    scroll: false,
+  });
 
   currentLimit = inspectionOrders.length;
 
@@ -1308,6 +1431,9 @@ renderActiveFilters();
 
 updateSummary();
 
-changeView("all");
+changeView("", {
+  forceOpen: true,
+  scroll: false,
+});
 
 openInspectionFromURL();

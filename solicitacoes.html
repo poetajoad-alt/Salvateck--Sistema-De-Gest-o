@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/solicitacoes.css" />
 </head>
 
-<body data-page="solicitacoes" data-profile="cliente">
+<body data-page="solicitacoes" data-allowed-roles="admin,cliente">
   <main class="requests-shell">
 
     <!-- =====================================
@@ -89,38 +89,6 @@
           Nova solicitação
         </span>
       </a>
-
-    </section>
-
-    <!-- =====================================
-         SELETOR TEMPORÁRIO DE PERFIL
-    ====================================== -->
-
-    <section class="profile-mode" aria-label="Modo temporário de visualização">
-
-      <div class="profile-mode__copy">
-
-        <span>
-          Visualizando como
-        </span>
-
-        <small>
-          Será definido automaticamente após o login.
-        </small>
-
-      </div>
-
-      <div class="profile-mode__buttons">
-
-        <button type="button" class="profile-mode__button is-active" data-profile-button="cliente" aria-pressed="true">
-          Cliente
-        </button>
-
-        <button type="button" class="profile-mode__button" data-profile-button="admin" aria-pressed="false">
-          Administrador
-        </button>
-
-      </div>
 
     </section>
 
@@ -606,7 +574,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <script src="js/solicitacoes.js"></script>
+  <script type="module" src="js/solicitacoes.js?v=1.0.5"></script>
 </body>
 
 </html>

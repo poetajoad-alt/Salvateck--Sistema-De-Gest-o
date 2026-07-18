@@ -1,3 +1,16 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
 /* =========================================
    CATÁLOGO DE SERVIÇOS
 ========================================= */
@@ -113,8 +126,6 @@ const body = document.body;
 
 const form = document.getElementById("formNovaOrdem");
 
-const profileButtons = document.querySelectorAll("[data-form-profile]");
-
 const adminOnlyElements = document.querySelectorAll(".admin-only");
 const clientOnlyElements = document.querySelectorAll(".client-only");
 
@@ -149,6 +160,22 @@ const clientAvatar = document.querySelector(".client-summary__avatar");
 const addressRadios = document.querySelectorAll('input[name="tipoEndereco"]');
 
 const registeredAddress = document.getElementById("registered-address");
+
+const registeredAddressLine1 = document.getElementById(
+  "registered-address-line-1",
+);
+
+const registeredAddressLine2 = document.getElementById(
+  "registered-address-line-2",
+);
+
+const registeredAddressRadio = document.querySelector(
+  'input[name="tipoEndereco"][value="cadastrado"]',
+);
+
+const alternateAddressRadio = document.querySelector(
+  'input[name="tipoEndereco"][value="outro"]',
+);
 
 const alternateAddress = document.getElementById("alternate-address");
 
@@ -200,6 +227,8 @@ const specificTimeGroup = document.getElementById("specific-time-group");
 
 const horarioPreferido = document.getElementById("horarioPreferido");
 
+const scheduleSection = document.getElementById("schedule-section");
+
 /* Fotos */
 
 const fotosProblema = document.getElementById("fotosProblema");
@@ -238,21 +267,31 @@ const summaryPhotos = document.getElementById("summary-photos");
 
 const feedbackMessage = document.getElementById("feedback-msg");
 
+const orderSuccess = document.getElementById("order-success");
+
+const successOrderCode = document.getElementById("success-order-code");
+
+const successOrderTitle = document.getElementById("success-order-title");
+
+const whatsappOrderButton = document.getElementById("whatsapp-order-button");
+
 /* =========================================
    VARIÁVEIS DE CONTROLE
 ========================================= */
 
 const orderUrlParams = new URLSearchParams(window.location.search);
+
 const orderBackLink = document.getElementById("order-back-link");
 
 const orderCancelLink = document.getElementById("order-cancel-link");
 
-const orderProfileFromUrl = orderUrlParams.get("perfil");
+let currentProfile = null;
 
-let currentProfile =
-  orderProfileFromUrl === "admin" || orderProfileFromUrl === "cliente"
-    ? orderProfileFromUrl
-    : body.dataset.profile || "cliente";
+let currentSession = null;
+
+let selectedClientUid = "";
+
+let hasRegisteredAddress = false;
 
 let clientEditing = false;
 
@@ -262,9 +301,14 @@ const selectedServiceKeys = new Set();
 
 const maxPhotos = 6;
 
-const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
+/*
+  WhatsApp da Salvateck:
+  use 55 + DDD + número, somente números.
+  Exemplo: 5511999999999
+*/
+const SALVATECK_WHATSAPP = "554499343808";
 
-const LAST_ORDER_STORAGE_KEY = "salvateckUltimaOrdemTeste";
+let lastSavedOrder = null;
 
 let feedbackTimeout;
 
@@ -376,67 +420,155 @@ function showFeedback(message, type = "success") {
   }, 3500);
 }
 
-function scrollToElement(element) {
-  element.scrollIntoView({
-    behavior: "smooth",
-    block: "center",
-  });
+function sanitizePhoneNumber(value) {
+  return String(value || "").replace(/\D/g, "");
 }
-/* =========================================
-   ARMAZENAMENTO TEMPORÁRIO DAS ORDENS
-========================================= */
 
-function loadTemporaryOrders() {
-  try {
-    const savedOrders = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
+function buildWhatsAppMessage(savedOrder) {
+  const clientName = nomeCliente.value.trim() || "Cliente não informado";
+
+  const clientPhone = telefoneCliente.value.trim() || "Telefone não informado";
+
+  const serviceTitle = savedOrder?.titulo || "Serviço não informado";
+
+  const addressSummary = getAddressSummary();
+
+  return [
+    "Olá! Criei uma solicitação de serviço na Salvateck.",
+    "",
+    `OS: ${savedOrder.codigo}`,
+    `Serviço: ${serviceTitle}`,
+    `Cliente: ${clientName}`,
+    `Telefone: ${clientPhone}`,
+    `Endereço: ${addressSummary}`,
+    "",
+    "Gostaria de conversar sobre o atendimento, o orçamento e o agendamento.",
+  ].join("\n");
+}
+
+function openOrderOnWhatsApp() {
+  if (!lastSavedOrder) {
+    showFeedback("Não foi possível identificar a ordem criada.", "error");
+
+    return;
+  }
+
+  const whatsappNumber = sanitizePhoneNumber(SALVATECK_WHATSAPP);
+
+  if (whatsappNumber.length < 12) {
+    showFeedback(
+      "Configure o número de WhatsApp da Salvateck no arquivo nova-ordem.js.",
+      "error",
     );
 
-    return Array.isArray(savedOrders) ? savedOrders : [];
-  } catch (error) {
-    console.warn("Não foi possível carregar as ordens temporárias.", error);
-
-    return [];
-  }
-}
-
-function generateOrderIdentifiers() {
-  const storedOrders = loadTemporaryOrders();
-
-  const highestNumber = storedOrders.reduce((highest, order) => {
-    const match = String(order.codigo || "").match(/\d+/);
-
-    const orderNumber = match ? Number(match[0]) : 0;
-
-    return Math.max(highest, orderNumber);
-  }, 0);
-
-  const nextNumber = highestNumber + 1;
-
-  const formattedNumber = String(nextNumber).padStart(4, "0");
-
-  return {
-    id: `ordem-${formattedNumber}`,
-    codigo: `OS-${formattedNumber}`,
-  };
-}
-
-function saveTemporaryOrder(orderData) {
-  const storedOrders = loadTemporaryOrders();
-
-  const existingIndex = storedOrders.findIndex(
-    (order) => order.id === orderData.id,
-  );
-
-  if (existingIndex >= 0) {
-    storedOrders[existingIndex] = orderData;
-  } else {
-    storedOrders.unshift(orderData);
+    return;
   }
 
-  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(storedOrders));
+  const message = encodeURIComponent(buildWhatsAppMessage(lastSavedOrder));
 
-  localStorage.setItem(LAST_ORDER_STORAGE_KEY, JSON.stringify(orderData));
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
+
+function showOrderSuccess(savedOrder) {
+  lastSavedOrder = savedOrder;
+
+  successOrderCode.textContent = savedOrder.codigo;
+
+  successOrderTitle.textContent = savedOrder.titulo || "Serviço solicitado";
+
+  form.hidden = true;
+
+  orderSuccess.hidden = false;
+
+  orderSuccess.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
+/* =========================================
+   ARMAZENAMENTO DAS ORDENS NO FIRESTORE
+========================================= */
+
+function formatOrderCode(number) {
+  return `OS-${String(number).padStart(4, "0")}`;
+}
+
+async function saveOrderInFirestore() {
+  const counterReference = doc(db, "contadores", "ordens");
+
+  const orderReference = doc(collection(db, "ordens"));
+
+  const privateOrderReference = doc(db, "ordensPrivadas", orderReference.id);
+
+  const internalObservation =
+    currentProfile === "admin"
+      ? String(document.getElementById("observacaoInterna")?.value || "").trim()
+      : "";
+
+  return runTransaction(db, async (transaction) => {
+    const counterSnapshot = await transaction.get(counterReference);
+
+    if (!counterSnapshot.exists()) {
+      throw new Error("ORDER_COUNTER_NOT_FOUND");
+    }
+
+    const currentNumber = Number(counterSnapshot.data().ultimoNumero || 0);
+
+    if (!Number.isInteger(currentNumber) || currentNumber < 0) {
+      throw new Error("INVALID_ORDER_COUNTER");
+    }
+
+    const nextNumber = currentNumber + 1;
+
+    const code = formatOrderCode(nextNumber);
+
+    const orderData = buildOrderData({
+      id: orderReference.id,
+
+      numero: nextNumber,
+
+      codigo: code,
+    });
+
+    transaction.update(counterReference, {
+      ultimoNumero: nextNumber,
+
+      ultimoDocumentoId: orderReference.id,
+
+      atualizadoEm: serverTimestamp(),
+    });
+
+    transaction.set(orderReference, orderData);
+
+    if (internalObservation) {
+      transaction.set(privateOrderReference, {
+        ordemId: orderReference.id,
+
+        codigo: code,
+
+        observacaoInterna: internalObservation,
+
+        atualizadoEm: serverTimestamp(),
+      });
+    }
+
+    return {
+      id: orderReference.id,
+
+      numero: nextNumber,
+
+      codigo: code,
+
+      tipoAtendimento: orderData.tipoAtendimento,
+
+      titulo: orderData.titulo,
+
+      status: orderData.status,
+    };
+  });
 }
 /* =========================================
    DADOS DO CLIENTE
@@ -480,12 +612,139 @@ function handleClientEdit() {
   updateClientSummary();
   updateProgress();
 }
+function getProfileAddress(profile = {}) {
+  const address = profile.endereco || {};
 
+  return {
+    cep: String(address.cep || profile.cep || "").trim(),
+
+    rua: String(
+      address.rua ||
+        address.logradouro ||
+        profile.rua ||
+        profile.logradouro ||
+        "",
+    ).trim(),
+
+    numero: String(address.numero || profile.numero || "").trim(),
+
+    complemento: String(
+      address.complemento || profile.complemento || "",
+    ).trim(),
+
+    bairro: String(address.bairro || profile.bairro || "").trim(),
+
+    cidade: String(address.cidade || profile.cidade || "").trim(),
+
+    estado: String(
+      address.estado || address.uf || profile.estado || profile.uf || "",
+    ).trim(),
+  };
+}
+
+function applyRegisteredAddress(profile = {}) {
+  const address = getProfileAddress(profile);
+
+  hasRegisteredAddress = Boolean(
+    address.rua || address.bairro || address.cidade || address.cep,
+  );
+
+  if (hasRegisteredAddress) {
+    const firstLine = [address.rua, address.numero, address.complemento]
+      .filter(Boolean)
+      .join(", ");
+
+    const cityAndState = [address.cidade, address.estado]
+      .filter(Boolean)
+      .join("/");
+
+    const secondLine = [address.bairro, cityAndState, address.cep]
+      .filter(Boolean)
+      .join(" — ");
+
+    registeredAddressLine1.textContent = firstLine || "Endereço principal";
+
+    registeredAddressLine2.textContent = secondLine || "Endereço cadastrado";
+
+    registeredAddressRadio.disabled = false;
+    registeredAddressRadio.checked = true;
+
+    alternateAddressRadio.checked = false;
+  } else {
+    registeredAddressLine1.textContent = "Nenhum endereço cadastrado";
+
+    registeredAddressLine2.textContent =
+      "Selecione outro endereço e preencha os campos.";
+
+    registeredAddressRadio.disabled = true;
+    registeredAddressRadio.checked = false;
+
+    alternateAddressRadio.checked = true;
+  }
+
+  toggleAddressMode();
+}
+
+function applyAuthenticatedSession(session) {
+  if (!session || !session.role) {
+    throw new Error("AUTHENTICATED_SESSION_NOT_FOUND");
+  }
+
+  currentSession = session;
+  currentProfile = session.role;
+
+  const profile = session.profile || {};
+
+  /*
+    Primeiro configura a visualização.
+    Depois preenche os campos, evitando que outra
+    função atualize o resumo ainda com valores vazios.
+  */
+  changeProfile(session.role);
+
+  if (session.role === "cliente") {
+    const clientName = String(
+      profile.nome || session.user?.displayName || "",
+    ).trim();
+
+    const clientPhone = String(profile.telefone || "").trim();
+
+    const clientEmail = String(
+      profile.email || session.email || session.user?.email || "",
+    ).trim();
+
+    nomeCliente.value = clientName;
+    telefoneCliente.value = clientPhone;
+    emailCliente.value = clientEmail;
+
+    applyRegisteredAddress(profile);
+  } else {
+    selectedClientUid = "";
+
+    nomeCliente.value = "";
+    telefoneCliente.value = "";
+    emailCliente.value = "";
+
+    applyRegisteredAddress({});
+  }
+
+  updateClientSummary();
+  updateSummary();
+  updateProgress();
+
+  console.log("[Nova Ordem] Dados do usuário carregados:", {
+    uid: session.uid,
+    role: session.role,
+    nome: nomeCliente.value,
+    telefone: telefoneCliente.value,
+    email: emailCliente.value,
+  });
+}
 /* =========================================
    PERFIL CLIENTE OU ADMINISTRADOR
 ========================================= */
 function updateOrderNavigation() {
-  const principalTarget = `principal.html?perfil=${currentProfile}`;
+  const principalTarget = "principal.html";
 
   if (orderBackLink) {
     orderBackLink.href = principalTarget;
@@ -495,6 +754,7 @@ function updateOrderNavigation() {
     orderCancelLink.href = principalTarget;
   }
 }
+
 function changeProfile(profile) {
   if (profile !== "cliente" && profile !== "admin") {
     return;
@@ -502,47 +762,64 @@ function changeProfile(profile) {
 
   currentProfile = profile;
 
+  const isAdmin = profile === "admin";
+
   updateOrderNavigation();
 
   body.dataset.profile = profile;
 
-  const currentUrl = new URL(window.location.href);
-
-  currentUrl.searchParams.set("perfil", profile);
-
-  window.history.replaceState({}, "", currentUrl);
-
-  profileButtons.forEach((button) => {
-    const active = button.dataset.formProfile === profile;
-
-    button.classList.toggle("is-active", active);
-
-    button.setAttribute("aria-pressed", String(active));
-  });
-
   adminOnlyElements.forEach((element) => {
-    element.hidden = profile !== "admin";
-  });
-  clientOnlyElements.forEach((element) => {
-    element.hidden = profile !== "cliente";
+    element.hidden = !isAdmin;
   });
 
-  if (profile === "admin") {
+  clientOnlyElements.forEach((element) => {
+    element.hidden = isAdmin;
+  });
+
+  dataPreferida.disabled = !isAdmin;
+
+  dataPreferida.required = isAdmin;
+
+  periodInputs.forEach((input) => {
+    input.disabled = !isAdmin;
+
+    input.required = isAdmin;
+  });
+
+  horarioPreferido.disabled = !isAdmin;
+
+  if (!isAdmin) {
+    dataPreferida.value = "";
+
+    periodInputs.forEach((input) => {
+      input.checked = false;
+    });
+
+    horarioPreferido.value = "";
+
+    specificTimeGroup.hidden = true;
+  }
+
+  if (isAdmin) {
     btnSalvarOrdem.textContent = "Criar ordem de serviço";
 
     btnEditarDados.hidden = true;
 
     setClientFieldsEditable(true);
   } else {
-    btnSalvarOrdem.textContent = "Enviar solicitação";
+    btnSalvarOrdem.textContent = "Criar solicitação";
 
     btnEditarDados.hidden = false;
 
     setClientFieldsEditable(false);
   }
 
+  toggleSpecificTime();
+
   updateClientSummary();
+
   updateSummary();
+
   updateProgress();
 }
 
@@ -550,24 +827,131 @@ function changeProfile(profile) {
    BUSCA E CADASTRO DE CLIENTE
 ========================================= */
 
-function handleClientSearch() {
+async function handleClientSearch() {
   const searchValue = buscarCliente.value.trim();
 
   if (!searchValue) {
-    showFeedback("Digite o nome ou telefone do cliente.", "error");
+    showFeedback("Digite o nome, telefone ou e-mail do cliente.", "error");
 
     buscarCliente.focus();
 
     return;
   }
 
-  showFeedback("A busca será conectada aos clientes cadastrados no Firebase.");
+  btnBuscarCliente.disabled = true;
+  btnBuscarCliente.textContent = "Buscando...";
+
+  try {
+    const clientsQuery = query(
+      collection(db, "usuarios"),
+      where("role", "==", "cliente"),
+    );
+
+    const snapshot = await getDocs(clientsQuery);
+
+    const normalizedSearch = normalizeText(searchValue);
+    const searchPhone = searchValue.replace(/\D/g, "");
+
+    const matches = snapshot.docs
+      .map((documentSnapshot) => ({
+        ...documentSnapshot.data(),
+
+        uid: documentSnapshot.id,
+      }))
+      .filter((client) => {
+        if (client.ativo !== true) {
+          return false;
+        }
+
+        const name = normalizeText(client.nome);
+        const email = normalizeText(client.email);
+        const phone = String(client.telefone || "").replace(/\D/g, "");
+
+        return (
+          name.includes(normalizedSearch) ||
+          email.includes(normalizedSearch) ||
+          Boolean(searchPhone && phone.includes(searchPhone))
+        );
+      });
+
+    if (matches.length === 0) {
+      selectedClientUid = "";
+
+      showFeedback("Nenhum cliente cadastrado foi encontrado.", "error");
+
+      return;
+    }
+
+    if (matches.length > 1) {
+      selectedClientUid = "";
+
+      showFeedback(
+        "Mais de um cliente foi encontrado. Digite o nome completo, telefone ou e-mail.",
+        "error",
+      );
+
+      return;
+    }
+
+    const client = matches[0];
+
+    nomeCliente.value = String(client.nome || "").trim();
+
+    telefoneCliente.value = String(client.telefone || "").trim();
+
+    emailCliente.value = String(client.email || "").trim();
+
+    applyRegisteredAddress(client);
+
+    /*
+  Define o UID depois de preencher os campos,
+  evitando que algum evento de input limpe o vínculo.
+*/
+    selectedClientUid = String(client.uid || "").trim();
+
+    if (!selectedClientUid) {
+      throw new Error("CLIENT_UID_NOT_FOUND");
+    }
+
+    updateClientSummary();
+    updateSummary();
+    updateProgress();
+
+    console.log("[Nova Ordem] Cliente vinculado:", {
+      uid: selectedClientUid,
+      nome: client.nome,
+      telefone: client.telefone,
+    });
+
+    showFeedback(`Cliente ${client.nome || ""} vinculado à ordem.`);
+  } catch (error) {
+    console.error("[Nova Ordem] Não foi possível buscar o cliente:", error);
+
+    selectedClientUid = "";
+
+    if (error.code === "permission-denied") {
+      showFeedback("O Firebase bloqueou a consulta dos clientes.", "error");
+
+      return;
+    }
+
+    showFeedback("Não foi possível buscar o cliente.", "error");
+  } finally {
+    btnBuscarCliente.disabled = false;
+    btnBuscarCliente.textContent = "Buscar";
+  }
 }
 
 function handleQuickClientCreation() {
+  selectedClientUid = "";
+
+  buscarCliente.value = "";
+
   nomeCliente.value = "";
   telefoneCliente.value = "";
   emailCliente.value = "";
+
+  applyRegisteredAddress({});
 
   setClientFieldsEditable(true);
 
@@ -575,7 +959,7 @@ function handleQuickClientCreation() {
   updateSummary();
   updateProgress();
 
-  showFeedback("Preencha os dados do novo cliente.");
+  showFeedback("Preencha os dados do cliente não cadastrado.");
 }
 
 /* =========================================
@@ -608,31 +992,42 @@ function getAddressSummary() {
   const mode = getAddressMode();
 
   if (mode === "cadastrado") {
-    return "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP";
+    if (!hasRegisteredAddress) {
+      return "Nenhum endereço cadastrado";
+    }
+
+    const firstLine = String(registeredAddressLine1?.textContent || "").trim();
+
+    const secondLine = String(registeredAddressLine2?.textContent || "").trim();
+
+    const registeredSummary = [firstLine, secondLine]
+      .filter(Boolean)
+      .join(" — ");
+
+    return registeredSummary || "Endereço cadastrado";
   }
 
-  const street = ruaAtendimento.value.trim();
+  const street = String(ruaAtendimento.value || "").trim();
 
-  const number = numeroAtendimento.value.trim();
+  const number = String(numeroAtendimento.value || "").trim();
 
-  const complement = complementoAtendimento.value.trim();
+  const complement = String(complementoAtendimento.value || "").trim();
 
-  const neighborhood = bairroAtendimento.value.trim();
+  const neighborhood = String(bairroAtendimento.value || "").trim();
 
-  const city = cidadeAtendimento.value.trim();
+  const city = String(cidadeAtendimento.value || "").trim();
 
   const firstLine = [street, number, complement].filter(Boolean).join(", ");
 
   const secondLine = [neighborhood, city].filter(Boolean).join(" — ");
 
-  const address = [firstLine, secondLine].filter(Boolean).join(" | ");
+  const alternateSummary = [firstLine, secondLine].filter(Boolean).join(" | ");
 
-  return address || "Outro endereço ainda não preenchido";
+  return alternateSummary || "Outro endereço não informado";
 }
-
 function isAddressComplete() {
   if (getAddressMode() === "cadastrado") {
-    return true;
+    return hasRegisteredAddress;
   }
 
   return alternateAddressRequiredFields.every((field) => field.value.trim());
@@ -862,9 +1257,12 @@ function syncPeriodStyles() {
 function toggleSpecificTime() {
   const selectedPeriod = getSelectedPeriod();
 
-  const requiresTime = selectedPeriod === "horario";
+  const requiresTime =
+    currentProfile === "admin" && selectedPeriod === "horario";
 
   specificTimeGroup.hidden = !requiresTime;
+
+  horarioPreferido.disabled = currentProfile !== "admin";
 
   horarioPreferido.required = requiresTime;
 
@@ -873,7 +1271,9 @@ function toggleSpecificTime() {
   }
 
   syncPeriodStyles();
+
   updateSummary();
+
   updateProgress();
 }
 
@@ -1066,6 +1466,10 @@ function isClientDataComplete() {
 }
 
 function isScheduleComplete() {
+  if (currentProfile === "cliente") {
+    return true;
+  }
+
   const period = getSelectedPeriod();
 
   if (!dataPreferida.value || !period) {
@@ -1085,8 +1489,11 @@ function updateProgress() {
     isAddressComplete(),
     getSelectedCategories().length > 0,
     selectedServiceKeys.size > 0,
-    isScheduleComplete(),
   ];
+
+  if (currentProfile === "admin") {
+    steps.push(isScheduleComplete());
+  }
 
   const completedSteps = steps.filter(Boolean).length;
 
@@ -1152,7 +1559,7 @@ function validateForm() {
    OBJETO DA ORDEM DE SERVIÇO
 ========================================= */
 
-function buildOrderData() {
+function buildOrderData({ id, numero, codigo }) {
   const selectedCategories = getSelectedCategories();
 
   const selectedServices = Array.from(selectedServiceKeys).map((key) => ({
@@ -1167,25 +1574,48 @@ function buildOrderData() {
     ? selectedServices.find((service) => service.categoria === "vistoria")
     : selectedServices[0];
 
-  const identifiers = generateOrderIdentifiers();
-
-  const now = new Date().toISOString();
-
   const initialStatus =
     currentProfile === "admin"
       ? document.getElementById("statusInicial")?.value || "nova-solicitacao"
       : "nova-solicitacao";
 
+  const clientUid =
+    currentProfile === "cliente"
+      ? currentSession?.uid || ""
+      : selectedClientUid;
+  console.log("[Nova Ordem] UID usado na gravação:", {
+    perfil: currentProfile,
+    selectedClientUid,
+    clientUid,
+  });
+
+  const creatorName = String(
+    currentSession?.profile?.nome ||
+      currentSession?.user?.displayName ||
+      currentSession?.email ||
+      "",
+  ).trim();
+
   return {
-    id: identifiers.id,
+    id,
 
-    codigo: identifiers.codigo,
+    numero,
 
-    criadoEm: now,
+    codigo,
 
-    atualizadoEm: now,
+    criadoEm: serverTimestamp(),
+
+    atualizadoEm: serverTimestamp(),
+
+    statusAtualizadoEm: serverTimestamp(),
 
     perfilCriador: currentProfile,
+
+    criadoPorUid: currentSession?.uid || "",
+
+    criadoPorNome: creatorName,
+
+    clienteUid: clientUid,
 
     tipoAtendimento: isInspection ? "vistoria" : "servico",
 
@@ -1198,7 +1628,7 @@ function buildOrderData() {
       (isInspection ? "Vistoria técnica" : "Nova ordem de serviço"),
 
     cliente: {
-      id: "",
+      id: clientUid,
 
       nome: nomeCliente.value.trim(),
 
@@ -1238,23 +1668,36 @@ function buildOrderData() {
     servicos: selectedServices,
 
     atendimento: {
-      dataPreferida: dataPreferida.value,
+      dataPreferida: currentProfile === "admin" ? dataPreferida.value : "",
 
-      periodo: getSelectedPeriod(),
+      periodo: currentProfile === "admin" ? getSelectedPeriod() || "" : "",
 
-      horarioPreferido: horarioPreferido.value,
+      horarioPreferido:
+        currentProfile === "admin" ? horarioPreferido.value : "",
+
+      dataConfirmada: "",
+
+      periodoConfirmado: "",
+
+      horarioConfirmado: "",
     },
 
     observacoes: {
       cliente: observacaoCliente.value.trim(),
 
       resposta:
-        document.getElementById("observacaoResposta")?.value.trim() || "",
+        currentProfile === "admin"
+          ? document.getElementById("observacaoResposta")?.value.trim() || ""
+          : "",
 
-      interna: document.getElementById("observacaoInterna")?.value.trim() || "",
+      interna: "",
     },
 
     status: initialStatus,
+
+    ativo: true,
+
+    arquivado: false,
 
     quantidadeFotos: selectedFiles.length,
 
@@ -1289,7 +1732,7 @@ function buildOrderData() {
    ENVIO DO FORMULÁRIO
 ========================================= */
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
 
   updateSummary();
@@ -1301,49 +1744,96 @@ function handleSubmit(event) {
     return;
   }
 
-  const orderData = buildOrderData();
-
-  try {
-    saveTemporaryOrder(orderData);
-
-    console.log("Ordem salva com sucesso:", orderData);
-
-    console.table({
-      codigo: orderData.codigo,
-
-      tipoAtendimento: orderData.tipoAtendimento,
-
-      titulo: orderData.titulo,
-
-      status: orderData.status,
-    });
-  } catch (error) {
-    console.error("Não foi possível salvar a ordem.", error);
-
-    showFeedback("Não foi possível salvar a ordem.", "error");
-
-    return;
-  }
+  const originalButtonText = btnSalvarOrdem.textContent;
 
   btnSalvarOrdem.disabled = true;
 
   btnSalvarOrdem.textContent =
-    currentProfile === "admin" ? "Ordem criada" : "Solicitação enviada";
+    currentProfile === "admin" ? "Criando ordem..." : "Enviando solicitação...";
 
-  showFeedback(
-    currentProfile === "admin"
-      ? `${orderData.codigo} criada com sucesso!`
-      : `${orderData.codigo} enviada com sucesso!`,
-  );
+  try {
+    const savedOrder = await saveOrderInFirestore();
 
-  const destination =
-    currentProfile === "admin" && orderData.tipoAtendimento === "vistoria"
-      ? "vistorias.html?perfil=admin"
-      : `solicitacoes.html?perfil=${currentProfile}`;
+    console.log("Ordem salva no Firestore:", savedOrder);
 
-  window.setTimeout(() => {
-    window.location.href = destination;
-  }, 1800);
+    console.table({
+      codigo: savedOrder.codigo,
+
+      tipoAtendimento: savedOrder.tipoAtendimento,
+
+      titulo: savedOrder.titulo,
+
+      status: savedOrder.status,
+    });
+
+    btnSalvarOrdem.textContent =
+      currentProfile === "admin" ? "Ordem criada" : "Solicitação enviada";
+
+    showFeedback(
+      currentProfile === "admin"
+        ? `${savedOrder.codigo} criada com sucesso!`
+        : `${savedOrder.codigo} enviada com sucesso!`,
+    );
+
+    if (currentProfile === "cliente") {
+      showOrderSuccess(savedOrder);
+
+      return;
+    }
+
+    const destination =
+      savedOrder.tipoAtendimento === "vistoria"
+        ? "vistorias.html"
+        : "ordens.html";
+
+    window.setTimeout(() => {
+      window.location.href = destination;
+    }, 1800);
+  } catch (error) {
+    console.error("[Nova Ordem] Não foi possível salvar a ordem:", error);
+
+    btnSalvarOrdem.disabled = false;
+
+    btnSalvarOrdem.textContent = originalButtonText;
+
+    if (error.message === "ORDER_COUNTER_NOT_FOUND") {
+      showFeedback(
+        "O contador das ordens não foi encontrado no Firebase.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.message === "INVALID_ORDER_COUNTER") {
+      showFeedback(
+        "O contador das ordens está com um valor inválido.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.code === "permission-denied") {
+      showFeedback(
+        "O Firebase bloqueou a gravação. Verifique se as novas regras foram publicadas.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.code === "unavailable") {
+      showFeedback(
+        "Não foi possível acessar o Firebase. Verifique sua conexão.",
+        "error",
+      );
+
+      return;
+    }
+
+    showFeedback("Não foi possível salvar a ordem de serviço.", "error");
+  }
 }
 
 /* =========================================
@@ -1359,12 +1849,6 @@ function formatCep(value) {
 /* =========================================
    EVENTOS
 ========================================= */
-
-profileButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    changeProfile(button.dataset.formProfile);
-  });
-});
 
 btnEditarDados.addEventListener("click", handleClientEdit);
 
@@ -1422,26 +1906,42 @@ observacaoCliente.addEventListener("input", () => {
 
 form.addEventListener("submit", handleSubmit);
 
+if (whatsappOrderButton) {
+  whatsappOrderButton.addEventListener("click", openOrderOnWhatsApp);
+} else {
+  console.warn("[Nova Ordem] Botão de WhatsApp não encontrado no HTML.");
+}
+
 /* =========================================
    INICIALIZAÇÃO
 ========================================= */
 
-setMinimumDate();
+async function initializePage() {
+  try {
+    const session = await window.salvateckSessionReady;
 
-syncCategoryStyles();
+    setMinimumDate();
 
-toggleAddressMode();
+    syncCategoryStyles();
 
-renderServices();
+    renderServices();
 
-toggleSpecificTime();
+    toggleSpecificTime();
 
-updateObservationCounter();
+    updateObservationCounter();
 
-changeProfile(currentProfile);
+    applyAuthenticatedSession(session);
 
-preselectCategoryFromURL();
+    preselectCategoryFromURL();
 
-updateSummary();
+    updateSummary();
 
-updateProgress();
+    updateProgress();
+  } catch (error) {
+    console.error("[Nova Ordem] Não foi possível iniciar a página:", error);
+
+    showFeedback("Não foi possível carregar seus dados.", "error");
+  }
+}
+
+initializePage();

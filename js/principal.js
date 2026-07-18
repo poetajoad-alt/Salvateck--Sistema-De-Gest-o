@@ -1,3 +1,14 @@
+import {
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+
+import {
+  doc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { auth, db } from "./firebase-config.js";
 const profileConfig = {
   cliente: {
     kicker: "Área do Cliente",
@@ -241,6 +252,8 @@ const arrowIcon = `
    ELEMENTOS DA PÁGINA
 ================================ */
 
+const appShell = document.getElementById("app-shell");
+
 const quickGrid = document.getElementById("quick-grid");
 const quickSearch = document.getElementById("quick-search");
 
@@ -252,22 +265,15 @@ const cardCount = document.getElementById("card-count");
 
 const emptyState = document.getElementById("empty-state");
 
-const profileButtons = document.querySelectorAll("[data-profile]");
-
 const companyLogo = document.getElementById("company-logo");
 const logoContainer = companyLogo.closest(".profile-logo");
 
 const backButton = document.getElementById("back-button");
 const logoutButton = document.getElementById("logout-button");
 
-const principalUrlParams = new URLSearchParams(window.location.search);
+let currentProfile = null;
 
-const profileFromUrl = principalUrlParams.get("perfil");
-
-let currentProfile =
-  profileFromUrl === "admin" || profileFromUrl === "cliente"
-    ? profileFromUrl
-    : document.body.dataset.profile || "cliente";
+let authActionInProgress = false;
 
 /* ==============================
    NORMALIZAÇÃO DA PESQUISA
@@ -329,6 +335,10 @@ function createCard(card) {
 ================================ */
 
 function renderCards() {
+  if (!currentProfile || !profileConfig[currentProfile]) {
+    return;
+  }
+
   const config = profileConfig[currentProfile];
 
   const searchTerm = normalizeText(quickSearch.value);
@@ -353,10 +363,10 @@ function renderCards() {
 }
 
 /* ==============================
-   ALTERAÇÃO DO PERFIL
+   PERFIL AUTENTICADO
 ================================ */
 
-function changeProfile(profile) {
+function changeProfile(profile, userProfile = {}) {
   if (!profileConfig[profile]) {
     return;
   }
@@ -365,8 +375,18 @@ function changeProfile(profile) {
 
   const config = profileConfig[profile];
 
+  const fullName = String(userProfile.nome || "").trim();
+
+  const firstName = fullName.split(/\s+/)[0] || "";
+
   profileKicker.textContent = config.kicker;
-  profileTitle.textContent = config.name;
+
+  if (firstName) {
+    profileTitle.textContent =
+      profile === "admin" ? `Olá, ${firstName}` : `Bem-vindo, ${firstName}`;
+  } else {
+    profileTitle.textContent = config.name;
+  }
 
   sectionEyebrow.textContent = config.sectionEyebrow;
 
@@ -374,26 +394,17 @@ function changeProfile(profile) {
 
   quickSearch.value = "";
 
-  profileButtons.forEach((button) => {
-    const isActive = button.dataset.profile === profile;
+  document.body.dataset.profile = profile;
 
-    button.classList.toggle("is-active", isActive);
-
-    button.setAttribute("aria-pressed", String(isActive));
-  });
+  document.title =
+    profile === "admin"
+      ? "Painel Administrativo | Salvateck"
+      : "Área do Cliente | Salvateck";
 
   renderCards();
+
+  appShell.hidden = false;
 }
-
-/* ==============================
-   EVENTOS DO SELETOR
-================================ */
-
-profileButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    changeProfile(button.dataset.profile);
-  });
-});
 
 /* ==============================
    EVENTO DA PESQUISA
@@ -418,6 +429,38 @@ backButton.addEventListener("click", () => {
    BOTÃO SAIR
 ================================ */
 
+logoutButton.addEventListener("click", async (event) => {
+  event.preventDefault();
+
+  if (authActionInProgress) {
+    return;
+  }
+
+  authActionInProgress = true;
+
+  const originalText = logoutButton.textContent;
+
+  logoutButton.textContent = "Saindo...";
+
+  logoutButton.setAttribute("aria-disabled", "true");
+
+  try {
+    await signOut(auth);
+
+    window.location.replace("index.html");
+  } catch (error) {
+    console.error("[Principal] Não foi possível sair:", error);
+
+    authActionInProgress = false;
+
+    logoutButton.textContent = originalText;
+
+    logoutButton.removeAttribute("aria-disabled");
+
+    window.alert("Não foi possível sair agora. Tente novamente.");
+  }
+});
+
 /* ==============================
    VERIFICAÇÃO DA LOGO
 ================================ */
@@ -435,7 +478,78 @@ if (companyLogo.complete && companyLogo.naturalWidth > 0) {
 }
 
 /* ==============================
+   CONTROLE DE ACESSO
+================================ */
+
+async function denyAccess(message) {
+  authActionInProgress = true;
+
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.warn(
+      "[Principal] Não foi possível encerrar a sessão inválida:",
+      error,
+    );
+  }
+
+  if (message) {
+    window.alert(message);
+  }
+
+  window.location.replace("login.html");
+}
+
+/* ==============================
    INICIALIZAÇÃO
 ================================ */
 
-changeProfile(currentProfile);
+onAuthStateChanged(auth, async (user) => {
+  if (authActionInProgress) {
+    return;
+  }
+
+  if (!user) {
+    window.location.replace("login.html");
+
+    return;
+  }
+
+  try {
+    const userReference = doc(db, "usuarios", user.uid);
+
+    const userSnapshot = await getDoc(userReference);
+
+    if (!userSnapshot.exists()) {
+      await denyAccess("Seu perfil não foi encontrado no sistema.");
+
+      return;
+    }
+
+    const userProfile = userSnapshot.data();
+
+    if (userProfile.ativo !== true) {
+      await denyAccess(
+        "Esta conta está inativa. Entre em contato com a Salvateck.",
+      );
+
+      return;
+    }
+
+    const role = String(userProfile.role || "")
+      .trim()
+      .toLowerCase();
+
+    if (role !== "admin" && role !== "cliente") {
+      await denyAccess("Esta conta não possui uma permissão válida.");
+
+      return;
+    }
+
+    changeProfile(role, userProfile);
+  } catch (error) {
+    console.error("[Principal] Não foi possível validar o acesso:", error);
+
+    await denyAccess("Não foi possível validar seu acesso. Entre novamente.");
+  }
+});

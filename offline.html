@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <meta name="robots" content="noindex" />
+
+  <title>
+    Sem conexão | Salvateck
+  </title>
+
+  <style>
+    :root {
+      font-family:
+        Montserrat,
+        Arial,
+        sans-serif;
+
+      background: #0D3861;
+
+      color: #F9F9F9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+
+      margin: 0;
+
+      display: grid;
+
+      place-items: center;
+
+      padding: 24px;
+
+      background:
+        radial-gradient(circle at top,
+          rgba(221, 154, 23, 0.18),
+          transparent 38%),
+        #0D3861;
+    }
+
+    main {
+      width: min(100%, 460px);
+
+      padding: 32px 26px;
+
+      text-align: center;
+
+      background:
+        rgba(43, 47, 51, 0.35);
+
+      border:
+        1px solid rgba(221, 154, 23, 0.42);
+
+      border-radius: 24px;
+
+      box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.24);
+    }
+
+    .offline-icon {
+      width: 76px;
+
+      height: 76px;
+
+      margin:
+        0 auto 22px;
+
+      display: grid;
+
+      place-items: center;
+
+      color: #DD9A17;
+
+      border:
+        2px solid rgba(221, 154, 23, 0.72);
+
+      border-radius: 50%;
+
+      font-size: 2rem;
+
+      font-weight: 800;
+    }
+
+    h1 {
+      margin:
+        0 0 12px;
+
+      font-size: 1.55rem;
+    }
+
+    p {
+      margin: 0;
+
+      color:
+        rgba(249, 249, 249, 0.78);
+
+      line-height: 1.6;
+    }
+
+    button {
+      width: 100%;
+
+      margin-top: 24px;
+
+      padding: 14px 18px;
+
+      color: #0D3861;
+
+      background: #DD9A17;
+
+      border: 0;
+
+      border-radius: 14px;
+
+      font: inherit;
+
+      font-weight: 800;
+
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline:
+        3px solid rgba(249, 249, 249, 0.8);
+
+      outline-offset: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main>
+
+    <div class="offline-icon" aria-hidden="true">
+      S
+    </div>
+
+    <h1>
+      Você está sem conexão
+    </h1>
+
+    <p>
+      A interface básica continua disponível,
+      mas login, ordens e dados do Firebase
+      precisam de internet para carregar e
+      sincronizar.
+    </p>
+
+    <button type="button" id="retry-button">
+      Tentar novamente
+    </button>
+
+  </main>
+
+  <script>
+    const retryButton =
+      document.getElementById(
+        "retry-button",
+      );
+
+    retryButton.addEventListener(
+      "click",
+      () => {
+        window.location.reload();
+      },
+    );
+  </script>
+
+</body>
+
+</html>

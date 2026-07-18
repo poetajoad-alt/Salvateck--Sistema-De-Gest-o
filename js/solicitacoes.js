@@ -1,138 +1,22 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
 /* =========================================
-   DADOS TEMPORÁRIOS DAS SOLICITAÇÕES
+   SOLICITAÇÕES DO FIRESTORE
 ========================================= */
-const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
-const solicitacoes = [
-  {
-    id: "OS-0001",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-    titulo: "Vazamento na torneira da cozinha",
-    categorias: ["hidraulica"],
-    servicos: ["Torneira vazando", "Ajustar torneira"],
-    status: "nova-solicitacao",
-    prioridade: "alta",
-    criadoEm: "2026-07-16",
-    dataPreferida: "2026-07-18",
-    periodo: "manha",
-    endereco: "Rua Exemplo, 150 — Centro, São Paulo/SP",
-  },
 
-  {
-    id: "OS-0002",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-    titulo: "Instalação de luminária",
-    categorias: ["eletrica", "instalacoes"],
-    servicos: ["Instalar luminária"],
-    status: "em-analise",
-    prioridade: "normal",
-    criadoEm: "2026-07-14",
-    dataPreferida: "2026-07-19",
-    periodo: "tarde",
-    endereco: "Rua Exemplo, 150 — Centro, São Paulo/SP",
-  },
-
-  {
-    id: "OS-0003",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-    titulo: "Pintura de parede do quarto",
-    categorias: ["pintura"],
-    servicos: ["Pintura de parede", "Preparação da superfície"],
-    status: "aguardando-confirmacao",
-    prioridade: "normal",
-    criadoEm: "2026-07-12",
-    dataPreferida: "2026-07-22",
-    periodo: "manha",
-    endereco: "Rua Exemplo, 150 — Centro, São Paulo/SP",
-  },
-
-  {
-    id: "OS-0004",
-    clienteId: "cliente-maria",
-    clienteNome: "Maria Oliveira",
-    titulo: "Troca de tomada danificada",
-    categorias: ["eletrica"],
-    servicos: ["Trocar tomada"],
-    status: "agendada",
-    prioridade: "urgente",
-    criadoEm: "2026-07-15",
-    dataPreferida: "2026-07-17",
-    periodo: "tarde",
-    endereco: "Av. das Flores, 380 — Vila Nova, São Paulo/SP",
-  },
-
-  {
-    id: "OS-0005",
-    clienteId: "cliente-carlos",
-    clienteNome: "Carlos Henrique",
-    titulo: "Reparo em parede com infiltração",
-    categorias: ["alvenaria", "pintura"],
-    servicos: [
-      "Correção de infiltração",
-      "Reparo em parede",
-      "Retoque de pintura",
-    ],
-    status: "nova-solicitacao",
-    prioridade: "alta",
-    criadoEm: "2026-07-16",
-    dataPreferida: "2026-07-20",
-    periodo: "manha",
-    endereco: "Rua das Palmeiras, 45 — Jardim Sul, São Paulo/SP",
-  },
-
-  {
-    id: "OS-0006",
-    clienteId: "cliente-ana",
-    clienteNome: "Ana Paula Santos",
-    titulo: "Instalação de suporte para televisão",
-    categorias: ["instalacoes"],
-    servicos: ["Instalar suporte de TV"],
-    status: "cancelada",
-    prioridade: "baixa",
-    criadoEm: "2026-07-10",
-    dataPreferida: "2026-07-13",
-    periodo: "tarde",
-    endereco: "Rua dos Ipês, 92 — Bela Vista, São Paulo/SP",
-  },
-
-  {
-    id: "OS-0007",
-    clienteId: "cliente-roberto",
-    clienteNome: "Roberto Mendes",
-    titulo: "Manutenção em porta e fechadura",
-    categorias: ["manutencao-geral"],
-    servicos: ["Ajustar porta", "Trocar fechadura"],
-    status: "em-analise",
-    prioridade: "normal",
-    criadoEm: "2026-07-13",
-    dataPreferida: "2026-07-21",
-    periodo: "manha",
-    endereco: "Av. Central, 1020 — Centro, Osasco/SP",
-  },
-
-  {
-    id: "OS-0008",
-    clienteId: "cliente-patricia",
-    clienteNome: "Patrícia Souza",
-    titulo: "Desentupimento de vaso sanitário",
-    categorias: ["hidraulica"],
-    servicos: ["Vaso sanitário entupido", "Desentupimento"],
-    status: "recusada",
-    prioridade: "urgente",
-    criadoEm: "2026-07-11",
-    dataPreferida: "2026-07-12",
-    periodo: "noite",
-    endereco: "Rua São Bento, 318 — Centro, São Paulo/SP",
-  },
-];
+let solicitacoes = [];
 
 /* =========================================
    CONFIGURAÇÕES
 ========================================= */
-
-const clienteAtualId = "cliente-joao";
 
 const statusConfig = {
   "nova-solicitacao": {
@@ -272,8 +156,6 @@ const requestsBackButton = document.querySelector(
   ".requests-header .header-button",
 );
 
-const profileButtons = document.querySelectorAll("[data-profile-button]");
-
 const adminFilters = document.querySelectorAll(".admin-filter");
 
 const summaryTotalLabel = document.getElementById("summary-total-label");
@@ -333,14 +215,9 @@ const feedbackMessage = document.getElementById("feedback-message");
    VARIÁVEIS DE CONTROLE
 ========================================= */
 
-const parametrosDaPagina = new URLSearchParams(window.location.search);
+let perfilAtual = null;
 
-const perfilDaUrl = parametrosDaPagina.get("perfil");
-
-let perfilAtual =
-  perfilDaUrl === "admin" || perfilDaUrl === "cliente"
-    ? perfilDaUrl
-    : body.dataset.profile || "cliente";
+let sessaoAtual = null;
 
 let filtrosAplicados = {
   status: [],
@@ -362,14 +239,48 @@ function normalizarTexto(valor) {
     .trim();
 }
 
-function formatarData(valor) {
+function converterParaData(valor) {
   if (!valor) {
+    return null;
+  }
+
+  if (typeof valor === "object" && typeof valor.toDate === "function") {
+    return valor.toDate();
+  }
+
+  if (valor instanceof Date) {
+    return valor;
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return null;
+  }
+
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(texto)
+    ? new Date(`${texto}T12:00:00`)
+    : new Date(texto);
+
+  if (Number.isNaN(data.getTime())) {
+    return null;
+  }
+
+  return data;
+}
+
+function formatarData(valor) {
+  const data = converterParaData(valor);
+
+  if (!data) {
     return "Data não informada";
   }
 
-  const data = new Date(`${valor}T12:00:00`);
-
   return data.toLocaleDateString("pt-BR");
+}
+
+function obterTempoDaData(valor) {
+  return converterParaData(valor)?.getTime() || 0;
 }
 
 function formatarQuantidade(quantidade) {
@@ -387,16 +298,25 @@ function mostrarFeedback(mensagem) {
   }, 2800);
 }
 
-function abrirDetalhes(solicitacao) {
-  if (!solicitacao) {
+function abrirDetalhes(solicitacaoOuId) {
+  const solicitacaoId =
+    typeof solicitacaoOuId === "object"
+      ? solicitacaoOuId?.documentId || solicitacaoOuId?.id || ""
+      : String(solicitacaoOuId || "").trim();
+
+  if (!solicitacaoId) {
+    console.error(
+      "[Solicitações] ID inválido ao abrir detalhes:",
+      solicitacaoOuId,
+    );
+
     mostrarFeedback("Não foi possível identificar esta solicitação.");
+
     return;
   }
 
   const parametros = new URLSearchParams({
-    id: solicitacao.id,
-    codigo: solicitacao.codigo || solicitacao.id,
-    perfil: perfilAtual,
+    id: solicitacaoId,
   });
 
   window.location.href = `detalhes-solicitacao.html?${parametros.toString()}`;
@@ -418,7 +338,7 @@ function obterIconePrincipal(solicitacao) {
 }
 
 /* =========================================
-   SOLICITAÇÕES SALVAS PELA NOVA ORDEM
+   SOLICITAÇÕES DO FIRESTORE
 ========================================= */
 
 function normalizarStatusDaOrdem(status) {
@@ -426,19 +346,25 @@ function normalizarStatusDaOrdem(status) {
 
   const statusMap = {
     nova: "nova-solicitacao",
+
     "nova-solicitacao": "nova-solicitacao",
 
     analise: "em-analise",
+
     "em-analise": "em-analise",
 
     "aguardando-confirmacao": "aguardando-confirmacao",
 
     agendada: "agendada",
 
+    agendado: "agendada",
+
     recusada: "recusada",
+
     recusado: "recusada",
 
     cancelada: "cancelada",
+
     cancelado: "cancelada",
   };
 
@@ -458,6 +384,7 @@ function normalizarPrioridadeDaOrdem(prioridade) {
     high: "alta",
 
     urgente: "urgente",
+
     critica: "urgente",
     critical: "urgente",
   };
@@ -466,23 +393,25 @@ function normalizarPrioridadeDaOrdem(prioridade) {
 }
 
 function obterEnderecoDaOrdem(ordem) {
-  if (String(ordem.endereco?.resumo || "").trim()) {
-    return ordem.endereco.resumo;
+  const endereco = ordem.endereco;
+
+  if (
+    endereco &&
+    typeof endereco === "object" &&
+    String(endereco.resumo || "").trim()
+  ) {
+    return String(endereco.resumo).trim();
   }
 
-  if (typeof ordem.endereco === "string") {
-    return ordem.endereco;
+  if (typeof endereco === "string") {
+    return endereco;
   }
 
-  const primeiraLinha = [
-    ordem.endereco?.rua,
-    ordem.endereco?.numero,
-    ordem.endereco?.complemento,
-  ]
+  const primeiraLinha = [endereco?.rua, endereco?.numero, endereco?.complemento]
     .filter(Boolean)
     .join(", ");
 
-  const segundaLinha = [ordem.endereco?.bairro, ordem.endereco?.cidade]
+  const segundaLinha = [endereco?.bairro, endereco?.cidade]
     .filter(Boolean)
     .join(" — ");
 
@@ -500,7 +429,7 @@ function obterServicosDaOrdem(ordem) {
           return servico;
         }
 
-        return servico?.servico || "";
+        return String(servico?.servico || "").trim();
       })
       .filter(Boolean);
   }
@@ -508,31 +437,28 @@ function obterServicosDaOrdem(ordem) {
   return [ordem.servicoPrincipal].filter(Boolean);
 }
 
-function normalizarOrdemParaSolicitacao(ordem, indice) {
+function normalizarOrdemParaSolicitacao(documento) {
+  const ordem = documento.data();
+
   const categorias =
     Array.isArray(ordem.categorias) && ordem.categorias.length
       ? ordem.categorias
       : [ordem.categoriaPrincipal].filter(Boolean);
 
-  const perfilCriador = normalizarTexto(ordem.perfilCriador);
-
-  const clienteId =
-    ordem.cliente?.id ||
-    ordem.clienteId ||
-    (perfilCriador === "cliente" ? clienteAtualId : "");
-
-  const codigo = ordem.codigo || ordem.numero || `OS-TEMP-${indice + 1}`;
+  const perfilCriador = normalizarTexto(ordem.perfilCriador) || "cliente";
 
   return {
-    perfilCriador: perfilCriador || "cliente",
-    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+    id: documento.id,
 
-    codigo,
+    codigo: ordem.codigo || documento.id,
 
-    clienteId,
+    numero: Number(ordem.numero || 0),
 
-    clienteNome:
-      ordem.cliente?.nome || ordem.clienteNome || "Cliente não informado",
+    perfilCriador,
+
+    clienteId: ordem.clienteUid || ordem.cliente?.id || "",
+
+    clienteNome: ordem.cliente?.nome || "Cliente não informado",
 
     titulo:
       ordem.titulo ||
@@ -555,49 +481,50 @@ function normalizarOrdemParaSolicitacao(ordem, indice) {
       ordem.prioridade || ordem.vistoria?.prioridade,
     ),
 
-    criadoEm: String(ordem.criadoEm || "").split("T")[0],
+    criadoEm: ordem.criadoEm || null,
+
+    atualizadoEm: ordem.atualizadoEm || null,
 
     dataPreferida:
-      ordem.atendimento?.dataPreferida || ordem.dataPreferida || "",
+      ordem.atendimento?.dataConfirmada ||
+      ordem.atendimento?.dataPreferida ||
+      "",
 
-    periodo: ordem.atendimento?.periodo || ordem.periodo || "",
+    periodo:
+      ordem.atendimento?.periodoConfirmado || ordem.atendimento?.periodo || "",
+
+    horarioPreferido:
+      ordem.atendimento?.horarioConfirmado ||
+      ordem.atendimento?.horarioPreferido ||
+      "",
 
     endereco: obterEnderecoDaOrdem(ordem),
+
+    ativo: ordem.ativo !== false,
+
+    arquivado: ordem.arquivado === true,
   };
 }
 
-function carregarSolicitacoesSalvas() {
-  try {
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
-
-    if (!Array.isArray(dadosSalvos)) {
-      return;
-    }
-
-    const ordensNormalizadas = dadosSalvos
-      .filter((ordem) => {
-        return Boolean(ordem && (ordem.id || ordem.codigo || ordem.titulo));
-      })
-      .map(normalizarOrdemParaSolicitacao);
-
-    ordensNormalizadas.forEach((ordemSalva) => {
-      const indiceExistente = solicitacoes.findIndex(
-        (solicitacao) => solicitacao.id === ordemSalva.id,
-      );
-
-      if (indiceExistente >= 0) {
-        solicitacoes[indiceExistente] = ordemSalva;
-
-        return;
-      }
-
-      solicitacoes.unshift(ordemSalva);
-    });
-  } catch (error) {
-    console.warn("Não foi possível carregar as solicitações salvas.", error);
+async function carregarSolicitacoesDoFirestore() {
+  if (!sessaoAtual || !perfilAtual) {
+    return;
   }
+
+  const ordensReference = collection(db, "ordens");
+
+  const consulta =
+    perfilAtual === "cliente"
+      ? query(ordensReference, where("clienteUid", "==", sessaoAtual.uid))
+      : ordensReference;
+
+  const resultado = await getDocs(consulta);
+
+  solicitacoes = resultado.docs
+    .map(normalizarOrdemParaSolicitacao)
+    .filter((solicitacao) => {
+      return solicitacao.ativo && !solicitacao.arquivado;
+    });
 }
 
 /* =========================================
@@ -609,11 +536,11 @@ function configurarTextosDoPerfil() {
 
   body.dataset.profile = perfilAtual;
 
-  requestsBackButton.href = `principal.html?perfil=${perfilAtual}`;
+  requestsBackButton.href = "principal.html";
 
-  newRequestButton.href = `nova-ordem.html?perfil=${perfilAtual}`;
+  newRequestButton.href = "nova-ordem.html";
 
-  emptyStateButton.href = `nova-ordem.html?perfil=${perfilAtual}`;
+  emptyStateButton.href = "nova-ordem.html";
 
   if (isAdmin) {
     document.title = "Novas Solicitações | Salvateck";
@@ -684,24 +611,18 @@ function configurarTextosDoPerfil() {
   }
 }
 
-function alterarPerfil(novoPerfil) {
-  if (novoPerfil !== "cliente" && novoPerfil !== "admin") {
+function aplicarPerfilDaSessao(sessao) {
+  if (sessao.role !== "cliente" && sessao.role !== "admin") {
     return;
   }
 
-  perfilAtual = novoPerfil;
+  sessaoAtual = sessao;
 
-  profileButtons.forEach((botao) => {
-    const isActive = botao.dataset.profileButton === novoPerfil;
-
-    botao.classList.toggle("is-active", isActive);
-
-    botao.setAttribute("aria-pressed", String(isActive));
-  });
+  perfilAtual = sessao.role;
 
   configurarTextosDoPerfil();
+
   atualizarContagemDeFiltros();
-  renderizarSolicitacoes();
 }
 
 /* =========================================
@@ -809,13 +730,7 @@ function obterSolicitacoesDoPerfil() {
   }
 
   return solicitacoes.filter((solicitacao) => {
-    const perfilCriador = normalizarTexto(
-      solicitacao.perfilCriador || "cliente",
-    );
-
-    return (
-      perfilCriador === "cliente" && solicitacao.clienteId === clienteAtualId
-    );
+    return solicitacao.clienteId === sessaoAtual?.uid;
   });
 }
 
@@ -867,7 +782,7 @@ function obterSolicitacoesFiltradas() {
     .filter(correspondeAPesquisa)
     .filter(correspondeAosFiltros)
     .sort((a, b) => {
-      return new Date(b.criadoEm) - new Date(a.criadoEm);
+      return obterTempoDaData(b.criadoEm) - obterTempoDaData(a.criadoEm);
     });
 }
 
@@ -958,9 +873,14 @@ function preencherCard(solicitacao) {
 
   address.textContent = solicitacao.endereco;
 
-  schedule.textContent = `${formatarData(solicitacao.dataPreferida)} — ${
-    periodoConfig[solicitacao.periodo] || "Período não informado"
-  }`;
+  const periodoTexto =
+    periodoConfig[solicitacao.periodo] || "Período não informado";
+
+  const horarioTexto = solicitacao.horarioPreferido
+    ? ` às ${solicitacao.horarioPreferido}`
+    : "";
+
+  schedule.textContent = `${formatarData(solicitacao.dataPreferida)} — ${periodoTexto}${horarioTexto}`;
 
   adminArea.hidden = perfilAtual !== "admin";
 
@@ -973,11 +893,11 @@ function preencherCard(solicitacao) {
   );
 
   mainButton.addEventListener("click", () => {
-    abrirDetalhes(solicitacao);
+    abrirDetalhes(solicitacao.id);
   });
 
   analyzeButton.addEventListener("click", () => {
-    abrirDetalhes(solicitacao);
+    abrirDetalhes(solicitacao.id);
   });
 
   return fragmento;
@@ -1010,12 +930,6 @@ function renderizarSolicitacoes() {
    EVENTOS
 ========================================= */
 
-profileButtons.forEach((botao) => {
-  botao.addEventListener("click", () => {
-    alterarPerfil(botao.dataset.profileButton);
-  });
-});
-
 openFilterButton.addEventListener("click", abrirFiltros);
 
 closeFilterButton.addEventListener("click", fecharFiltros);
@@ -1042,8 +956,32 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarSolicitacoesSalvas();
+async function inicializarPagina() {
+  try {
+    const sessao = await window.salvateckSessionReady;
 
-sincronizarEstiloDosFiltros();
+    aplicarPerfilDaSessao(sessao);
 
-alterarPerfil(perfilAtual);
+    sincronizarEstiloDosFiltros();
+
+    await carregarSolicitacoesDoFirestore();
+
+    renderizarSolicitacoes();
+  } catch (error) {
+    console.error("[Solicitações] Não foi possível carregar as ordens:", error);
+
+    solicitacoes = [];
+
+    renderizarSolicitacoes();
+
+    if (error.code === "permission-denied") {
+      mostrarFeedback("O Firebase bloqueou a consulta das solicitações.");
+
+      return;
+    }
+
+    mostrarFeedback("Não foi possível carregar as solicitações.");
+  }
+}
+
+inicializarPagina();

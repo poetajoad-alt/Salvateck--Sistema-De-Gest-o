@@ -416,8 +416,13 @@ const abasConfig = {
   },
 
   novos: {
-    titulo: "Novos clientes",
-    subtitulo: "Cadastros recentes",
+    titulo: "Novos clientes do mês",
+    subtitulo: "Cadastros realizados neste mês",
+  },
+
+  "com-servicos": {
+    titulo: "Clientes com serviços",
+    subtitulo: "Clientes com ordens cadastradas",
   },
 
   "com-pendencias": {
@@ -442,6 +447,14 @@ const summaryActive = document.getElementById("summary-active");
 const summaryNewMonth = document.getElementById("summary-new-month");
 
 const summaryWithOrders = document.getElementById("summary-with-orders");
+
+const summaryFilterButtons = document.querySelectorAll("[data-summary-filter]");
+
+const customersSummaryHint = document.getElementById("customers-summary-hint");
+
+const customersTools = document.querySelector(".customers-tools");
+
+const customersContent = document.querySelector(".customers-content");
 
 const customerTabButtons = document.querySelectorAll("[data-customer-tab]");
 
@@ -681,6 +694,7 @@ const feedbackMessage = document.getElementById("feedback-message");
 ========================================= */
 
 let abaAtual = "todos";
+let resumoSelecionado = null;
 
 let ordenacaoAtual = "nome";
 
@@ -1375,11 +1389,12 @@ function clienteEhNovo(cliente) {
     return false;
   }
 
-  const limite = obterInicioDoDia();
+  const hoje = obterInicioDoDia();
 
-  limite.setDate(limite.getDate() - 30);
-
-  return dataCadastro >= limite;
+  return (
+    dataCadastro.getFullYear() === hoje.getFullYear() &&
+    dataCadastro.getMonth() === hoje.getMonth()
+  );
 }
 
 function correspondeAAba(cliente) {
@@ -1394,7 +1409,9 @@ function correspondeAAba(cliente) {
   if (abaAtual === "novos") {
     return clienteEhNovo(cliente);
   }
-
+  if (abaAtual === "com-servicos") {
+    return Number(cliente.quantidadeOrdens) > 0;
+  }
   if (abaAtual === "com-pendencias") {
     return cliente.status === "com-pendencia" || Boolean(cliente.aviso);
   }
@@ -1687,7 +1704,7 @@ function limparPesquisaEFiltros() {
     ordens: "",
   };
 
-  abaAtual = "todos";
+  abaAtual = resumoSelecionado || "todos";
 
   sincronizarEstiloDosFiltros();
 
@@ -2479,6 +2496,58 @@ function executarAcaoDoCliente(cliente, acao) {
    CRIAÇÃO DOS CARDS
 ========================================= */
 
+function fecharDetalhesDosCards(excecao = null) {
+  document.querySelectorAll(".customer-card").forEach((card) => {
+    if (card === excecao) {
+      return;
+    }
+
+    const expanded = card.querySelector(".customer-card__expanded");
+
+    const toggle = card.querySelector(".customer-card__toggle");
+
+    const label = card.querySelector(".customer-card__toggle-label");
+
+    if (expanded) {
+      expanded.hidden = true;
+    }
+
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", "false");
+    }
+
+    if (label) {
+      label.textContent = "Ver mais";
+    }
+
+    card.classList.remove("is-expanded");
+  });
+}
+
+function alternarDetalhesDoCard(card) {
+  const expanded = card.querySelector(".customer-card__expanded");
+
+  const toggle = card.querySelector(".customer-card__toggle");
+
+  const label = card.querySelector(".customer-card__toggle-label");
+
+  if (!expanded || !toggle || !label) {
+    return;
+  }
+
+  const seraAberto = expanded.hidden;
+
+  fecharDetalhesDosCards(seraAberto ? card : null);
+
+  expanded.hidden = !seraAberto;
+
+  toggle.setAttribute("aria-expanded", String(seraAberto));
+
+  label.textContent = seraAberto ? "Ver menos" : "Ver mais";
+
+  card.classList.toggle("is-expanded", seraAberto);
+}
+
 function preencherCard(cliente) {
   const fragmento = customerCardTemplate.content.cloneNode(true);
 
@@ -2499,6 +2568,10 @@ function preencherCard(cliente) {
   const emailLink = card.querySelector(".customer-card__email");
 
   const emailText = emailLink.querySelector("span");
+
+  const toggleButton = card.querySelector(".customer-card__toggle");
+
+  const expanded = card.querySelector(".customer-card__expanded");
 
   const address = card.querySelector(".customer-card__address > span");
 
@@ -2532,17 +2605,25 @@ function preencherCard(cliente) {
 
   const warningText = warning.querySelector("span");
 
+  const registerButton = card.querySelector(".customer-card__button--register");
+
   const detailsButton = card.querySelector(".customer-card__button--details");
 
-  const orderButton = card.querySelector(".customer-card__button--order");
-
-  const menuButton = card.querySelector(".customer-card__menu");
-
-  const options = card.querySelector(".customer-card__options");
-
-  const actionButtons = card.querySelectorAll("[data-customer-action]");
+  const orderButton = card.querySelector(".customer-card__quick-order");
 
   const statusData = statusConfig[cliente.status] || statusConfig.ativo;
+
+  const quantidadeCondominios = obterVinculosDoCliente(cliente.id).length;
+
+  const expandedId = `customer-expanded-${cliente.id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")}`;
+
+  card.dataset.customerId = cliente.id;
+
+  expanded.id = expandedId;
+
+  toggleButton.setAttribute("aria-controls", expandedId);
 
   avatar.textContent = obterIniciais(cliente.nome);
 
@@ -2554,17 +2635,18 @@ function preencherCard(cliente) {
 
   status.classList.add(statusData.classe);
 
-  phoneText.textContent = cliente.telefone || "Não informado";
+  phoneText.textContent = cliente.telefone || "Telefone não informado";
 
   phoneLink.href = cliente.telefone
     ? `tel:${somenteNumeros(cliente.telefone)}`
     : "#";
 
-  emailText.textContent = cliente.email || "Não informado";
+  emailText.textContent = cliente.email || "E-mail não informado";
 
   emailLink.href = cliente.email ? `mailto:${cliente.email}` : "#";
 
-  address.textContent = obterEnderecoCompleto(cliente);
+  address.textContent =
+    obterEnderecoCompleto(cliente) || "Endereço não informado";
 
   registration.textContent = `Cadastrado em ${formatarData(
     cliente.cadastradoEm,
@@ -2579,8 +2661,6 @@ function preencherCard(cliente) {
   activeOrders.textContent = String(cliente.ordensAtivas || 0);
 
   totalValue.textContent = formatarValor(cliente.valorMovimentado);
-
-  const quantidadeCondominios = obterVinculosDoCliente(cliente.id).length;
 
   condominiumsIndicator.hidden = quantidadeCondominios === 0;
 
@@ -2613,30 +2693,20 @@ function preencherCard(cliente) {
     }
   });
 
-  detailsButton.addEventListener("click", () => {
-    abrirDetalhesDoCliente(cliente);
+  toggleButton.addEventListener("click", () => {
+    alternarDetalhesDoCard(card);
   });
 
   orderButton.addEventListener("click", () => {
     criarOrdemParaCliente(cliente);
   });
 
-  menuButton.addEventListener("click", (event) => {
-    event.stopPropagation();
-
-    const seraAberto = options.hidden;
-
-    fecharTodosOsMenus(options);
-
-    options.hidden = !seraAberto;
-
-    menuButton.setAttribute("aria-expanded", String(seraAberto));
+  registerButton.addEventListener("click", () => {
+    abrirModalDeCliente(cliente);
   });
 
-  actionButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      executarAcaoDoCliente(cliente, button.dataset.customerAction);
-    });
+  detailsButton.addEventListener("click", () => {
+    abrirDetalhesDoCliente(cliente);
   });
 
   return fragmento;
@@ -2647,6 +2717,22 @@ function preencherCard(cliente) {
 ========================================= */
 
 function renderizarClientes() {
+  if (!resumoSelecionado) {
+    customersTools.hidden = true;
+
+    customersContent.hidden = true;
+
+    customersList.innerHTML = "";
+
+    emptyState.hidden = true;
+
+    return;
+  }
+
+  customersTools.hidden = false;
+
+  customersContent.hidden = false;
+
   const lista = obterClientesFiltrados();
 
   customersList.innerHTML = "";
@@ -2664,12 +2750,67 @@ function renderizarClientes() {
   emptyState.hidden = !listaVazia;
 }
 
+function selecionarResumo(novaAba) {
+  if (!abasConfig[novaAba]) {
+    return;
+  }
+
+  const deveRecolher = resumoSelecionado === novaAba;
+
+  resumoSelecionado = deveRecolher ? null : novaAba;
+
+  summaryFilterButtons.forEach((button) => {
+    const estaAtivo = button.dataset.summaryFilter === resumoSelecionado;
+
+    button.classList.toggle("is-active", estaAtivo);
+
+    button.setAttribute("aria-pressed", String(estaAtivo));
+  });
+
+  customersSummaryHint.hidden = Boolean(resumoSelecionado);
+
+  if (!resumoSelecionado) {
+    fecharFiltros();
+
+    fecharOrdenacao();
+
+    renderizarClientes();
+
+    return;
+  }
+
+  abaAtual = resumoSelecionado;
+
+  atualizarAbas();
+
+  fecharFiltros();
+
+  fecharOrdenacao();
+
+  renderizarClientes();
+
+  window.requestAnimationFrame(() => {
+    customersContent.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
+
 /* =========================================
-   EVENTOS DAS ABAS
+   EVENTOS DO RESUMO E DAS ABAS
 ========================================= */
+
+summaryFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selecionarResumo(button.dataset.summaryFilter);
+  });
+});
 
 customerTabButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    resumoSelecionado = button.dataset.customerTab;
+
     alterarAba(button.dataset.customerTab);
   });
 });

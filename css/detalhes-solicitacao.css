@@ -719,119 +719,98 @@
 }
 
 /* =========================================
-   DATA E PERÍODO
+   AGENDAMENTO CONFIRMADO
 ========================================= */
 
-.schedule-information {
+.confirmed-schedule-card[hidden] {
+  display: none !important;
+}
+
+.confirmed-schedule-card {
+  border-color: rgba(37, 107, 71, 0.3);
+}
+
+.confirmed-schedule-card .details-card__icon {
+  color: #ffffff;
+  background-color: #256b47;
+
+  box-shadow: 0 8px 18px rgba(37, 107, 71, 0.2);
+}
+
+.confirmed-schedule-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.schedule-information article {
+.confirmed-schedule-grid article {
   min-width: 0;
 
-  padding: 15px;
+  padding: 16px;
 
-  background-color: rgba(13, 56, 97, 0.05);
+  background-color: rgba(37, 107, 71, 0.07);
 
-  border: 1px solid rgba(13, 56, 97, 0.08);
+  border: 1px solid rgba(37, 107, 71, 0.13);
   border-radius: 14px;
 }
 
-.schedule-information span,
-.schedule-information strong {
+.confirmed-schedule-grid span,
+.confirmed-schedule-grid strong {
   display: block;
 }
 
-.schedule-information span {
+.confirmed-schedule-grid span {
   font-size: 0.61rem;
   font-weight: 700;
   line-height: 1.4;
 
-  color: #7a8288;
+  color: #70787f;
 }
 
-.schedule-information strong {
+.confirmed-schedule-grid strong {
   margin-top: 6px;
 
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1.4;
 
-  color: #0d3861;
+  color: #1f6a43;
 
   overflow-wrap: anywhere;
 }
 
-.proposed-schedule {
-  margin-top: 17px;
-  padding: 17px;
-
-  background-color: rgba(221, 154, 23, 0.11);
-
-  border: 1px solid rgba(221, 154, 23, 0.27);
-  border-radius: var(--radius-medium);
-}
-
-.proposed-schedule__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.proposed-schedule__header span {
-  font-size: 0.7rem;
-  font-weight: 800;
-
-  color: #0d3861;
-}
-
-.proposed-schedule__header strong {
-  padding: 5px 9px;
-
-  font-size: 0.58rem;
-  font-weight: 800;
-
-  color: #775006;
-  background-color: #fff0c9;
-
-  border-radius: var(--radius-pill);
-}
-
-.proposed-schedule__details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-
+.confirmed-schedule-message {
   margin-top: 14px;
+  padding: 15px 16px;
+
+  background-color: rgba(221, 154, 23, 0.1);
+
+  border-left: 4px solid #dd9a17;
+  border-radius: 13px;
 }
 
-.proposed-schedule__details span {
-  padding: 7px 10px;
+.confirmed-schedule-message span {
+  display: block;
 
-  font-size: 0.65rem;
-  font-weight: 700;
+  margin-bottom: 6px;
 
-  color: #0d3861;
-  background-color: #ffffff;
+  font-size: 0.61rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 
-  border: 1px solid rgba(13, 56, 97, 0.1);
-  border-radius: var(--radius-pill);
+  color: #a16d12;
 }
 
-.proposed-schedule p {
-  margin: 13px 0 0;
+.confirmed-schedule-message p {
+  margin: 0;
 
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.55;
 
-  color: #5e5132;
+  color: #454e55;
 }
-
 /* =========================================
    FOTOS
 ========================================= */
@@ -1025,7 +1004,7 @@
 
 .admin-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -1212,30 +1191,6 @@
   background-color: #963333;
 
   border-color: #963333;
-}
-
-/* =========================================
-   PROPOSTA PARA O CLIENTE
-========================================= */
-
-.client-proposal-card {
-  border-color: rgba(221, 154, 23, 0.35);
-}
-
-.client-proposal-card__description {
-  margin: -6px 0 17px;
-
-  font-size: 0.7rem;
-  font-weight: 500;
-  line-height: 1.55;
-
-  color: #697178;
-}
-
-.client-proposal-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
 }
 
 /* =========================================
@@ -1497,7 +1452,7 @@
     flex: 1;
   }
 
-  .schedule-information {
+  .confirmed-schedule-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1525,7 +1480,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .client-proposal-actions,
   .confirmation-modal__actions {
     grid-template-columns: 1fr;
   }

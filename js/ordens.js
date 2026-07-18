@@ -1,3 +1,11 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  getDocs,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
 /* =========================================
    CONFIGURAÇÕES GERAIS
 ========================================= */
@@ -59,275 +67,10 @@ function criarDataHoraComOffset(dias, horario = "09:00") {
 }
 
 /* =========================================
-   DADOS TEMPORÁRIOS DAS ORDENS
+   ORDENS CARREGADAS DO FIRESTORE
 ========================================= */
 
-const ordensDeServico = [
-  {
-    id: "OS-0021",
-
-    clienteId: "cliente-fernanda",
-    clienteNome: "Fernanda Lima",
-
-    titulo: "Vazamento embaixo da pia",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Avaliação do vazamento", "Reparo da tubulação"],
-
-    criadoEm: criarDataHoraComOffset(0, "08:20"),
-
-    dataAgendada: null,
-
-    periodo: "manha",
-    horario: "",
-
-    endereco: "Rua das Acácias, 114 — Jardim Paulista, São Paulo/SP",
-
-    responsavel: "nao-definido",
-
-    status: "nova",
-    prioridade: "alta",
-
-    valor: null,
-    pagamentoStatus: "nao-informado",
-
-    observacaoAdmin: "",
-  },
-
-  {
-    id: "OS-0020",
-
-    clienteId: "cliente-marcos",
-    clienteNome: "Marcos Vinícius",
-
-    titulo: "Instalação de chuveiro elétrico",
-
-    categorias: ["eletrica", "instalacoes"],
-
-    servicos: [
-      "Retirada do chuveiro antigo",
-      "Instalação do novo chuveiro",
-      "Teste da rede elétrica",
-    ],
-
-    criadoEm: criarDataHoraComOffset(-1, "16:40"),
-
-    dataAgendada: criarDataComOffset(2),
-
-    periodo: "tarde",
-    horario: "14:00",
-
-    endereco: "Avenida Central, 820, Apartamento 31 — Centro, Osasco/SP",
-
-    responsavel: "jose",
-
-    status: "aguardando-confirmacao",
-    prioridade: "normal",
-
-    valor: 230,
-    pagamentoStatus: "pendente",
-
-    observacaoAdmin: "Data proposta ao cliente.",
-  },
-
-  {
-    id: "OS-0019",
-
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-
-    titulo: "Vazamento na torneira da cozinha",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Torneira vazando", "Ajustar torneira"],
-
-    criadoEm: criarDataHoraComOffset(-3, "10:15"),
-
-    dataAgendada: criarDataComOffset(1),
-
-    periodo: "manha",
-    horario: "09:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "agendada",
-    prioridade: "normal",
-
-    valor: 180,
-    pagamentoStatus: "pendente",
-
-    observacaoAdmin: "Atendimento confirmado pelo cliente.",
-  },
-
-  {
-    id: "OS-0018",
-
-    clienteId: "cliente-maria",
-    clienteNome: "Maria Oliveira",
-
-    titulo: "Troca de tomada danificada",
-
-    categorias: ["eletrica"],
-
-    servicos: ["Trocar tomada", "Verificar fiação"],
-
-    criadoEm: criarDataHoraComOffset(-4, "13:10"),
-
-    dataAgendada: criarDataComOffset(0),
-
-    periodo: "manha",
-    horario: "08:30",
-
-    endereco:
-      "Avenida das Flores, 380, Apartamento 42 — Vila Nova, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "em-deslocamento",
-    prioridade: "alta",
-
-    valor: 145,
-    pagamentoStatus: "pendente",
-
-    observacaoAdmin: "Profissional a caminho do local.",
-  },
-
-  {
-    id: "OS-0017",
-
-    clienteId: "cliente-carlos",
-    clienteNome: "Carlos Henrique",
-
-    titulo: "Reparo em parede com infiltração",
-
-    categorias: ["alvenaria", "pintura"],
-
-    servicos: [
-      "Correção de infiltração",
-      "Reparo da superfície",
-      "Retoque de pintura",
-    ],
-
-    criadoEm: criarDataHoraComOffset(-6, "09:30"),
-
-    dataAgendada: criarDataComOffset(0),
-
-    periodo: "tarde",
-    horario: "13:30",
-
-    endereco: "Rua das Palmeiras, 45 — Jardim Sul, São Paulo/SP",
-
-    responsavel: "equipe-apoio",
-
-    status: "em-atendimento",
-    prioridade: "urgente",
-
-    valor: 620,
-    pagamentoStatus: "parcial",
-
-    observacaoAdmin: "Cliente realizou pagamento parcial.",
-  },
-
-  {
-    id: "OS-0016",
-
-    clienteId: "cliente-ana",
-    clienteNome: "Ana Paula Santos",
-
-    titulo: "Instalação de suporte para televisão",
-
-    categorias: ["instalacoes"],
-
-    servicos: ["Instalação de suporte", "Fixação da televisão"],
-
-    criadoEm: criarDataHoraComOffset(-12, "11:00"),
-
-    dataAgendada: criarDataComOffset(-3),
-
-    periodo: "manha",
-    horario: "10:00",
-
-    endereco: "Rua dos Ipês, 92 — Bela Vista, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "concluida",
-    prioridade: "normal",
-
-    valor: 280,
-    pagamentoStatus: "pago",
-
-    observacaoAdmin: "Atendimento concluído sem pendências.",
-  },
-
-  {
-    id: "OS-0015",
-
-    clienteId: "cliente-roberto",
-    clienteNome: "Roberto Mendes",
-
-    titulo: "Manutenção em porta e fechadura",
-
-    categorias: ["manutencao-geral"],
-
-    servicos: ["Ajuste da porta", "Troca da fechadura"],
-
-    criadoEm: criarDataHoraComOffset(-16, "14:45"),
-
-    dataAgendada: criarDataComOffset(-8),
-
-    periodo: "tarde",
-    horario: "15:00",
-
-    endereco: "Avenida Central, 1020, Sala 6 — Centro, Osasco/SP",
-
-    responsavel: "equipe-apoio",
-
-    status: "cancelada",
-    prioridade: "baixa",
-
-    valor: 190,
-    pagamentoStatus: "nao-informado",
-
-    observacaoAdmin: "Cancelamento solicitado pelo cliente.",
-  },
-
-  {
-    id: "OS-0014",
-
-    clienteId: "cliente-patricia",
-    clienteNome: "Patrícia Souza",
-
-    titulo: "Pintura completa da sala",
-
-    categorias: ["pintura"],
-
-    servicos: ["Preparação das paredes", "Pintura interna"],
-
-    criadoEm: criarDataHoraComOffset(-20, "17:10"),
-
-    dataAgendada: null,
-
-    periodo: "manha",
-    horario: "",
-
-    endereco: "Rua São Bento, 318 — Centro, São Paulo/SP",
-
-    responsavel: "nao-definido",
-
-    status: "recusada",
-    prioridade: "normal",
-
-    valor: null,
-    pagamentoStatus: "nao-informado",
-
-    observacaoAdmin: "Serviço fora da área de atendimento.",
-  },
-];
+let ordensDeServico = [];
 
 /* =========================================
    CONFIGURAÇÕES DOS CAMPOS
@@ -711,22 +454,16 @@ function mostrarFeedback(mensagem) {
 }
 
 function abrirDetalhes(ordem) {
-  if (!ordem) {
+  const ordemId = String(ordem?.documentId || ordem?.id || "").trim();
+
+  if (!ordemId) {
     mostrarFeedback("Não foi possível identificar a ordem.");
 
     return;
   }
 
-  try {
-    sessionStorage.setItem(ORDER_PREVIEW_STORAGE_KEY, JSON.stringify(ordem));
-  } catch (error) {
-    console.warn("Não foi possível preparar a visualização da ordem.", error);
-  }
-
   const parametros = new URLSearchParams({
-    id: ordem.id,
-    codigo: ordem.codigo || ordem.id,
-    perfil: "admin",
+    id: ordemId,
     origem: "ordens",
   });
 
@@ -772,15 +509,32 @@ function datasSaoIguais(dataA, dataB) {
 }
 
 /* =========================================
-   ARMAZENAMENTO LOCAL TEMPORÁRIO
+   CARREGAMENTO DO FIRESTORE
 ========================================= */
 
-function normalizarStatusDaOrdemSalva(status) {
+function converterDataFirestoreParaISO(valor) {
+  if (!valor) {
+    return "";
+  }
+
+  if (typeof valor === "object" && typeof valor.toDate === "function") {
+    return valor.toDate().toISOString();
+  }
+
+  if (valor instanceof Date) {
+    return valor.toISOString();
+  }
+
+  return String(valor);
+}
+
+function normalizarStatusDaOrdemFirestore(status) {
   const statusNormalizado = normalizarTexto(status);
 
   const statusMap = {
     nova: "nova",
     "nova-solicitacao": "nova",
+
     analise: "nova",
     "em-analise": "nova",
 
@@ -806,29 +560,7 @@ function normalizarStatusDaOrdemSalva(status) {
   return statusMap[statusNormalizado] || "nova";
 }
 
-function converterStatusParaArmazenamento(status) {
-  const statusMap = {
-    nova: "nova-solicitacao",
-
-    "aguardando-confirmacao": "aguardando-confirmacao",
-
-    agendada: "agendada",
-
-    "em-deslocamento": "em-deslocamento",
-
-    "em-atendimento": "em-atendimento",
-
-    concluida: "concluida",
-
-    cancelada: "cancelada",
-
-    recusada: "recusada",
-  };
-
-  return statusMap[status] || status;
-}
-
-function normalizarPrioridadeDaOrdemSalva(prioridade) {
+function normalizarPrioridadeDaOrdemFirestore(prioridade) {
   const prioridadeNormalizada = normalizarTexto(prioridade);
 
   const prioridadeMap = {
@@ -848,7 +580,7 @@ function normalizarPrioridadeDaOrdemSalva(prioridade) {
   return prioridadeMap[prioridadeNormalizada] || "normal";
 }
 
-function obterServicosDaOrdemSalva(ordem) {
+function obterServicosDaOrdemFirestore(ordem) {
   if (!Array.isArray(ordem.servicos)) {
     return [ordem.servicoPrincipal].filter(Boolean);
   }
@@ -859,39 +591,35 @@ function obterServicosDaOrdemSalva(ordem) {
         return servico;
       }
 
-      return servico?.servico || servico?.nome || "";
+      return String(servico?.servico || servico?.nome || "").trim();
     })
     .filter(Boolean);
 }
 
-function obterEnderecoDaOrdemSalva(ordem) {
-  if (typeof ordem.endereco === "string") {
-    return ordem.endereco;
+function obterEnderecoDaOrdemFirestore(ordem) {
+  const endereco = ordem.endereco;
+
+  if (typeof endereco === "string") {
+    return endereco;
   }
 
-  if (String(ordem.endereco?.resumo || "").trim()) {
-    return ordem.endereco.resumo;
+  if (endereco && String(endereco.resumo || "").trim()) {
+    return String(endereco.resumo).trim();
   }
 
   const primeiraLinha = [
-    ordem.endereco?.logradouro || ordem.endereco?.rua,
-
-    ordem.endereco?.numero,
-
-    ordem.endereco?.complemento,
+    endereco?.logradouro || endereco?.rua,
+    endereco?.numero,
+    endereco?.complemento,
   ]
     .filter(Boolean)
     .join(", ");
 
-  const cidadeEstado = [
-    ordem.endereco?.cidade,
-
-    ordem.endereco?.uf || ordem.endereco?.estado,
-  ]
+  const cidadeEstado = [endereco?.cidade, endereco?.uf || endereco?.estado]
     .filter(Boolean)
     .join("/");
 
-  const segundaLinha = [ordem.endereco?.bairro, cidadeEstado]
+  const segundaLinha = [endereco?.bairro, cidadeEstado]
     .filter(Boolean)
     .join(" — ");
 
@@ -901,28 +629,27 @@ function obterEnderecoDaOrdemSalva(ordem) {
   );
 }
 
-function normalizarOrdemSalvaParaLista(ordem, indice) {
+function normalizarOrdemDoFirestore(documento, indice) {
+  const ordem = documento.data();
+
   const categorias =
     Array.isArray(ordem.categorias) && ordem.categorias.length
       ? ordem.categorias
       : [ordem.categoriaPrincipal].filter(Boolean);
 
-  const status = normalizarStatusDaOrdemSalva(ordem.status);
-
-  const dataPreferida =
-    ordem.atendimento?.dataPreferida || ordem.dataPreferida || "";
+  const status = normalizarStatusDaOrdemFirestore(ordem.status);
 
   const dataAgendada =
-    ordem.dataAgendada ||
-    ordem.atendimento?.dataConfirmada ||
-    (status === "agendada" ? dataPreferida : null);
+    ordem.atendimento?.dataConfirmada || ordem.dataAgendada || null;
 
   return {
-    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+    documentId: documento.id,
 
-    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
+    id: documento.id,
 
-    clienteId: ordem.cliente?.id || ordem.clienteId || "",
+    codigo: ordem.codigo || documento.id || `OS-${indice + 1}`,
+
+    clienteId: ordem.clienteUid || ordem.cliente?.id || ordem.clienteId || "",
 
     clienteNome:
       ordem.cliente?.nome || ordem.clienteNome || "Cliente não informado",
@@ -936,9 +663,10 @@ function normalizarOrdemSalvaParaLista(ordem, indice) {
 
     categorias,
 
-    servicos: obterServicosDaOrdemSalva(ordem),
+    servicos: obterServicosDaOrdemFirestore(ordem),
 
-    criadoEm: ordem.criadoEm || new Date().toISOString(),
+    criadoEm:
+      converterDataFirestoreParaISO(ordem.criadoEm) || new Date().toISOString(),
 
     dataAgendada,
 
@@ -954,13 +682,13 @@ function normalizarOrdemSalvaParaLista(ordem, indice) {
       ordem.atendimento?.horarioPreferido ||
       "",
 
-    endereco: obterEnderecoDaOrdemSalva(ordem),
+    endereco: obterEnderecoDaOrdemFirestore(ordem),
 
     responsavel: ordem.responsavel || "nao-definido",
 
     status,
 
-    prioridade: normalizarPrioridadeDaOrdemSalva(
+    prioridade: normalizarPrioridadeDaOrdemFirestore(
       ordem.prioridade || ordem.vistoria?.prioridade,
     ),
 
@@ -968,201 +696,30 @@ function normalizarOrdemSalvaParaLista(ordem, indice) {
 
     pagamentoStatus: ordem.pagamentoStatus || "nao-informado",
 
-    observacaoAdmin: ordem.observacaoAdmin || ordem.observacoes?.interna || "",
+    observacaoAdmin: "",
 
     perfilCriador: ordem.perfilCriador || "cliente",
 
     tipoAtendimento:
       ordem.tipoAtendimento ||
       (categorias.includes("vistoria") ? "vistoria" : "servico"),
+
+    ativo: ordem.ativo !== false,
+
+    arquivado: ordem.arquivado === true,
   };
 }
 
-function carregarEstadoLocal() {
-  try {
-    const dadosBrutos = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
+async function carregarOrdensDoFirestore() {
+  const resultado = await getDocs(collection(db, "ordens"));
 
-    const ordensSalvas = Array.isArray(dadosBrutos) ? dadosBrutos : [];
-
-    const estadoLegado =
-      !Array.isArray(dadosBrutos) &&
-      dadosBrutos &&
-      typeof dadosBrutos === "object"
-        ? dadosBrutos
-        : {};
-
-    const ordensNormalizadas = ordensSalvas.map(normalizarOrdemSalvaParaLista);
-
-    ordensNormalizadas.forEach((ordemSalva) => {
-      const indiceExistente = ordensDeServico.findIndex((ordemAtual) => {
-        return (
-          ordemAtual.id === ordemSalva.id ||
-          (ordemAtual.codigo && ordemAtual.codigo === ordemSalva.codigo)
-        );
-      });
-
-      if (indiceExistente >= 0) {
-        ordensDeServico[indiceExistente] = {
-          ...ordensDeServico[indiceExistente],
-
-          ...ordemSalva,
-        };
-
-        return;
-      }
-
-      ordensDeServico.push(ordemSalva);
+  ordensDeServico = resultado.docs
+    .map((documento, indice) => {
+      return normalizarOrdemDoFirestore(documento, indice);
+    })
+    .filter((ordem) => {
+      return ordem.ativo && !ordem.arquivado;
     });
-
-    const estadoSalvo = JSON.parse(
-      localStorage.getItem(ORDERS_STATE_STORAGE_KEY) || "{}",
-    );
-
-    const estadoCompleto = {
-      ...estadoLegado,
-      ...estadoSalvo,
-    };
-
-    ordensDeServico.forEach((ordem) => {
-      const alteracao = estadoCompleto[ordem.id];
-
-      if (!alteracao) {
-        return;
-      }
-
-      ordem.status = alteracao.status ?? ordem.status;
-
-      ordem.prioridade = alteracao.prioridade ?? ordem.prioridade;
-
-      ordem.responsavel = alteracao.responsavel ?? ordem.responsavel;
-
-      ordem.dataAgendada = alteracao.dataAgendada ?? ordem.dataAgendada;
-
-      ordem.periodo = alteracao.periodo ?? ordem.periodo;
-
-      ordem.horario = alteracao.horario ?? ordem.horario;
-
-      ordem.valor = alteracao.valor ?? ordem.valor;
-
-      ordem.pagamentoStatus =
-        alteracao.pagamentoStatus ?? ordem.pagamentoStatus;
-
-      ordem.observacaoAdmin =
-        alteracao.observacaoAdmin ?? ordem.observacaoAdmin;
-    });
-
-    if (Object.keys(estadoLegado).length) {
-      localStorage.setItem(
-        ORDERS_STATE_STORAGE_KEY,
-        JSON.stringify(estadoCompleto),
-      );
-    }
-  } catch (error) {
-    console.warn("Não foi possível carregar as ordens temporárias.", error);
-  }
-}
-
-function salvarEstadoLocal() {
-  try {
-    const estadoParaSalvar = {};
-
-    ordensDeServico.forEach((ordem) => {
-      estadoParaSalvar[ordem.id] = {
-        status: ordem.status,
-
-        prioridade: ordem.prioridade,
-
-        responsavel: ordem.responsavel,
-
-        dataAgendada: ordem.dataAgendada,
-
-        periodo: ordem.periodo,
-
-        horario: ordem.horario,
-
-        valor: ordem.valor,
-
-        pagamentoStatus: ordem.pagamentoStatus,
-
-        observacaoAdmin: ordem.observacaoAdmin,
-      };
-    });
-
-    localStorage.setItem(
-      ORDERS_STATE_STORAGE_KEY,
-      JSON.stringify(estadoParaSalvar),
-    );
-
-    const ordensSalvas = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
-
-    if (!Array.isArray(ordensSalvas)) {
-      return;
-    }
-
-    const ordensAtualizadas = ordensSalvas.map((ordemSalva) => {
-      const ordemAtual = ordensDeServico.find((ordem) => {
-        return (
-          ordem.id === ordemSalva.id ||
-          (ordem.codigo && ordem.codigo === ordemSalva.codigo)
-        );
-      });
-
-      if (!ordemAtual) {
-        return ordemSalva;
-      }
-
-      return {
-        ...ordemSalva,
-
-        status: converterStatusParaArmazenamento(ordemAtual.status),
-
-        prioridade: ordemAtual.prioridade,
-
-        responsavel: ordemAtual.responsavel,
-
-        dataAgendada: ordemAtual.dataAgendada,
-
-        periodo: ordemAtual.periodo,
-
-        horario: ordemAtual.horario,
-
-        valor: ordemAtual.valor,
-
-        pagamentoStatus: ordemAtual.pagamentoStatus,
-
-        observacaoAdmin: ordemAtual.observacaoAdmin,
-
-        atualizadoEm: new Date().toISOString(),
-
-        atendimento: {
-          ...(ordemSalva.atendimento || {}),
-
-          dataConfirmada:
-            ordemAtual.dataAgendada ||
-            ordemSalva.atendimento?.dataConfirmada ||
-            "",
-
-          periodoConfirmado:
-            ordemAtual.periodo ||
-            ordemSalva.atendimento?.periodoConfirmado ||
-            "",
-
-          horarioConfirmado:
-            ordemAtual.horario ||
-            ordemSalva.atendimento?.horarioConfirmado ||
-            "",
-        },
-      };
-    });
-
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(ordensAtualizadas));
-  } catch (error) {
-    console.warn("Não foi possível salvar as ordens temporárias.", error);
-  }
 }
 
 /* =========================================
@@ -1775,47 +1332,15 @@ function salvarAtualizacaoDoModal(event) {
 
   const ordem = obterOrdemPorId(ordemEmEdicaoId);
 
-  if (!ordem) {
-    fecharModalDeAtualizacao();
+  fecharModalDeAtualizacao();
 
+  if (!ordem) {
     mostrarFeedback("Não foi possível localizar a ordem.");
 
     return;
   }
 
-  const novoStatus = updateStatus.value;
-
-  const novaData = updateDate.value;
-
-  if (statusExigeAgendamento(novoStatus) && !novaData) {
-    mostrarFeedback("Informe a data do atendimento.");
-
-    updateDate.focus();
-
-    return;
-  }
-
-  ordem.status = novoStatus;
-
-  ordem.responsavel = updateEmployee.value || "nao-definido";
-
-  ordem.dataAgendada = novaData || null;
-
-  ordem.horario = updateTime.value;
-
-  ordem.observacaoAdmin = updateNote.value.trim();
-
-  salvarEstadoLocal();
-
-  fecharModalDeAtualizacao();
-
-  fecharTodosOsMenus();
-
-  atualizarResumo();
-
-  renderizarOrdens();
-
-  mostrarFeedback("Ordem atualizada com sucesso.");
+  abrirDetalhes(ordem);
 }
 
 /* =========================================
@@ -2100,64 +1625,8 @@ function recusarOrdem(ordem) {
   );
 }
 
-function executarAcaoDaOrdem(ordem, acao) {
-  if (acao === "editar") {
-    abrirModalDeAtualizacao(ordem);
-
-    return;
-  }
-
-  if (acao === "aceitar") {
-    aceitarSolicitacao(ordem);
-
-    return;
-  }
-
-  if (acao === "propor-data") {
-    proporNovaData(ordem);
-
-    return;
-  }
-
-  if (acao === "atribuir") {
-    atribuirResponsavel(ordem);
-
-    return;
-  }
-
-  if (acao === "reagendar") {
-    reagendarOrdem(ordem);
-
-    return;
-  }
-
-  if (acao === "deslocamento") {
-    iniciarDeslocamento(ordem);
-
-    return;
-  }
-
-  if (acao === "iniciar") {
-    iniciarAtendimento(ordem);
-
-    return;
-  }
-
-  if (acao === "concluir") {
-    concluirOrdem(ordem);
-
-    return;
-  }
-
-  if (acao === "cancelar") {
-    cancelarOrdem(ordem);
-
-    return;
-  }
-
-  if (acao === "recusar") {
-    recusarOrdem(ordem);
-  }
+function executarAcaoDaOrdem(ordem) {
+  abrirDetalhes(ordem);
 }
 
 /* =========================================
@@ -2663,18 +2132,42 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarEstadoLocal();
+async function inicializarPagina() {
+  try {
+    const sessao = await window.salvateckSessionReady;
 
-sincronizarFormularioComFiltros();
+    if (sessao.role !== "admin") {
+      window.location.replace("principal.html");
 
-atualizarContagemDeFiltros();
+      return;
+    }
 
-renderizarFiltrosAtivos();
+    await carregarOrdensDoFirestore();
 
-atualizarOpcoesDeOrdenacao();
+    sincronizarFormularioComFiltros();
 
-atualizarAbas();
+    atualizarContagemDeFiltros();
 
-atualizarResumo();
+    renderizarFiltrosAtivos();
 
-renderizarOrdens();
+    atualizarOpcoesDeOrdenacao();
+
+    atualizarAbas();
+
+    atualizarResumo();
+
+    renderizarOrdens();
+  } catch (error) {
+    console.error("[Ordens] Não foi possível carregar as ordens:", error);
+
+    ordensDeServico = [];
+
+    atualizarResumo();
+
+    renderizarOrdens();
+
+    mostrarFeedback("Não foi possível carregar as ordens do Firebase.");
+  }
+}
+
+inicializarPagina();

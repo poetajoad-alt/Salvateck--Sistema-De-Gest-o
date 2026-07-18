@@ -1677,4 +1677,111 @@ a {
       justify-content: flex-start !important;
     }
   }
+} /* =========================================
+   RESUMO CLICÁVEL DE VISTORIAS
+========================================= */
+
+.inspections-overview .overview-item {
+  width: 100%;
+
+  appearance: none;
+  cursor: pointer;
+
+  padding-right: 50px;
+
+  font-family: inherit;
+  text-align: left;
+}
+
+.inspections-overview .overview-item::before {
+  content: "";
+
+  position: absolute;
+  top: 50%;
+  right: 17px;
+
+  width: 8px;
+  height: 8px;
+
+  transform: translateY(-50%) rotate(-45deg);
+
+  border-right: 2px solid var(--inspection-blue);
+  border-bottom: 2px solid var(--inspection-blue);
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.inspections-overview .overview-item.is-active {
+  color: var(--inspection-white);
+  background-color: var(--inspection-blue);
+}
+
+.inspections-overview .overview-item.is-active > span {
+  color: rgba(249, 249, 249, 0.76);
+}
+
+.inspections-overview .overview-item.is-active > strong {
+  color: var(--inspection-gold);
+}
+
+.inspections-overview .overview-item--warning.is-active > strong {
+  color: var(--inspection-gold);
+}
+
+.inspections-overview .overview-item.is-active::before {
+  transform: translateY(-50%) rotate(45deg);
+
+  border-color: var(--inspection-gold);
+}
+
+.inspections-overview .overview-item:focus-visible {
+  z-index: 2;
+
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: -3px;
+}
+
+/* =========================================
+   ORIENTAÇÃO INICIAL
+========================================= */
+
+.inspections-overview-hint {
+  margin: 13px 0 0;
+  padding: 12px 16px;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+
+  color: rgba(249, 249, 249, 0.78);
+  background-color: rgba(13, 56, 97, 0.42);
+
+  border: 1px dashed rgba(221, 154, 23, 0.38);
+  border-radius: var(--inspection-radius-small);
+}
+
+/* As abas antigas foram substituídas pelo resumo */
+
+.inspection-tabs {
+  display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .inspections-overview .overview-item {
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .inspections-overview .overview-item:hover {
+    background-color: rgba(221, 154, 23, 0.13);
+  }
+
+  .inspections-overview .overview-item.is-active:hover {
+    background-color: var(--inspection-blue-dark);
+  }
 }

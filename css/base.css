@@ -131,3 +131,10 @@ svg {
 [hidden] {
   display: none !important;
 }
+/* =========================================
+   VALIDAÇÃO DE ACESSO
+========================================= */
+
+html.auth-checking body {
+  visibility: hidden;
+}

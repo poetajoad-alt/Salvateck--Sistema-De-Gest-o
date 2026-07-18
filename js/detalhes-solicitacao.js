@@ -1,12 +1,17 @@
+import "./auth-guard.js";
+
+import {
+  doc,
+  getDoc,
+  writeBatch,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
+
 /* =========================================
    CONFIGURAÇÕES
 ========================================= */
-
-const STORAGE_KEY = "salvateckDetalhesSolicitacoesTeste";
-
-const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
-
-const ORDER_PREVIEW_STORAGE_KEY = "salvateckOrdemPreviewTemporaria";
 
 const statusConfig = {
   "nova-solicitacao": {
@@ -71,783 +76,12 @@ const statusPropostaConfig = {
 };
 
 /* =========================================
-   IMAGENS TEMPORÁRIAS
-========================================= */
-
-function criarImagemMock(titulo, subtitulo) {
-  const svg = `
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="800"
-      height="800"
-      viewBox="0 0 800 800"
-    >
-      <rect
-        width="800"
-        height="800"
-        fill="#E7EBEE"
-      />
-
-      <rect
-        x="75"
-        y="75"
-        width="650"
-        height="650"
-        rx="55"
-        fill="#F9F9F9"
-        stroke="#DD9A17"
-        stroke-width="12"
-      />
-
-      <circle
-        cx="400"
-        cy="310"
-        r="115"
-        fill="#0D3861"
-      />
-
-      <path
-        d="M350 310h100M400 260v100"
-        stroke="#DD9A17"
-        stroke-width="22"
-        stroke-linecap="round"
-      />
-
-      <text
-        x="400"
-        y="505"
-        text-anchor="middle"
-        font-family="Arial, sans-serif"
-        font-size="44"
-        font-weight="700"
-        fill="#0D3861"
-      >
-        ${titulo}
-      </text>
-
-      <text
-        x="400"
-        y="565"
-        text-anchor="middle"
-        font-family="Arial, sans-serif"
-        font-size="28"
-        fill="#2B2F33"
-      >
-        ${subtitulo}
-      </text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-/* =========================================
-   CLIENTES TEMPORÁRIOS
-========================================= */
-
-const clientes = {
-  "cliente-joao": {
-    nome: "João da Silva",
-    telefone: "(11) 99999-9999",
-    email: "joao@email.com",
-  },
-
-  "cliente-maria": {
-    nome: "Maria Oliveira",
-    telefone: "(11) 98888-4545",
-    email: "maria@email.com",
-  },
-
-  "cliente-carlos": {
-    nome: "Carlos Henrique",
-    telefone: "(11) 97777-3232",
-    email: "carlos@email.com",
-  },
-
-  "cliente-ana": {
-    nome: "Ana Paula Santos",
-    telefone: "(11) 96666-1212",
-    email: "ana@email.com",
-  },
-
-  "cliente-roberto": {
-    nome: "Roberto Mendes",
-    telefone: "(11) 95555-3434",
-    email: "roberto@email.com",
-  },
-
-  "cliente-patricia": {
-    nome: "Patrícia Souza",
-    telefone: "(11) 94444-5656",
-    email: "patricia@email.com",
-  },
-};
-
-/* =========================================
-   SOLICITAÇÕES TEMPORÁRIAS
-========================================= */
-
-const solicitacoes = [
-  {
-    id: "OS-0001",
-    clienteId: "cliente-joao",
-
-    titulo: "Vazamento na torneira da cozinha",
-
-    descricao:
-      "O cliente informou um vazamento contínuo na torneira da cozinha e solicitou avaliação técnica.",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Torneira vazando", "Ajustar torneira"],
-
-    status: "nova-solicitacao",
-    prioridade: "alta",
-
-    criadoEm: "2026-07-16T09:30:00",
-    atualizadoEm: "2026-07-16T09:30:00",
-
-    endereco: {
-      logradouro: "Rua Exemplo",
-      numero: "150",
-      complemento: "Casa 2",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "Próximo ao mercado da esquina.",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-18",
-      periodo: "manha",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-
-    fotos: [
-      criarImagemMock("Foto 1", "Torneira da cozinha"),
-
-      criarImagemMock("Foto 2", "Região do vazamento"),
-    ],
-
-    observacoes: {
-      cliente: "O vazamento aumenta quando o registro é aberto.",
-
-      resposta: "",
-
-      interna: "Levar vedação, fita veda rosca e ferramentas para torneira.",
-    },
-  },
-
-  {
-    id: "OS-0002",
-    clienteId: "cliente-joao",
-
-    titulo: "Instalação de luminária",
-
-    descricao: "Instalação de uma nova luminária no teto da sala.",
-
-    categorias: ["eletrica", "instalacoes"],
-
-    servicos: ["Instalar luminária"],
-
-    status: "em-analise",
-    prioridade: "normal",
-
-    criadoEm: "2026-07-14T14:10:00",
-    atualizadoEm: "2026-07-15T08:40:00",
-
-    endereco: {
-      logradouro: "Rua Exemplo",
-      numero: "150",
-      complemento: "Casa 2",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-19",
-      periodo: "tarde",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-    fotos: [],
-
-    observacoes: {
-      cliente: "A luminária já foi comprada e está no local.",
-
-      resposta:
-        "Recebemos a solicitação e estamos verificando a disponibilidade.",
-
-      interna: "Confirmar tipo de teto antes da visita.",
-    },
-  },
-
-  {
-    id: "OS-0003",
-    clienteId: "cliente-joao",
-
-    titulo: "Pintura de parede do quarto",
-
-    descricao: "Preparação e pintura de uma parede com pequenas manchas.",
-
-    categorias: ["pintura"],
-
-    servicos: ["Pintura de parede", "Preparação da superfície"],
-
-    status: "aguardando-confirmacao",
-    prioridade: "normal",
-
-    criadoEm: "2026-07-12T11:20:00",
-    atualizadoEm: "2026-07-15T16:30:00",
-
-    endereco: {
-      logradouro: "Rua Exemplo",
-      numero: "150",
-      complemento: "Casa 2",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-22",
-      periodo: "manha",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: {
-      data: "2026-07-23",
-      periodo: "tarde",
-      horario: "14:00",
-
-      mensagem:
-        "Olá! Não temos disponibilidade na data solicitada. Podemos realizar o atendimento nesta nova data?",
-
-      status: "aguardando",
-    },
-
-    fotos: [criarImagemMock("Foto 1", "Parede do quarto")],
-
-    observacoes: {
-      cliente: "A parede apresenta manchas próximas à janela.",
-
-      resposta: "Sugerimos uma nova data para a realização do serviço.",
-
-      interna: "Verificar possível umidade antes da pintura.",
-    },
-  },
-
-  {
-    id: "OS-0004",
-    clienteId: "cliente-maria",
-
-    titulo: "Troca de tomada danificada",
-
-    descricao: "Tomada apresentou aquecimento e precisa ser substituída.",
-
-    categorias: ["eletrica"],
-
-    servicos: ["Trocar tomada"],
-
-    status: "agendada",
-    prioridade: "urgente",
-
-    criadoEm: "2026-07-15T10:05:00",
-    atualizadoEm: "2026-07-16T08:10:00",
-
-    endereco: {
-      logradouro: "Avenida das Flores",
-      numero: "380",
-      complemento: "Apartamento 42",
-      bairro: "Vila Nova",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "Portaria do bloco B.",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-17",
-      periodo: "tarde",
-      horarioPreferido: "",
-
-      dataConfirmada: "2026-07-17",
-      periodoConfirmado: "tarde",
-      horarioConfirmado: "15:00",
-    },
-
-    proposta: null,
-    fotos: [],
-
-    observacoes: {
-      cliente: "A tomada foi desligada no quadro por segurança.",
-
-      resposta: "Atendimento confirmado para o período da tarde.",
-
-      interna: "Levar tomada padrão 20 A e verificar a fiação.",
-    },
-  },
-
-  {
-    id: "OS-0005",
-    clienteId: "cliente-carlos",
-
-    titulo: "Reparo em parede com infiltração",
-
-    descricao:
-      "Reparo em parede interna com sinais de umidade e pintura danificada.",
-
-    categorias: ["alvenaria", "pintura"],
-
-    servicos: [
-      "Correção de infiltração",
-      "Reparo em parede",
-      "Retoque de pintura",
-    ],
-
-    status: "nova-solicitacao",
-    prioridade: "alta",
-
-    criadoEm: "2026-07-16T12:15:00",
-    atualizadoEm: "2026-07-16T12:15:00",
-
-    endereco: {
-      logradouro: "Rua das Palmeiras",
-      numero: "45",
-      complemento: "",
-      bairro: "Jardim Sul",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "Casa com portão cinza.",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-20",
-      periodo: "manha",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-
-    fotos: [
-      criarImagemMock("Foto 1", "Área com infiltração"),
-
-      criarImagemMock("Foto 2", "Pintura danificada"),
-
-      criarImagemMock("Foto 3", "Parte inferior da parede"),
-    ],
-
-    observacoes: {
-      cliente: "A parede fica mais úmida em dias de chuva.",
-
-      resposta: "",
-
-      interna: "Avaliar origem da infiltração antes de fechar orçamento.",
-    },
-  },
-
-  {
-    id: "OS-0006",
-    clienteId: "cliente-ana",
-
-    titulo: "Instalação de suporte para televisão",
-
-    descricao: "Instalação de suporte articulado em parede de alvenaria.",
-
-    categorias: ["instalacoes"],
-
-    servicos: ["Instalar suporte de TV"],
-
-    status: "cancelada",
-    prioridade: "baixa",
-
-    criadoEm: "2026-07-10T09:00:00",
-    atualizadoEm: "2026-07-11T13:10:00",
-
-    endereco: {
-      logradouro: "Rua dos Ipês",
-      numero: "92",
-      complemento: "",
-      bairro: "Bela Vista",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-13",
-      periodo: "tarde",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-    fotos: [],
-
-    observacoes: {
-      cliente: "Solicitação cancelada pelo cliente.",
-
-      resposta: "O cancelamento foi registrado.",
-
-      interna: "",
-    },
-  },
-
-  {
-    id: "OS-0007",
-    clienteId: "cliente-roberto",
-
-    titulo: "Manutenção em porta e fechadura",
-
-    descricao:
-      "A porta está raspando no piso e a fechadura apresenta dificuldade para fechar.",
-
-    categorias: ["manutencao-geral"],
-
-    servicos: ["Ajustar porta", "Trocar fechadura"],
-
-    status: "em-analise",
-    prioridade: "normal",
-
-    criadoEm: "2026-07-13T16:45:00",
-    atualizadoEm: "2026-07-14T10:20:00",
-
-    endereco: {
-      logradouro: "Avenida Central",
-      numero: "1020",
-      complemento: "Sala 6",
-      bairro: "Centro",
-      cidade: "Osasco",
-      uf: "SP",
-      referencia: "",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-21",
-      periodo: "manha",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-    fotos: [],
-
-    observacoes: {
-      cliente: "A porta ainda fecha, mas precisa ser levantada.",
-
-      resposta: "A solicitação está sendo analisada.",
-
-      interna: "Verificar modelo da fechadura.",
-    },
-  },
-
-  {
-    id: "OS-0008",
-    clienteId: "cliente-patricia",
-
-    titulo: "Desentupimento de vaso sanitário",
-
-    descricao:
-      "Solicitação de atendimento para desentupimento de vaso sanitário.",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Vaso sanitário entupido", "Desentupimento"],
-
-    status: "recusada",
-    prioridade: "urgente",
-
-    criadoEm: "2026-07-11T19:10:00",
-    atualizadoEm: "2026-07-11T20:00:00",
-
-    endereco: {
-      logradouro: "Rua São Bento",
-      numero: "318",
-      complemento: "",
-      bairro: "Centro",
-      cidade: "São Paulo",
-      uf: "SP",
-      referencia: "",
-    },
-
-    atendimento: {
-      dataPreferida: "2026-07-12",
-      periodo: "noite",
-      horarioPreferido: "",
-      dataConfirmada: "",
-      periodoConfirmado: "",
-      horarioConfirmado: "",
-    },
-
-    proposta: null,
-    fotos: [],
-
-    observacoes: {
-      cliente: "O vaso está completamente sem escoamento.",
-
-      resposta:
-        "No momento não temos equipe disponível para este atendimento emergencial.",
-
-      interna: "Solicitação recebida fora do horário de atendimento.",
-    },
-  },
-];
-/* =========================================
-   INTEGRAÇÃO COM AS ORDENS SALVAS
-========================================= */
-
-function normalizarTexto(valor) {
-  return String(valor || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function normalizarStatusDaOrdem(status) {
-  const statusNormalizado = normalizarTexto(status);
-
-  const statusMap = {
-    nova: "nova-solicitacao",
-    "nova-solicitacao": "nova-solicitacao",
-
-    analise: "em-analise",
-    "em-analise": "em-analise",
-
-    "aguardando-confirmacao": "aguardando-confirmacao",
-
-    agendada: "agendada",
-    agendado: "agendada",
-
-    recusada: "recusada",
-    recusado: "recusada",
-
-    cancelada: "cancelada",
-    cancelado: "cancelada",
-  };
-
-  return statusMap[statusNormalizado] || "nova-solicitacao";
-}
-
-function normalizarPrioridadeDaOrdem(prioridade) {
-  const prioridadeNormalizada = normalizarTexto(prioridade);
-
-  const prioridadeMap = {
-    baixa: "baixa",
-    low: "baixa",
-
-    normal: "normal",
-
-    alta: "alta",
-    high: "alta",
-
-    urgente: "urgente",
-    critica: "urgente",
-    critical: "urgente",
-  };
-
-  return prioridadeMap[prioridadeNormalizada] || "normal";
-}
-
-function obterServicosDaOrdem(ordem) {
-  if (!Array.isArray(ordem.servicos)) {
-    return [ordem.servicoPrincipal].filter(Boolean);
-  }
-
-  return ordem.servicos
-    .map((servico) => {
-      if (typeof servico === "string") {
-        return servico;
-      }
-
-      return servico?.servico || servico?.nome || "";
-    })
-    .filter(Boolean);
-}
-
-function normalizarEnderecoDaOrdem(ordem) {
-  const endereco = ordem.endereco;
-
-  if (typeof endereco === "string") {
-    return {
-      logradouro: endereco,
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      uf: "",
-      referencia: "",
-    };
-  }
-
-  const resumo = String(endereco?.resumo || "").trim();
-
-  return {
-    logradouro:
-      endereco?.logradouro ||
-      endereco?.rua ||
-      resumo ||
-      "Endereço não informado",
-
-    numero: endereco?.numero || "",
-
-    complemento: endereco?.complemento || "",
-
-    bairro: endereco?.bairro || "",
-
-    cidade: endereco?.cidade || "",
-
-    uf: endereco?.uf || endereco?.estado || "",
-
-    referencia: endereco?.referencia || endereco?.pontoReferencia || "",
-  };
-}
-
-function normalizarOrdemParaDetalhes(ordem, indice) {
-  const categorias =
-    Array.isArray(ordem.categorias) && ordem.categorias.length
-      ? ordem.categorias
-      : [ordem.categoriaPrincipal].filter(Boolean);
-
-  const cliente = {
-    nome:
-      ordem.cliente?.nome || ordem.clienteNome || "Cliente não identificado",
-
-    telefone: ordem.cliente?.telefone || ordem.telefoneCliente || "",
-
-    email: ordem.cliente?.email || ordem.emailCliente || "",
-  };
-
-  return {
-    id: ordem.id || `ordem-temporaria-${indice + 1}`,
-
-    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
-
-    clienteId: ordem.cliente?.id || ordem.clienteId || "",
-
-    cliente,
-
-    perfilCriador: ordem.perfilCriador || "cliente",
-
-    tipoAtendimento:
-      ordem.tipoAtendimento ||
-      (categorias.includes("vistoria") ? "vistoria" : "servico"),
-
-    titulo:
-      ordem.titulo ||
-      ordem.servicoPrincipal ||
-      (categorias.includes("vistoria")
-        ? "Vistoria técnica"
-        : "Solicitação de serviço"),
-
-    descricao:
-      ordem.descricao ||
-      ordem.observacoes?.cliente ||
-      ordem.observacaoCliente ||
-      "Consulte as informações registradas para este atendimento.",
-
-    categorias,
-
-    servicos: obterServicosDaOrdem(ordem),
-
-    status: normalizarStatusDaOrdem(ordem.status),
-
-    prioridade: normalizarPrioridadeDaOrdem(
-      ordem.prioridade || ordem.vistoria?.prioridade,
-    ),
-
-    criadoEm: ordem.criadoEm || new Date().toISOString(),
-
-    atualizadoEm:
-      ordem.atualizadoEm || ordem.criadoEm || new Date().toISOString(),
-
-    endereco: normalizarEnderecoDaOrdem(ordem),
-
-    atendimento: {
-      dataPreferida:
-        ordem.atendimento?.dataPreferida || ordem.dataPreferida || "",
-
-      periodo: ordem.atendimento?.periodo || ordem.periodo || "",
-
-      horarioPreferido:
-        ordem.atendimento?.horarioPreferido || ordem.horarioPreferido || "",
-
-      dataConfirmada: ordem.atendimento?.dataConfirmada || "",
-
-      periodoConfirmado: ordem.atendimento?.periodoConfirmado || "",
-
-      horarioConfirmado: ordem.atendimento?.horarioConfirmado || "",
-    },
-
-    proposta: ordem.proposta || null,
-
-    fotos: Array.isArray(ordem.fotos) ? ordem.fotos : [],
-
-    observacoes: {
-      cliente: ordem.observacoes?.cliente || ordem.observacaoCliente || "",
-
-      resposta: ordem.observacoes?.resposta || ordem.observacaoResposta || "",
-
-      interna: ordem.observacoes?.interna || ordem.observacaoInterna || "",
-    },
-  };
-}
-
-function carregarOrdensTemporarias() {
-  try {
-    const ordensSalvas = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
-
-    if (!Array.isArray(ordensSalvas)) {
-      return;
-    }
-
-    ordensSalvas
-      .map(normalizarOrdemParaDetalhes)
-      .forEach((ordemNormalizada) => {
-        const indiceExistente = solicitacoes.findIndex(
-          (solicitacao) => solicitacao.id === ordemNormalizada.id,
-        );
-
-        if (indiceExistente >= 0) {
-          solicitacoes[indiceExistente] = ordemNormalizada;
-
-          return;
-        }
-
-        solicitacoes.unshift(ordemNormalizada);
-      });
-  } catch (error) {
-    console.warn("Não foi possível carregar as ordens salvas.", error);
-  }
-}
-/* =========================================
    ELEMENTOS
 ========================================= */
 
 const body = document.body;
+
+const detailsShell = document.getElementById("details-shell");
 
 const backButton = document.getElementById("back-button");
 
@@ -863,8 +97,6 @@ const requestCreatedAt = document.getElementById("request-created-at");
 
 const requestLastUpdate = document.getElementById("request-last-update");
 
-const profileButtons = document.querySelectorAll("[data-profile-button]");
-
 const adminOnlyElements = document.querySelectorAll(".admin-only");
 
 const clientOnlyElements = document.querySelectorAll(".client-only");
@@ -872,6 +104,8 @@ const clientOnlyElements = document.querySelectorAll(".client-only");
 const adminVisibleElements = document.querySelectorAll(".admin-visible");
 
 const timelineItems = document.querySelectorAll(".timeline-item");
+
+/* Cliente */
 
 const clientAvatar = document.getElementById("client-avatar");
 
@@ -883,9 +117,13 @@ const clientEmail = document.getElementById("client-email");
 
 const openClientButton = document.getElementById("open-client-button");
 
+/* Serviços */
+
 const categoryTags = document.getElementById("category-tags");
 
 const servicesList = document.getElementById("services-list");
+
+/* Endereço */
 
 const addressMain = document.getElementById("address-main");
 
@@ -897,27 +135,33 @@ const addressReference = document.getElementById("address-reference");
 
 const openMapButton = document.getElementById("open-map-button");
 
-const requestedDate = document.getElementById("requested-date");
+/* Agendamento confirmado */
 
-const requestedPeriod = document.getElementById("requested-period");
+const confirmedScheduleCard = document.getElementById(
+  "confirmed-schedule-card",
+);
 
-const requestedTime = document.getElementById("requested-time");
+const confirmedDate = document.getElementById("confirmed-date");
 
-const proposedSchedule = document.getElementById("proposed-schedule");
+const confirmedPeriod = document.getElementById("confirmed-period");
 
-const proposalStatus = document.getElementById("proposal-status");
+const confirmedTime = document.getElementById("confirmed-time");
 
-const proposedDate = document.getElementById("proposed-date");
+const confirmedScheduleMessageBox = document.getElementById(
+  "confirmed-schedule-message-box",
+);
 
-const proposedPeriod = document.getElementById("proposed-period");
+const confirmedScheduleMessage = document.getElementById(
+  "confirmed-schedule-message",
+);
 
-const proposedTime = document.getElementById("proposed-time");
-
-const proposalMessage = document.getElementById("proposal-message");
+/* Fotos */
 
 const requestPhotos = document.getElementById("request-photos");
 
 const photosEmpty = document.getElementById("photos-empty");
+
+/* Observações */
 
 const clientObservation = document.getElementById("client-observation");
 
@@ -933,25 +177,25 @@ const internalObservationBox = document.getElementById(
 
 const internalObservation = document.getElementById("internal-observation");
 
+/* Prioridade */
+
 const priorityInputs = document.querySelectorAll('input[name="prioridade"]');
 
 const priorityCard = document.getElementById("priority-card");
+
+/* Ações administrativas */
 
 const adminActionsCard = document.getElementById("admin-actions-card");
 
 const acceptRequestButton = document.getElementById("accept-request-button");
 
-const proposeDateButton = document.getElementById("propose-date-button");
-
 const rejectRequestButton = document.getElementById("reject-request-button");
 
 const acceptForm = document.getElementById("accept-form");
 
-const proposalForm = document.getElementById("proposal-form");
-
 const rejectForm = document.getElementById("reject-form");
 
-const actionForms = [acceptForm, proposalForm, rejectForm];
+const actionForms = [acceptForm, rejectForm];
 
 const acceptDate = document.getElementById("accept-date");
 
@@ -961,29 +205,17 @@ const acceptTime = document.getElementById("accept-time");
 
 const acceptMessage = document.getElementById("accept-message");
 
-const proposalDate = document.getElementById("proposal-date");
-
-const proposalPeriod = document.getElementById("proposal-period");
-
-const proposalTimeInput = document.getElementById("proposal-time-input");
-
-const proposalMessageInput = document.getElementById("proposal-message-input");
-
 const rejectReason = document.getElementById("reject-reason");
 
 const rejectMessage = document.getElementById("reject-message");
 
-const clientProposalCard = document.getElementById("client-proposal-card");
-
-const acceptProposalButton = document.getElementById("accept-proposal-button");
-
-const declineProposalButton = document.getElementById(
-  "decline-proposal-button",
-);
+/* Ações do cliente */
 
 const clientActionsCard = document.getElementById("client-actions-card");
 
 const cancelRequestButton = document.getElementById("cancel-request-button");
+
+/* Modal */
 
 const confirmationModal = document.getElementById("confirmation-modal");
 
@@ -999,6 +231,8 @@ const closeModalButtons = document.querySelectorAll("[data-close-modal]");
 
 const closeActionButtons = document.querySelectorAll("[data-close-action]");
 
+/* Feedback */
+
 const feedbackMessage = document.getElementById("feedback-message");
 
 /* =========================================
@@ -1007,291 +241,467 @@ const feedbackMessage = document.getElementById("feedback-message");
 
 const urlParams = new URLSearchParams(window.location.search);
 
-carregarOrdensTemporarias();
+const requestId = String(urlParams.get("id") || "").trim();
 
-const requestId = urlParams.get("id") || "";
+const returnPage =
+  urlParams.get("origem") === "ordens" ? "ordens.html" : "solicitacoes.html";
 
-const requestCodeParam = urlParams.get("codigo") || "";
+let currentSession = null;
 
-let perfilAtual = urlParams.get("perfil") === "admin" ? "admin" : "cliente";
+let currentRequest = null;
 
-let solicitacaoAtual = solicitacoes.find((solicitacao) => {
-  const idSolicitacao = String(solicitacao.id || "").trim();
+let currentRequestReference = null;
 
-  const codigoSolicitacao = String(
-    solicitacao.codigo || solicitacao.id || "",
-  ).trim();
-
-  return (
-    idSolicitacao === requestId ||
-    codigoSolicitacao === requestId ||
-    idSolicitacao === requestCodeParam ||
-    codigoSolicitacao === requestCodeParam
-  );
-});
-
-if (!solicitacaoAtual) {
-  try {
-    const ordemPreview = JSON.parse(
-      sessionStorage.getItem(ORDER_PREVIEW_STORAGE_KEY) || "null",
-    );
-
-    const previewCorresponde =
-      ordemPreview &&
-      (String(ordemPreview.id || "") === requestId ||
-        String(ordemPreview.codigo || ordemPreview.id || "") ===
-          requestCodeParam);
-
-    if (previewCorresponde) {
-      solicitacaoAtual = normalizarOrdemParaDetalhes(ordemPreview, 0);
-    }
-  } catch (error) {
-    console.warn("Não foi possível carregar a ordem para visualização.", error);
-  }
-}
-
-if (!solicitacaoAtual) {
-  window.alert("Não foi possível localizar os dados desta ordem.");
-
-  const paginaRetorno =
-    urlParams.get("origem") === "ordens" ? "ordens.html" : "solicitacoes.html";
-
-  window.location.replace(`${paginaRetorno}?perfil=${perfilAtual}`);
-
-  throw new Error(
-    `Ordem não encontrada. ID: ${requestId}. Código: ${requestCodeParam}.`,
-  );
-}
+let currentPrivateRequestReference = null;
 
 let modalCallback = null;
+
 let feedbackTimeout;
 
+let savingChanges = false;
+
 /* =========================================
-   FUNÇÕES AUXILIARES
+   AUXILIARES
 ========================================= */
 
-function formatarData(valor) {
-  if (!valor) {
-    return "Não informada";
-  }
-
-  const data = new Date(`${valor}T12:00:00`);
-
-  return data.toLocaleDateString("pt-BR");
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
-function formatarDataHora(valor) {
-  if (!valor) {
+function normalizeStatus(status) {
+  const normalizedStatus = normalizeText(status);
+
+  const statusMap = {
+    nova: "nova-solicitacao",
+
+    "nova-solicitacao": "nova-solicitacao",
+
+    analise: "em-analise",
+
+    "em-analise": "em-analise",
+
+    "aguardando-confirmacao": "aguardando-confirmacao",
+
+    agendada: "agendada",
+
+    agendado: "agendada",
+
+    recusada: "recusada",
+
+    recusado: "recusada",
+
+    cancelada: "cancelada",
+
+    cancelado: "cancelada",
+  };
+
+  return statusMap[normalizedStatus] || "nova-solicitacao";
+}
+
+function normalizePriority(priority) {
+  const normalizedPriority = normalizeText(priority);
+
+  const priorityMap = {
+    baixa: "baixa",
+    low: "baixa",
+
+    normal: "normal",
+
+    alta: "alta",
+    high: "alta",
+
+    urgente: "urgente",
+
+    critica: "urgente",
+    critical: "urgente",
+  };
+
+  return priorityMap[normalizedPriority] || "normal";
+}
+
+function convertToDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    return value.toDate();
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const text = String(value).trim();
+
+  if (!text) {
+    return null;
+  }
+
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(text)
+    ? new Date(`${text}T12:00:00`)
+    : new Date(text);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDate(value) {
+  const date = convertToDate(value);
+
+  if (!date) {
     return "Não informada";
   }
 
-  const data = new Date(valor);
+  return date.toLocaleDateString("pt-BR");
+}
 
-  return data.toLocaleString("pt-BR", {
+function formatDateTime(value) {
+  const date = convertToDate(value);
+
+  if (!date) {
+    return "Não informada";
+  }
+
+  return date.toLocaleString("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
   });
 }
 
-function obterDataLocal() {
-  const data = new Date();
+function getLocalDate() {
+  const date = new Date();
 
-  const ano = data.getFullYear();
+  const year = date.getFullYear();
 
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
 
-  const dia = String(data.getDate()).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  return `${ano}-${mes}-${dia}`;
+  return `${year}-${month}-${day}`;
 }
 
-function obterIniciais(nome) {
-  const palavras = String(nome || "")
+function getInitials(name) {
+  const words = String(name || "")
     .trim()
     .split(/\s+/)
     .filter(Boolean);
 
-  if (palavras.length === 0) {
+  if (words.length === 0) {
     return "CL";
   }
 
-  if (palavras.length === 1) {
-    return palavras[0].slice(0, 2).toUpperCase();
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
   }
 
-  return `${palavras[0][0]}${palavras[palavras.length - 1][0]}`.toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
 
-function obterClienteAtual() {
-  if (solicitacaoAtual.cliente?.nome) {
-    return solicitacaoAtual.cliente;
-  }
-
-  return (
-    clientes[solicitacaoAtual.clienteId] || {
-      nome: "Cliente não identificado",
-      telefone: "",
-      email: "",
-    }
-  );
-}
-
-function montarEnderecoCompleto() {
-  const endereco = solicitacaoAtual.endereco || {};
-
-  return [
-    endereco.logradouro,
-    endereco.numero,
-    endereco.complemento,
-    endereco.bairro,
-    endereco.cidade,
-    endereco.uf,
-  ]
-    .filter(Boolean)
-    .join(", ");
-}
-
-function mostrarFeedback(mensagem) {
+function showFeedback(message) {
   window.clearTimeout(feedbackTimeout);
 
-  feedbackMessage.textContent = mensagem;
+  feedbackMessage.textContent = message;
+
   feedbackMessage.hidden = false;
 
   feedbackTimeout = window.setTimeout(() => {
     feedbackMessage.hidden = true;
-  }, 3000);
+  }, 3500);
 }
 
-function registrarAtualizacao() {
-  solicitacaoAtual.atualizadoEm = new Date().toISOString();
+function closeActionForms() {
+  actionForms.forEach((form) => {
+    form.hidden = true;
+  });
 }
 
-/* =========================================
-   ARMAZENAMENTO LOCAL
-========================================= */
+function openActionForm(form) {
+  closeActionForms();
 
-function carregarAlteracoesLocais() {
-  try {
-    const dadosSalvos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  form.hidden = false;
 
-    const alteracao = dadosSalvos[solicitacaoAtual.id];
-
-    if (!alteracao) {
-      return;
-    }
-
-    solicitacaoAtual.status = alteracao.status || solicitacaoAtual.status;
-
-    solicitacaoAtual.prioridade =
-      alteracao.prioridade || solicitacaoAtual.prioridade;
-
-    solicitacaoAtual.atualizadoEm =
-      alteracao.atualizadoEm || solicitacaoAtual.atualizadoEm;
-
-    if (alteracao.atendimento) {
-      solicitacaoAtual.atendimento = {
-        ...solicitacaoAtual.atendimento,
-        ...alteracao.atendimento,
-      };
-    }
-
-    if (Object.prototype.hasOwnProperty.call(alteracao, "proposta")) {
-      solicitacaoAtual.proposta = alteracao.proposta;
-    }
-
-    if (alteracao.observacoes) {
-      solicitacaoAtual.observacoes = {
-        ...solicitacaoAtual.observacoes,
-        ...alteracao.observacoes,
-      };
-    }
-  } catch (error) {
-    console.warn("Não foi possível carregar os dados locais.", error);
-  }
-}
-
-function salvarAlteracoesLocais() {
-  try {
-    const dadosSalvos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-
-    dadosSalvos[solicitacaoAtual.id] = {
-      status: solicitacaoAtual.status,
-
-      prioridade: solicitacaoAtual.prioridade,
-
-      atualizadoEm: solicitacaoAtual.atualizadoEm,
-
-      atendimento: solicitacaoAtual.atendimento,
-
-      proposta: solicitacaoAtual.proposta,
-
-      observacoes: solicitacaoAtual.observacoes,
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dadosSalvos));
-
-    const ordensSalvas = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
-
-    if (!Array.isArray(ordensSalvas)) {
-      return;
-    }
-
-    const indiceOrdem = ordensSalvas.findIndex((ordem) => {
-      return (
-        ordem.id === solicitacaoAtual.id ||
-        ordem.codigo === solicitacaoAtual.codigo
-      );
-    });
-
-    if (indiceOrdem < 0) {
-      return;
-    }
-
-    const ordemAnterior = ordensSalvas[indiceOrdem];
-
-    ordensSalvas[indiceOrdem] = {
-      ...ordemAnterior,
-
-      status: solicitacaoAtual.status,
-
-      prioridade: solicitacaoAtual.prioridade,
-
-      atualizadoEm: solicitacaoAtual.atualizadoEm,
-
-      atendimento: {
-        ...(ordemAnterior.atendimento || {}),
-        ...solicitacaoAtual.atendimento,
-      },
-
-      proposta: solicitacaoAtual.proposta,
-
-      observacoes: {
-        ...(ordemAnterior.observacoes || {}),
-        ...solicitacaoAtual.observacoes,
-      },
-    };
-
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(ordensSalvas));
-  } catch (error) {
-    console.warn("Não foi possível salvar os dados localmente.", error);
-  }
+  form.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
 }
 
 /* =========================================
-   HERO E STATUS
+   NORMALIZAÇÃO DO DOCUMENTO
 ========================================= */
 
-function renderizarHero() {
+function getOrderServices(order) {
+  if (!Array.isArray(order.servicos)) {
+    return [order.servicoPrincipal].filter(Boolean);
+  }
+
+  return order.servicos
+    .map((service) => {
+      if (typeof service === "string") {
+        return service;
+      }
+
+      return String(service?.servico || service?.nome || "").trim();
+    })
+    .filter(Boolean);
+}
+
+function normalizeOrderAddress(order) {
+  const address = order.endereco;
+
+  if (typeof address === "string") {
+    return {
+      logradouro: address,
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      uf: "",
+      referencia: "",
+      resumo: address,
+    };
+  }
+
+  const summary = String(address?.resumo || "").trim();
+
+  return {
+    logradouro: String(
+      address?.logradouro || address?.rua || summary || "",
+    ).trim(),
+
+    numero: String(address?.numero || "").trim(),
+
+    complemento: String(address?.complemento || "").trim(),
+
+    bairro: String(address?.bairro || "").trim(),
+
+    cidade: String(address?.cidade || "").trim(),
+
+    uf: String(address?.uf || address?.estado || "").trim(),
+
+    referencia: String(
+      address?.referencia || address?.pontoReferencia || "",
+    ).trim(),
+
+    resumo: summary,
+  };
+}
+
+function normalizeOrder(snapshot) {
+  const order = snapshot.data();
+
+  const categories =
+    Array.isArray(order.categorias) && order.categorias.length
+      ? order.categorias
+      : [order.categoriaPrincipal].filter(Boolean);
+
+  const observations = order.observacoes || {};
+
+  const servicePhotos = Array.isArray(order.fotos)
+    ? order.fotos
+    : Array.isArray(order.fotosUrls)
+      ? order.fotosUrls
+      : [];
+
+  return {
+    documentId: snapshot.id,
+
+    id: order.id || snapshot.id,
+
+    codigo: order.codigo || snapshot.id,
+
+    numero: Number(order.numero || 0),
+
+    clienteId: order.clienteUid || order.cliente?.id || "",
+
+    cliente: {
+      nome: order.cliente?.nome || "Cliente não identificado",
+
+      telefone: order.cliente?.telefone || "",
+
+      email: order.cliente?.email || "",
+    },
+
+    perfilCriador: order.perfilCriador || "cliente",
+
+    tipoAtendimento:
+      order.tipoAtendimento ||
+      (categories.includes("vistoria") ? "vistoria" : "servico"),
+
+    titulo:
+      order.titulo ||
+      order.servicoPrincipal ||
+      (categories.includes("vistoria")
+        ? "Vistoria técnica"
+        : "Solicitação de serviço"),
+
+    descricao:
+      order.descricao ||
+      observations.cliente ||
+      "Consulte as informações registradas para este atendimento.",
+
+    categorias: categories,
+
+    servicos: getOrderServices(order),
+
+    status: normalizeStatus(order.status),
+
+    prioridade: normalizePriority(
+      order.prioridade || order.vistoria?.prioridade,
+    ),
+
+    criadoEm: order.criadoEm || null,
+
+    atualizadoEm: order.atualizadoEm || order.criadoEm || null,
+
+    endereco: normalizeOrderAddress(order),
+
+    atendimento: {
+      dataPreferida: order.atendimento?.dataPreferida || "",
+
+      periodo: order.atendimento?.periodo || "",
+
+      horarioPreferido: order.atendimento?.horarioPreferido || "",
+
+      dataConfirmada: order.atendimento?.dataConfirmada || "",
+
+      periodoConfirmado: order.atendimento?.periodoConfirmado || "",
+
+      horarioConfirmado: order.atendimento?.horarioConfirmado || "",
+    },
+
+    proposta: order.proposta || null,
+
+    fotos: servicePhotos.filter(
+      (photo) => typeof photo === "string" && photo.trim(),
+    ),
+
+    quantidadeFotos: Number(order.quantidadeFotos || 0),
+
+    observacaoInternaPublica: String(observations.interna || "").trim(),
+
+    observacoes: {
+      cliente: String(observations.cliente || "").trim(),
+
+      resposta: String(observations.resposta || "").trim(),
+
+      interna: "",
+    },
+  };
+}
+
+/* =========================================
+   CARREGAMENTO DO FIRESTORE
+========================================= */
+
+function combineInternalNotes(privateNote, publicNote) {
+  const notes = [
+    String(privateNote || "").trim(),
+    String(publicNote || "").trim(),
+  ].filter(Boolean);
+
+  return [...new Set(notes)].join(" ");
+}
+
+async function migrateLegacyInternalObservation(note) {
+  if (
+    currentSession.role !== "admin" ||
+    !note ||
+    !currentRequestReference ||
+    !currentPrivateRequestReference
+  ) {
+    return;
+  }
+
+  const batch = writeBatch(db);
+
+  batch.set(
+    currentPrivateRequestReference,
+    {
+      ordemId: currentRequest.documentId,
+      codigo: currentRequest.codigo,
+      observacaoInterna: note,
+      atualizadoEm: serverTimestamp(),
+    },
+    {
+      merge: true,
+    },
+  );
+
+  batch.update(currentRequestReference, {
+    "observacoes.interna": "",
+  });
+
+  await batch.commit();
+
+  currentRequest.observacaoInternaPublica = "";
+}
+
+async function loadRequest() {
+  currentRequestReference = doc(db, "ordens", requestId);
+
+  currentPrivateRequestReference = doc(db, "ordensPrivadas", requestId);
+
+  const snapshot = await getDoc(currentRequestReference);
+
+  if (!snapshot.exists()) {
+    throw new Error("REQUEST_NOT_FOUND");
+  }
+
+  const request = normalizeOrder(snapshot);
+
+  if (
+    currentSession.role === "cliente" &&
+    request.clienteId !== currentSession.uid
+  ) {
+    throw new Error("REQUEST_ACCESS_DENIED");
+  }
+
+  currentRequest = request;
+
+  if (currentSession.role !== "admin") {
+    currentRequest.observacoes.interna = "";
+    return;
+  }
+
+  const privateSnapshot = await getDoc(currentPrivateRequestReference);
+
+  const privateData = privateSnapshot.exists() ? privateSnapshot.data() : {};
+
+  const privateNote = String(privateData.observacaoInterna || "").trim();
+
+  const legacyPublicNote = String(
+    currentRequest.observacaoInternaPublica || "",
+  ).trim();
+
+  const finalInternalNote = combineInternalNotes(privateNote, legacyPublicNote);
+
+  currentRequest.observacoes.interna = finalInternalNote;
+
+  if (legacyPublicNote) {
+    await migrateLegacyInternalObservation(finalInternalNote);
+  }
+}
+
+/* =========================================
+   HERO
+========================================= */
+
+function renderHero() {
   const status =
-    statusConfig[solicitacaoAtual.status] || statusConfig["nova-solicitacao"];
+    statusConfig[currentRequest.status] || statusConfig["nova-solicitacao"];
 
-  const codigoExibicao = solicitacaoAtual.codigo || solicitacaoAtual.id;
+  document.title = `${currentRequest.codigo} | Salvateck`;
 
-  document.title = `${codigoExibicao} | Salvateck`;
-
-  requestCode.textContent = codigoExibicao;
+  requestCode.textContent = currentRequest.codigo;
 
   requestStatus.className = "details-hero__status";
 
@@ -1299,18 +709,16 @@ function renderizarHero() {
 
   requestStatus.textContent = status.nome;
 
-  requestTitle.textContent = solicitacaoAtual.titulo;
+  requestTitle.textContent = currentRequest.titulo;
 
-  requestDescription.textContent =
-    solicitacaoAtual.descricao ||
-    "Consulte todas as informações registradas para este atendimento.";
+  requestDescription.textContent = currentRequest.descricao;
 
-  requestCreatedAt.textContent = `Criada em ${formatarDataHora(
-    solicitacaoAtual.criadoEm,
+  requestCreatedAt.textContent = `Criada em ${formatDateTime(
+    currentRequest.criadoEm,
   )}`;
 
-  requestLastUpdate.textContent = `Atualizada em ${formatarDataHora(
-    solicitacaoAtual.atualizadoEm,
+  requestLastUpdate.textContent = `Atualizada em ${formatDateTime(
+    currentRequest.atualizadoEm,
   )}`;
 }
 
@@ -1318,103 +726,107 @@ function renderizarHero() {
    LINHA DO TEMPO
 ========================================= */
 
-function renderizarTimeline() {
+function renderTimeline() {
   timelineItems.forEach((item) => {
     item.classList.remove("is-completed", "is-active");
   });
 
-  const itens = Array.from(timelineItems);
+  const items = Array.from(timelineItems);
 
-  if (solicitacaoAtual.status === "nova-solicitacao") {
-    itens[0]?.classList.add("is-completed");
+  if (currentRequest.status === "nova-solicitacao") {
+    items[0]?.classList.add("is-completed");
 
-    itens[1]?.classList.add("is-active");
-
-    return;
-  }
-
-  if (solicitacaoAtual.status === "em-analise") {
-    itens[0]?.classList.add("is-completed");
-
-    itens[1]?.classList.add("is-active");
+    items[1]?.classList.add("is-active");
 
     return;
   }
 
-  if (solicitacaoAtual.status === "aguardando-confirmacao") {
-    itens[0]?.classList.add("is-completed");
+  if (currentRequest.status === "em-analise") {
+    items[0]?.classList.add("is-completed");
 
-    itens[1]?.classList.add("is-completed");
-
-    itens[2]?.classList.add("is-active");
+    items[1]?.classList.add("is-active");
 
     return;
   }
 
-  if (solicitacaoAtual.status === "agendada") {
-    itens.forEach((item) => {
+  if (currentRequest.status === "aguardando-confirmacao") {
+    items[0]?.classList.add("is-completed");
+
+    items[1]?.classList.add("is-completed");
+
+    items[2]?.classList.add("is-active");
+
+    return;
+  }
+
+  if (currentRequest.status === "agendada") {
+    items.forEach((item) => {
       item.classList.add("is-completed");
     });
 
     return;
   }
 
-  itens[0]?.classList.add("is-completed");
+  items[0]?.classList.add("is-completed");
 }
 
 /* =========================================
    CLIENTE
 ========================================= */
 
-function renderizarCliente() {
-  const cliente = obterClienteAtual();
+function renderClient() {
+  const client = currentRequest.cliente;
 
-  clientAvatar.textContent = obterIniciais(cliente.nome);
+  clientAvatar.textContent = getInitials(client.nome);
 
-  clientName.textContent = cliente.nome;
+  clientName.textContent = client.nome;
 
-  clientPhone.textContent = cliente.telefone || "Telefone não informado";
+  clientPhone.textContent = client.telefone || "Telefone não informado";
 
-  clientPhone.href = cliente.telefone
-    ? `tel:${cliente.telefone.replace(/\D/g, "")}`
+  clientPhone.href = client.telefone
+    ? `tel:${client.telefone.replace(/\D/g, "")}`
     : "#";
 
-  clientEmail.textContent = cliente.email || "E-mail não informado";
+  clientEmail.textContent = client.email || "E-mail não informado";
 
-  clientEmail.href = cliente.email ? `mailto:${cliente.email}` : "#";
+  clientEmail.href = client.email ? `mailto:${client.email}` : "#";
 }
 
 /* =========================================
-   CATEGORIAS E SERVIÇOS
+   SERVIÇOS
 ========================================= */
 
-function renderizarServicos() {
+function renderServices() {
   categoryTags.innerHTML = "";
+
   servicesList.innerHTML = "";
 
-  solicitacaoAtual.categorias.forEach((categoria) => {
+  currentRequest.categorias.forEach((category) => {
     const tag = document.createElement("span");
 
     tag.className = "category-tag";
 
-    tag.textContent = categoriaConfig[categoria] || categoria;
+    tag.textContent = categoriaConfig[category] || category;
 
     categoryTags.appendChild(tag);
   });
 
-  solicitacaoAtual.servicos.forEach((servico) => {
+  currentRequest.servicos.forEach((service) => {
     const item = document.createElement("article");
 
     item.className = "service-item";
 
     item.innerHTML = `
         <span class="service-item__check">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path d="M5 12l4 4L19 6"></path>
           </svg>
         </span>
 
-        <span>${servico}</span>
+        <span>${service}</span>
       `;
 
     servicesList.appendChild(item);
@@ -1425,106 +837,132 @@ function renderizarServicos() {
    ENDEREÇO
 ========================================= */
 
-function renderizarEndereco() {
-  const endereco = solicitacaoAtual.endereco || {};
+function renderAddress() {
+  const address = currentRequest.endereco || {};
 
-  const enderecoPrincipal = [endereco.logradouro, endereco.numero]
+  const mainAddress = [address.logradouro, address.numero]
     .filter(Boolean)
     .join(", ");
 
-  const cidadeEstado = [endereco.cidade, endereco.uf].filter(Boolean).join("/");
+  const cityAndState = [address.cidade, address.uf].filter(Boolean).join("/");
 
-  addressMain.textContent = enderecoPrincipal || "Endereço não informado";
+  addressMain.textContent =
+    mainAddress || address.resumo || "Endereço não informado";
 
-  addressComplement.textContent = endereco.complemento || "Sem complemento";
+  addressComplement.textContent = address.complemento || "Sem complemento";
 
   addressCity.textContent =
-    [endereco.bairro, cidadeEstado].filter(Boolean).join(" — ") ||
+    [address.bairro, cityAndState].filter(Boolean).join(" — ") ||
     "Cidade não informada";
 
   addressReference.textContent =
-    endereco.referencia || "Referência não informada";
+    address.referencia || "Referência não informada";
+}
+
+function buildFullAddress() {
+  const address = currentRequest.endereco || {};
+
+  return [
+    address.logradouro,
+    address.numero,
+    address.complemento,
+    address.bairro,
+    address.cidade,
+    address.uf,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 /* =========================================
-   DATA E PROPOSTA
+   AGENDA
 ========================================= */
 
-function renderizarAgenda() {
-  const atendimento = solicitacaoAtual.atendimento;
+function renderConfirmedSchedule() {
+  const attendance = currentRequest.atendimento || {};
 
-  requestedDate.textContent = formatarData(atendimento.dataPreferida);
+  const hasConfirmedSchedule = Boolean(
+    attendance.dataConfirmada &&
+    attendance.periodoConfirmado &&
+    attendance.horarioConfirmado,
+  );
 
-  requestedPeriod.textContent =
-    periodoConfig[atendimento.periodo] || "Não informado";
+  confirmedScheduleCard.hidden = !hasConfirmedSchedule;
 
-  requestedTime.textContent = atendimento.horarioPreferido || "Não informado";
+  if (!hasConfirmedSchedule) {
+    confirmedDate.textContent = "--";
+    confirmedPeriod.textContent = "--";
+    confirmedTime.textContent = "--";
 
-  const proposta = solicitacaoAtual.proposta;
+    confirmedScheduleMessageBox.hidden = true;
 
-  proposedSchedule.hidden = !proposta;
-
-  if (!proposta) {
     return;
   }
 
-  proposalStatus.textContent =
-    statusPropostaConfig[proposta.status] || "Aguardando confirmação";
+  confirmedDate.textContent = formatDate(attendance.dataConfirmada);
 
-  proposedDate.textContent = formatarData(proposta.data);
+  confirmedPeriod.textContent =
+    periodoConfig[attendance.periodoConfirmado] || "Período não informado";
 
-  proposedPeriod.textContent =
-    periodoConfig[proposta.periodo] || "Período não informado";
+  confirmedTime.textContent = attendance.horarioConfirmado;
 
-  proposedTime.textContent = proposta.horario || "Horário não informado";
+  const message = currentRequest.observacoes?.resposta || "";
 
-  proposalMessage.textContent =
-    proposta.mensagem || "A equipe sugeriu uma nova data para o atendimento.";
+  confirmedScheduleMessageBox.hidden = !message;
+
+  confirmedScheduleMessage.textContent =
+    message || "Atendimento confirmado pela Salvateck.";
 }
 
 /* =========================================
    FOTOS
 ========================================= */
 
-function abrirFoto(foto) {
+function openPhoto(photo) {
   const link = document.createElement("a");
 
-  link.href = foto;
+  link.href = photo;
+
   link.target = "_blank";
+
   link.rel = "noopener noreferrer";
 
   document.body.appendChild(link);
 
   link.click();
+
   link.remove();
 }
 
-function renderizarFotos() {
+function renderPhotos() {
   requestPhotos.innerHTML = "";
 
-  const fotos = solicitacaoAtual.fotos || [];
+  const photos = currentRequest.fotos || [];
 
-  const semFotos = fotos.length === 0;
+  const noPhotos = photos.length === 0;
 
-  requestPhotos.hidden = semFotos;
-  photosEmpty.hidden = !semFotos;
+  requestPhotos.hidden = noPhotos;
 
-  fotos.forEach((foto, index) => {
+  photosEmpty.hidden = !noPhotos;
+
+  photos.forEach((photo, index) => {
     const button = document.createElement("button");
 
     button.type = "button";
+
     button.className = "request-photo";
 
     button.setAttribute("aria-label", `Ampliar foto ${index + 1}`);
 
     const image = document.createElement("img");
 
-    image.src = foto;
+    image.src = photo;
+
     image.alt = `Foto ${index + 1} da solicitação`;
 
     button.appendChild(image);
 
-    button.addEventListener("click", () => abrirFoto(foto));
+    button.addEventListener("click", () => openPhoto(photo));
 
     requestPhotos.appendChild(button);
   });
@@ -1534,194 +972,242 @@ function renderizarFotos() {
    OBSERVAÇÕES
 ========================================= */
 
-function renderizarObservacoes() {
-  const observacoes = solicitacaoAtual.observacoes;
+function renderObservations() {
+  const observations = currentRequest.observacoes;
 
   clientObservation.textContent =
-    observacoes.cliente || "Nenhuma observação informada.";
+    observations.cliente || "Nenhuma observação informada.";
 
-  const possuiResposta = Boolean(observacoes.resposta);
+  const hasResponse = Boolean(observations.resposta);
 
-  responseObservationBox.hidden = !possuiResposta;
+  responseObservationBox.hidden = !hasResponse;
 
   responseObservation.textContent =
-    observacoes.resposta || "Nenhuma resposta adicionada.";
+    observations.resposta || "Nenhuma resposta adicionada.";
 
   internalObservation.textContent =
-    observacoes.interna || "Nenhuma observação interna registrada.";
+    observations.interna || "Nenhuma observação interna registrada.";
 }
 
 /* =========================================
    PRIORIDADE
 ========================================= */
 
-function sincronizarPrioridade() {
+function syncPriority() {
   priorityInputs.forEach((input) => {
-    const selecionado = input.value === solicitacaoAtual.prioridade;
+    const selected = input.value === currentRequest.prioridade;
 
-    input.checked = selecionado;
+    input.checked = selected;
 
     input
       .closest(".priority-option")
-      ?.classList.toggle("is-selected", selecionado);
+      ?.classList.toggle("is-selected", selected);
   });
-}
-
-function alterarPrioridade(valor) {
-  if (!prioridadeConfig[valor]) {
-    return;
-  }
-
-  solicitacaoAtual.prioridade = valor;
-
-  registrarAtualizacao();
-  salvarAlteracoesLocais();
-  sincronizarPrioridade();
-  renderizarHero();
-
-  mostrarFeedback(`Prioridade alterada para ${prioridadeConfig[valor]}.`);
 }
 
 /* =========================================
    PERFIL
 ========================================= */
 
-function renderizarPerfil() {
-  const isAdmin = perfilAtual === "admin";
+function renderProfile() {
+  const isAdmin = currentSession.role === "admin";
 
-  body.dataset.profile = perfilAtual;
+  body.dataset.profile = currentSession.role;
 
-  profileButtons.forEach((button) => {
-    const ativo = button.dataset.profileButton === perfilAtual;
-
-    button.classList.toggle("is-active", ativo);
-
-    button.setAttribute("aria-pressed", String(ativo));
+  adminOnlyElements.forEach((element) => {
+    element.hidden = !isAdmin;
   });
 
-  adminOnlyElements.forEach((elemento) => {
-    elemento.hidden = !isAdmin;
+  adminVisibleElements.forEach((element) => {
+    element.hidden = !isAdmin;
   });
 
-  adminVisibleElements.forEach((elemento) => {
-    elemento.hidden = !isAdmin;
+  clientOnlyElements.forEach((element) => {
+    element.hidden = isAdmin;
   });
 
-  clientOnlyElements.forEach((elemento) => {
-    elemento.hidden = isAdmin;
-  });
-
-  const statusFinalizado = ["agendada", "recusada", "cancelada"].includes(
-    solicitacaoAtual.status,
+  const finalStatus = ["agendada", "recusada", "cancelada"].includes(
+    currentRequest.status,
   );
 
   priorityCard.hidden = !isAdmin;
 
-  adminActionsCard.hidden = !isAdmin || statusFinalizado;
-
-  const possuiPropostaPendente =
-    solicitacaoAtual.status === "aguardando-confirmacao" &&
-    solicitacaoAtual.proposta?.status === "aguardando";
-
-  clientProposalCard.hidden = isAdmin || !possuiPropostaPendente;
+  adminActionsCard.hidden = !isAdmin || finalStatus;
 
   clientActionsCard.hidden =
-    isAdmin || ["recusada", "cancelada"].includes(solicitacaoAtual.status);
+    isAdmin || ["recusada", "cancelada"].includes(currentRequest.status);
 
   internalObservationBox.hidden = !isAdmin;
 
-  const parametros = new URLSearchParams({
-    perfil: perfilAtual,
-  });
-
-  backButton.href = `solicitacoes.html?${parametros.toString()}`;
-}
-
-function alterarPerfil(perfil) {
-  if (perfil !== "cliente" && perfil !== "admin") {
-    return;
-  }
-
-  perfilAtual = perfil;
-
-  try {
-    localStorage.setItem("salvateckPerfilTeste", perfil);
-  } catch (error) {
-    console.warn("Não foi possível salvar o perfil de teste.", error);
-  }
-
-  fecharFormulariosAcao();
-  renderizarPerfil();
+  backButton.href = returnPage;
 }
 
 /* =========================================
-   FORMULÁRIOS DE AÇÃO
+   RENDERIZAÇÃO
 ========================================= */
 
-function fecharFormulariosAcao() {
-  actionForms.forEach((form) => {
-    form.hidden = true;
-  });
+function renderAll() {
+  renderHero();
+
+  renderTimeline();
+
+  renderClient();
+
+  renderServices();
+
+  renderAddress();
+
+  renderConfirmedSchedule();
+
+  renderPhotos();
+
+  renderObservations();
+
+  syncPriority();
+
+  renderProfile();
 }
 
-function abrirFormularioAcao(form) {
-  fecharFormulariosAcao();
+/* =========================================
+   GRAVAÇÃO NO FIRESTORE
+========================================= */
 
-  form.hidden = false;
+function handleSaveError(error) {
+  console.error("[Detalhes] Não foi possível salvar a alteração:", error);
 
-  form.scrollIntoView({
-    behavior: "smooth",
-    block: "center",
-  });
+  if (error.code === "permission-denied") {
+    showFeedback(
+      "O Firebase bloqueou esta alteração. Verifique as regras publicadas.",
+    );
+
+    return;
+  }
+
+  if (error.code === "unavailable") {
+    showFeedback("Não foi possível acessar o Firebase. Verifique sua conexão.");
+
+    return;
+  }
+
+  showFeedback("Não foi possível salvar a alteração.");
 }
 
-function preencherFormularioAceite() {
-  const atendimento = solicitacaoAtual.atendimento;
+async function saveChanges(changes, successMessage, privateChanges = null) {
+  if (savingChanges || !currentRequestReference) {
+    return;
+  }
+
+  savingChanges = true;
+
+  try {
+    const batch = writeBatch(db);
+
+    batch.update(currentRequestReference, {
+      ...changes,
+
+      atualizadoEm: serverTimestamp(),
+
+      statusAtualizadoEm: serverTimestamp(),
+    });
+
+    if (
+      privateChanges &&
+      currentSession.role === "admin" &&
+      currentPrivateRequestReference
+    ) {
+      batch.set(
+        currentPrivateRequestReference,
+        {
+          ordemId: currentRequest.documentId,
+          codigo: currentRequest.codigo,
+
+          ...privateChanges,
+
+          atualizadoEm: serverTimestamp(),
+        },
+        {
+          merge: true,
+        },
+      );
+    }
+
+    await batch.commit();
+
+    await loadRequest();
+
+    closeActionForms();
+
+    renderAll();
+
+    showFeedback(successMessage);
+  } catch (error) {
+    handleSaveError(error);
+
+    throw error;
+  } finally {
+    savingChanges = false;
+  }
+}
+
+/* =========================================
+   ALTERAR PRIORIDADE
+========================================= */
+
+async function changePriority(value) {
+  if (currentSession.role !== "admin" || !prioridadeConfig[value]) {
+    return;
+  }
+
+  try {
+    await saveChanges(
+      {
+        prioridade: value,
+      },
+
+      `Prioridade alterada para ${prioridadeConfig[value]}.`,
+    );
+  } catch (error) {
+    syncPriority();
+  }
+}
+
+/* =========================================
+   FORMULÁRIOS
+========================================= */
+
+function fillAcceptForm() {
+  const attendance = currentRequest.atendimento;
 
   acceptDate.value =
-    solicitacaoAtual.proposta?.data || atendimento.dataPreferida || "";
+    currentRequest.proposta?.data || attendance.dataPreferida || "";
 
   acceptPeriod.value =
-    solicitacaoAtual.proposta?.periodo || atendimento.periodo || "";
+    currentRequest.proposta?.periodo || attendance.periodo || "";
 
   acceptTime.value =
-    solicitacaoAtual.proposta?.horario || atendimento.horarioPreferido || "";
-}
-
-function preencherFormularioProposta() {
-  const proposta = solicitacaoAtual.proposta;
-
-  proposalDate.value = proposta?.data || "";
-
-  proposalPeriod.value = proposta?.periodo || "";
-
-  proposalTimeInput.value = proposta?.horario || "";
-
-  if (proposta?.mensagem) {
-    proposalMessageInput.value = proposta.mensagem;
-  }
+    currentRequest.proposta?.horario || attendance.horarioPreferido || "";
 }
 
 /* =========================================
    MODAL
 ========================================= */
 
-function abrirModal({
-  titulo,
-  descricao,
-  textoConfirmacao = "Confirmar",
-  perigo = false,
-  confirmar,
+function openModal({
+  title,
+  description,
+  confirmationText = "Confirmar",
+  danger = false,
+  confirm,
 }) {
-  modalCallback = confirmar;
+  modalCallback = confirm;
 
-  confirmationTitle.textContent = titulo;
+  confirmationTitle.textContent = title;
 
-  confirmationDescription.textContent = descricao;
+  confirmationDescription.textContent = description;
 
-  confirmModalButton.textContent = textoConfirmacao;
+  confirmModalButton.textContent = confirmationText;
 
-  if (perigo) {
+  if (danger) {
     confirmModalButton.style.backgroundColor = "#963333";
 
     confirmModalButton.style.color = "#F9F9F9";
@@ -1742,7 +1228,7 @@ function abrirModal({
   confirmModalButton.focus();
 }
 
-function fecharModal() {
+function closeModal() {
   confirmationModal.hidden = true;
 
   document.body.style.overflow = "";
@@ -1751,44 +1237,28 @@ function fecharModal() {
 }
 
 /* =========================================
-   FINALIZAÇÃO DAS ALTERAÇÕES
-========================================= */
-
-function concluirAlteracao(mensagem) {
-  registrarAtualizacao();
-  salvarAlteracoesLocais();
-
-  fecharFormulariosAcao();
-
-  renderizarTudo();
-
-  mostrarFeedback(mensagem);
-}
-
-/* =========================================
    ACEITAR SOLICITAÇÃO
 ========================================= */
 
-function enviarAceite(event) {
+function submitAccept(event) {
   event.preventDefault();
 
   if (!acceptForm.checkValidity()) {
     acceptForm.reportValidity();
+
     return;
   }
 
-  abrirModal({
-    titulo: "Confirmar agendamento",
+  openModal({
+    title: "Confirmar agendamento",
 
-    descricao: "A solicitação será aceita e o atendimento entrará na agenda.",
+    description: "A solicitação será aceita e o atendimento entrará na agenda.",
 
-    textoConfirmacao: "Confirmar agendamento",
+    confirmationText: "Confirmar agendamento",
 
-    confirmar: () => {
-      solicitacaoAtual.status = "agendada";
-
-      solicitacaoAtual.atendimento = {
-        ...solicitacaoAtual.atendimento,
+    confirm: async () => {
+      const attendance = {
+        ...currentRequest.atendimento,
 
         dataConfirmada: acceptDate.value,
 
@@ -1797,56 +1267,25 @@ function enviarAceite(event) {
         horarioConfirmado: acceptTime.value,
       };
 
-      if (solicitacaoAtual.proposta) {
-        solicitacaoAtual.proposta.status = "aceita";
-      }
+      const observations = {
+        cliente: currentRequest.observacoes.cliente,
 
-      solicitacaoAtual.observacoes.resposta =
-        acceptMessage.value.trim() || "Sua solicitação foi aceita.";
+        resposta: acceptMessage.value.trim() || "Sua solicitação foi aceita.",
 
-      concluirAlteracao("Solicitação aceita e atendimento agendado.");
-    },
-  });
-}
-
-/* =========================================
-   PROPOR NOVA DATA
-========================================= */
-
-function enviarProposta(event) {
-  event.preventDefault();
-
-  if (!proposalForm.checkValidity()) {
-    proposalForm.reportValidity();
-    return;
-  }
-
-  abrirModal({
-    titulo: "Enviar nova proposta",
-
-    descricao:
-      "O cliente receberá a nova data e precisará confirmar a disponibilidade.",
-
-    textoConfirmacao: "Enviar proposta",
-
-    confirmar: () => {
-      solicitacaoAtual.status = "aguardando-confirmacao";
-
-      solicitacaoAtual.proposta = {
-        data: proposalDate.value,
-
-        periodo: proposalPeriod.value,
-
-        horario: proposalTimeInput.value,
-
-        mensagem: proposalMessageInput.value.trim(),
-
-        status: "aguardando",
+        interna: "",
       };
 
-      solicitacaoAtual.observacoes.resposta = proposalMessageInput.value.trim();
+      await saveChanges(
+        {
+          status: "agendada",
 
-      concluirAlteracao("Nova data enviada para confirmação do cliente.");
+          atendimento: attendance,
+
+          observacoes: observations,
+        },
+
+        "Solicitação aceita e atendimento agendado.",
+      );
     },
   });
 }
@@ -1855,111 +1294,59 @@ function enviarProposta(event) {
    RECUSAR SOLICITAÇÃO
 ========================================= */
 
-function enviarRecusa(event) {
+function submitRejection(event) {
   event.preventDefault();
 
   if (!rejectForm.checkValidity()) {
     rejectForm.reportValidity();
+
     return;
   }
 
-  const motivo =
+  const reason =
     rejectReason.selectedOptions[0]?.textContent.trim() ||
     "Motivo não informado";
 
-  abrirModal({
-    titulo: "Recusar solicitação",
+  openModal({
+    title: "Recusar solicitação",
 
-    descricao:
+    description:
       "A solicitação será encerrada e o cliente receberá a mensagem informada.",
 
-    textoConfirmacao: "Confirmar recusa",
-    perigo: true,
+    confirmationText: "Confirmar recusa",
 
-    confirmar: () => {
-      solicitacaoAtual.status = "recusada";
+    danger: true,
 
-      solicitacaoAtual.observacoes.resposta = rejectMessage.value.trim();
+    confirm: async () => {
+      const rejectionNote = `Motivo da recusa: ${reason}.`;
 
-      const observacaoMotivo = `Motivo da recusa: ${motivo}.`;
+      const previousInternalNote = String(
+        currentRequest.observacoes.interna || "",
+      ).trim();
 
-      solicitacaoAtual.observacoes.interna = solicitacaoAtual.observacoes
-        .interna
-        ? `${solicitacaoAtual.observacoes.interna} ${observacaoMotivo}`
-        : observacaoMotivo;
+      const finalInternalNote = previousInternalNote
+        ? `${previousInternalNote} ${rejectionNote}`
+        : rejectionNote;
 
-      concluirAlteracao("Solicitação recusada.");
-    },
-  });
-}
+      await saveChanges(
+        {
+          status: "recusada",
 
-/* =========================================
-   RESPOSTA DO CLIENTE À PROPOSTA
-========================================= */
+          observacoes: {
+            cliente: currentRequest.observacoes.cliente,
 
-function aceitarProposta() {
-  const proposta = solicitacaoAtual.proposta;
+            resposta: rejectMessage.value.trim(),
 
-  if (!proposta) {
-    return;
-  }
+            interna: "",
+          },
+        },
 
-  abrirModal({
-    titulo: "Aceitar nova data",
+        "Solicitação recusada.",
 
-    descricao:
-      "O atendimento será confirmado para a nova data proposta pela Salvateck.",
-
-    textoConfirmacao: "Aceitar data",
-
-    confirmar: () => {
-      proposta.status = "aceita";
-
-      solicitacaoAtual.status = "agendada";
-
-      solicitacaoAtual.atendimento = {
-        ...solicitacaoAtual.atendimento,
-
-        dataConfirmada: proposta.data,
-
-        periodoConfirmado: proposta.periodo,
-
-        horarioConfirmado: proposta.horario,
-      };
-
-      solicitacaoAtual.observacoes.resposta =
-        "O cliente aceitou a nova data proposta.";
-
-      concluirAlteracao("Nova data aceita e atendimento agendado.");
-    },
-  });
-}
-
-function recusarProposta() {
-  const proposta = solicitacaoAtual.proposta;
-
-  if (!proposta) {
-    return;
-  }
-
-  abrirModal({
-    titulo: "Recusar nova data",
-
-    descricao:
-      "A equipe será informada de que esta data não funciona e poderá enviar outra opção.",
-
-    textoConfirmacao: "Recusar data",
-    perigo: true,
-
-    confirmar: () => {
-      proposta.status = "recusada";
-
-      solicitacaoAtual.status = "em-analise";
-
-      solicitacaoAtual.observacoes.resposta =
-        "O cliente informou que não pode ser atendido na data proposta.";
-
-      concluirAlteracao("A equipe foi informada sobre a indisponibilidade.");
+        {
+          observacaoInterna: finalInternalNote,
+        },
+      );
     },
   });
 }
@@ -1968,24 +1355,33 @@ function recusarProposta() {
    CANCELAMENTO
 ========================================= */
 
-function cancelarSolicitacao() {
-  abrirModal({
-    titulo: "Cancelar solicitação",
+function cancelRequest() {
+  openModal({
+    title: "Cancelar solicitação",
 
-    descricao:
+    description:
       "Esta solicitação será encerrada. Confirme apenas se realmente deseja cancelar.",
 
-    textoConfirmacao: "Cancelar solicitação",
+    confirmationText: "Cancelar solicitação",
 
-    perigo: true,
+    danger: true,
 
-    confirmar: () => {
-      solicitacaoAtual.status = "cancelada";
+    confirm: async () => {
+      await saveChanges(
+        {
+          status: "cancelada",
 
-      solicitacaoAtual.observacoes.resposta =
-        "A solicitação foi cancelada pelo cliente.";
+          observacoes: {
+            cliente: currentRequest.observacoes.cliente,
 
-      concluirAlteracao("Solicitação cancelada.");
+            resposta: "A solicitação foi cancelada pelo cliente.",
+
+            interna: currentRequest.observacaoInternaPublica || "",
+          },
+        },
+
+        "Solicitação cancelada.",
+      );
     },
   });
 }
@@ -1994,114 +1390,97 @@ function cancelarSolicitacao() {
    MAPA E CLIENTE
 ========================================= */
 
-function abrirEnderecoNoMapa() {
-  const endereco = encodeURIComponent(montarEnderecoCompleto());
+function openAddressInMap() {
+  const address = encodeURIComponent(buildFullAddress());
 
-  const url = `https://www.google.com/maps/search/?api=1&query=${endereco}`;
+  const url = `https://www.google.com/maps/search/?api=1&query=${address}`;
 
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-function abrirCadastroCliente() {
-  const parametros = new URLSearchParams({
-    perfil: "admin",
-  });
+function openClientRegistration() {
+  const parameters = new URLSearchParams();
 
-  if (solicitacaoAtual.clienteId) {
-    parametros.set("cliente", solicitacaoAtual.clienteId);
+  if (currentRequest.clienteId) {
+    parameters.set("cliente", currentRequest.clienteId);
   }
 
-  window.location.href = `clientes.html?${parametros.toString()}`;
-}
-
-/* =========================================
-   RENDERIZAÇÃO GERAL
-========================================= */
-
-function renderizarTudo() {
-  renderizarHero();
-  renderizarTimeline();
-  renderizarCliente();
-  renderizarServicos();
-  renderizarEndereco();
-  renderizarAgenda();
-  renderizarFotos();
-  renderizarObservacoes();
-  sincronizarPrioridade();
-  renderizarPerfil();
+  window.location.href = `clientes.html?${parameters.toString()}`;
 }
 
 /* =========================================
    EVENTOS
 ========================================= */
 
-profileButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    alterarPerfil(button.dataset.profileButton);
-  });
-});
-
 priorityInputs.forEach((input) => {
   input.addEventListener("change", () => {
-    alterarPrioridade(input.value);
+    changePriority(input.value);
   });
 });
 
 acceptRequestButton.addEventListener("click", () => {
-  preencherFormularioAceite();
-  abrirFormularioAcao(acceptForm);
-});
+  fillAcceptForm();
 
-proposeDateButton.addEventListener("click", () => {
-  preencherFormularioProposta();
-  abrirFormularioAcao(proposalForm);
+  openActionForm(acceptForm);
 });
 
 rejectRequestButton.addEventListener("click", () => {
-  abrirFormularioAcao(rejectForm);
+  openActionForm(rejectForm);
 });
 
 closeActionButtons.forEach((button) => {
-  button.addEventListener("click", fecharFormulariosAcao);
+  button.addEventListener("click", closeActionForms);
 });
 
-acceptForm.addEventListener("submit", enviarAceite);
+acceptForm.addEventListener("submit", submitAccept);
 
-proposalForm.addEventListener("submit", enviarProposta);
+rejectForm.addEventListener("submit", submitRejection);
 
-rejectForm.addEventListener("submit", enviarRecusa);
+cancelRequestButton.addEventListener("click", cancelRequest);
 
-acceptProposalButton.addEventListener("click", aceitarProposta);
+openMapButton.addEventListener("click", openAddressInMap);
 
-declineProposalButton.addEventListener("click", recusarProposta);
-
-cancelRequestButton.addEventListener("click", cancelarSolicitacao);
-
-openMapButton.addEventListener("click", abrirEnderecoNoMapa);
-
-openClientButton.addEventListener("click", abrirCadastroCliente);
+openClientButton.addEventListener("click", openClientRegistration);
 
 closeModalButtons.forEach((button) => {
-  button.addEventListener("click", fecharModal);
+  button.addEventListener("click", closeModal);
 });
 
-confirmModalButton.addEventListener("click", () => {
+confirmModalButton.addEventListener("click", async () => {
   const callback = modalCallback;
 
-  fecharModal();
+  if (typeof callback !== "function" || savingChanges) {
+    return;
+  }
 
-  if (typeof callback === "function") {
-    callback();
+  const originalText = confirmModalButton.textContent;
+
+  confirmModalButton.disabled = true;
+
+  confirmModalButton.textContent = "Salvando...";
+
+  try {
+    await callback();
+
+    closeModal();
+  } catch (error) {
+    console.warn("[Detalhes] A ação não foi concluída.", error);
+  } finally {
+    confirmModalButton.disabled = false;
+
+    confirmModalButton.textContent = originalText;
   }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !confirmationModal.hidden) {
-    fecharModal();
+    closeModal();
+
+    return;
   }
 
   if (event.key === "Escape" && confirmationModal.hidden) {
-    fecharFormulariosAcao();
+    closeActionForms();
   }
 });
 
@@ -2109,11 +1488,41 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-const dataMinima = obterDataLocal();
+async function initializePage() {
+  try {
+    currentSession = await window.salvateckSessionReady;
 
-acceptDate.min = dataMinima;
-proposalDate.min = dataMinima;
+    if (!requestId) {
+      throw new Error("REQUEST_ID_NOT_FOUND");
+    }
 
-carregarAlteracoesLocais();
+    const minimumDate = getLocalDate();
 
-renderizarTudo();
+    acceptDate.min = minimumDate;
+
+    await loadRequest();
+
+    renderAll();
+
+    detailsShell.hidden = false;
+  } catch (error) {
+    console.error("[Detalhes] Não foi possível carregar a solicitação:", error);
+
+    if (error.message === "REQUEST_NOT_FOUND") {
+      window.alert("Esta solicitação não foi encontrada.");
+    } else if (
+      error.message === "REQUEST_ACCESS_DENIED" ||
+      error.code === "permission-denied"
+    ) {
+      window.alert("Você não possui permissão para acessar esta solicitação.");
+    } else if (error.message === "REQUEST_ID_NOT_FOUND") {
+      window.alert("O identificador da solicitação não foi informado.");
+    } else {
+      window.alert("Não foi possível carregar os detalhes da solicitação.");
+    }
+
+    window.location.replace(returnPage);
+  }
+}
+
+initializePage();

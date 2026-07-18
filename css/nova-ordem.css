@@ -1531,11 +1531,216 @@ textarea.input {
    REDUÇÃO DE MOVIMENTO
 ========================================= */
 
+/* =========================================
+   REDUÇÃO DE MOVIMENTO
+========================================= */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================
+   ORDEM CRIADA COM SUCESSO
+========================================= */
+
+.order-success[hidden] {
+  display: none !important;
+}
+
+.order-success {
+  width: 100%;
+
+  display: grid;
+  justify-items: center;
+
+  margin-top: 22px;
+  padding: 34px 24px 26px;
+
+  text-align: center;
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(221, 154, 23, 0.38);
+  border-radius: var(--radius-large);
+
+  box-shadow: var(--shadow-card);
+}
+
+.order-success__icon {
+  width: 68px;
+  height: 68px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 20px;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 6px solid rgba(221, 154, 23, 0.18);
+  border-radius: 50%;
+
+  box-shadow: 0 12px 25px rgba(13, 56, 97, 0.18);
+}
+
+.order-success__icon svg {
+  width: 30px;
+  height: 30px;
+
+  display: block;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.order-success__icon svg path {
+  fill: none;
+  stroke: currentColor;
+}
+
+.order-success__eyebrow {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.2;
+
+  color: #907632;
+
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.order-success h2 {
+  margin: 0;
+
+  font-size: clamp(1.45rem, 6vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+
+  color: #0d3861;
+}
+
+.order-success h2 span {
+  color: #0d3861;
+}
+
+.order-success > p {
+  max-width: 440px;
+
+  margin: 14px auto 0;
+
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.6;
+
+  color: #687077;
+}
+
+.order-success__summary {
+  width: 100%;
+
+  display: grid;
+  gap: 5px;
+
+  margin-top: 24px;
+  padding: 16px 17px;
+
+  text-align: left;
+
+  background-color: rgba(13, 56, 97, 0.055);
+
+  border-left: 4px solid #dd9a17;
+  border-radius: 14px;
+}
+
+.order-success__summary span {
+  font-size: 0.62rem;
+  font-weight: 800;
+
+  color: #7a8288;
+
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.order-success__summary strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.45;
+
+  color: #0d3861;
+}
+
+.order-success__actions {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 11px;
+
+  margin-top: 22px;
+}
+
+.order-success__actions .button {
+  width: 100%;
+  min-height: 54px;
+
+  margin: 0;
+  padding: 0 18px;
+
+  border-radius: var(--radius-pill);
+}
+
+.order-success__whatsapp {
+  color: #ffffff;
+  background-color: #188653;
+
+  border: 1px solid #188653;
+
+  box-shadow: 0 10px 22px rgba(24, 134, 83, 0.22);
+}
+
+.order-success__whatsapp:hover {
+  color: #ffffff;
+  background-color: #126f44;
+  border-color: #126f44;
+}
+
+.order-success__actions .button--secondary {
+  color: #0d3861;
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.22);
+}
+
+.order-success__actions .button--secondary:hover {
+  background-color: #e9edef;
+}
+
+/* =========================================
+   SUCESSO EM TELAS MAIORES
+========================================= */
+
+@media (min-width: 640px) {
+  .order-success {
+    padding: 40px 36px 32px;
+  }
+
+  .order-success__actions {
+    grid-template-columns: 1.25fr 1fr;
   }
 }

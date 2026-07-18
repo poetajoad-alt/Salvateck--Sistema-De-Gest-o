@@ -100,9 +100,9 @@
          RESUMO
     ====================================== -->
 
-    <section class="inspections-overview" aria-label="Resumo das vistorias">
+    <section class="inspections-overview" aria-label="Resumo e acesso às vistorias">
 
-      <article class="overview-item">
+      <button type="button" class="overview-item" data-inspection-view="scheduled" aria-pressed="false">
 
         <span>
           Programadas
@@ -112,9 +112,9 @@
           0
         </strong>
 
-      </article>
+      </button>
 
-      <article class="overview-item">
+      <button type="button" class="overview-item" data-inspection-view="progress" aria-pressed="false">
 
         <span>
           Em andamento
@@ -124,21 +124,21 @@
           0
         </strong>
 
-      </article>
+      </button>
 
-      <article class="overview-item overview-item--warning">
+      <button type="button" class="overview-item overview-item--warning" data-inspection-view="pending" aria-pressed="false">
 
         <span>
-          Pendências críticas
+          Com pendências
         </span>
 
         <strong id="summary-critical">
           0
         </strong>
 
-      </article>
+      </button>
 
-      <article class="overview-item">
+      <button type="button" class="overview-item" data-inspection-view="completed-month" aria-pressed="false">
 
         <span>
           Concluídas no mês
@@ -148,9 +148,13 @@
           0
         </strong>
 
-      </article>
+      </button>
 
     </section>
+
+    <p class="inspections-overview-hint" id="inspections-overview-hint">
+      Selecione um dos cards acima para visualizar as vistorias.
+    </p>
 
     <!-- =====================================
          ABAS
@@ -184,7 +188,7 @@
          PESQUISA E FILTROS
     ====================================== -->
 
-    <section class="inspections-tools">
+    <section class="inspections-tools" hidden>
 
       <label class="search-field">
 
@@ -365,7 +369,7 @@
          LISTAGEM
     ====================================== -->
 
-    <section class="inspections-content">
+    <section class="inspections-content" hidden>
 
       <header class="inspections-content__heading">
 
