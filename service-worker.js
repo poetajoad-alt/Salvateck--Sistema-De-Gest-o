@@ -4,7 +4,7 @@
 
 const CACHE_PREFIX = "salvateck-pwa";
 
-const CACHE_VERSION = "v1.0.1";
+const CACHE_VERSION = "v1.0.2";
 
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
 

@@ -4,8 +4,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
+  where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
@@ -269,17 +273,203 @@ const logoutButton = document.getElementById("logout-button");
 let currentProfile = null;
 
 let authActionInProgress = false;
+let adminSearchItems = [];
+
+let adminSearchLoaded = false;
 
 /* ==============================
    NORMALIZAÇÃO DA PESQUISA
 ================================ */
 
 function normalizeText(value) {
-  return value
+  return String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function getOrderServices(order) {
+  if (!Array.isArray(order.servicos)) {
+    return [order.servicoPrincipal].filter(Boolean);
+  }
+
+  return order.servicos
+    .map((service) => {
+      if (typeof service === "string") {
+        return service;
+      }
+
+      return service?.servico || service?.nome || "";
+    })
+    .filter(Boolean);
+}
+
+function mapClientSearchItem(documentSnapshot) {
+  const data = documentSnapshot.data();
+
+  const name = String(data.nome || "Cliente sem nome").trim();
+
+  const phone = String(data.telefone || "").trim();
+
+  const email = String(data.email || "").trim();
+
+  const description =
+    [phone, email].filter(Boolean).join(" · ") ||
+    "Cliente cadastrado no sistema";
+
+  return {
+    title: `Cliente — ${name}`,
+
+    description,
+
+    target:
+      `clientes.html?perfil=admin&cliente=` +
+      encodeURIComponent(documentSnapshot.id),
+
+    icon: "users",
+
+    searchableText: normalizeText(
+      [
+        documentSnapshot.id,
+        name,
+        phone,
+        email,
+        data.cidade,
+        data.bairro,
+        data.endereco?.cidade,
+        data.endereco?.bairro,
+      ].join(" "),
+    ),
+
+    searchableDigits: normalizePhone(phone),
+  };
+}
+
+function mapOrderSearchItem(documentSnapshot) {
+  const data = documentSnapshot.data();
+
+  const code = String(data.codigo || data.numero || documentSnapshot.id).trim();
+
+  const title = String(
+    data.titulo || data.servicoPrincipal || "Ordem de serviço",
+  ).trim();
+
+  const clientName = String(
+    data.cliente?.nome || data.clienteNome || "Cliente não identificado",
+  ).trim();
+
+  const clientPhone = String(
+    data.cliente?.telefone || data.telefoneCliente || "",
+  ).trim();
+
+  const clientEmail = String(
+    data.cliente?.email || data.emailCliente || "",
+  ).trim();
+
+  const status = String(data.status || "")
+    .replace(/-/g, " ")
+    .trim();
+
+  const services = getOrderServices(data);
+
+  const description = [clientName, clientPhone, status]
+    .filter(Boolean)
+    .join(" · ");
+
+  const parameters = new URLSearchParams({
+    perfil: "admin",
+    id: documentSnapshot.id,
+    ordem: documentSnapshot.id,
+    origem: "ordens",
+  });
+
+  return {
+    title: `${code} — ${title}`,
+
+    description: description || "Ordem de serviço cadastrada",
+
+    target: `detalhes-solicitacao.html?${parameters.toString()}`,
+
+    icon: data.tipoAtendimento === "vistoria" ? "inspection" : "list",
+
+    searchableText: normalizeText(
+      [
+        documentSnapshot.id,
+        code,
+        data.numero,
+        title,
+        data.servicoPrincipal,
+        data.categoriaPrincipal,
+        services.join(" "),
+        clientName,
+        clientPhone,
+        clientEmail,
+        status,
+        data.condominio?.nome,
+        data.endereco?.bairro,
+        data.endereco?.cidade,
+      ].join(" "),
+    ),
+
+    searchableDigits: [normalizePhone(code), normalizePhone(clientPhone)].join(
+      " ",
+    ),
+  };
+}
+
+async function loadAdminSearchData() {
+  if (adminSearchLoaded) {
+    return;
+  }
+
+  try {
+    const clientsQuery = query(
+      collection(db, "usuarios"),
+      where("role", "==", "cliente"),
+    );
+
+    const [clientsSnapshot, ordersSnapshot] = await Promise.all([
+      getDocs(clientsQuery),
+      getDocs(collection(db, "ordens")),
+    ]);
+
+    const clientItems = clientsSnapshot.docs.map(mapClientSearchItem);
+
+    const orderItems = ordersSnapshot.docs.map(mapOrderSearchItem);
+
+    adminSearchItems = [...clientItems, ...orderItems];
+
+    adminSearchLoaded = true;
+
+    renderCards();
+
+    console.info(
+      `[Principal] Busca carregada com ${clientItems.length} cliente(s) e ${orderItems.length} ordem(ns).`,
+    );
+  } catch (error) {
+    console.error(
+      "[Principal] Não foi possível carregar a busca administrativa:",
+      error,
+    );
+  }
+}
+
+function matchesAdminSearch(item, rawSearch) {
+  const normalizedSearch = normalizeText(rawSearch);
+
+  const numericSearch = normalizePhone(rawSearch);
+
+  const matchesText = item.searchableText.includes(normalizedSearch);
+
+  const matchesNumbers =
+    numericSearch.length > 0 && item.searchableDigits.includes(numericSearch);
+
+  return matchesText || matchesNumbers;
 }
 
 /* ==============================
@@ -336,25 +526,58 @@ function renderCards() {
 
   const config = profileConfig[currentProfile];
 
-  const searchTerm = normalizeText(quickSearch.value);
+  const rawSearch = String(quickSearch.value || "").trim();
 
-  const filteredCards = config.cards.filter((card) => {
+  const searchTerm = normalizeText(rawSearch);
+
+  const filteredShortcuts = config.cards.filter((card) => {
     const searchableText = normalizeText(`${card.title} ${card.description}`);
 
     return searchableText.includes(searchTerm);
   });
 
+  let displayedItems = filteredShortcuts;
+
+  if (currentProfile === "admin" && searchTerm && adminSearchLoaded) {
+    const dataResults = adminSearchItems.filter((item) =>
+      matchesAdminSearch(item, rawSearch),
+    );
+
+    displayedItems = [...dataResults, ...filteredShortcuts];
+  }
+
   quickGrid.innerHTML = "";
 
-  filteredCards.forEach((card) => {
-    quickGrid.appendChild(createCard(card));
+  displayedItems.forEach((item) => {
+    quickGrid.appendChild(createCard(item));
   });
 
-  const cardText = filteredCards.length === 1 ? "atalho" : "atalhos";
+  if (searchTerm) {
+    const resultText = displayedItems.length === 1 ? "resultado" : "resultados";
 
-  cardCount.textContent = `${filteredCards.length} ${cardText}`;
+    cardCount.textContent = `${displayedItems.length} ${resultText}`;
+  } else {
+    const shortcutText = displayedItems.length === 1 ? "atalho" : "atalhos";
 
-  emptyState.hidden = filteredCards.length !== 0;
+    cardCount.textContent = `${displayedItems.length} ${shortcutText}`;
+  }
+
+  const emptyTitle = emptyState.querySelector("strong");
+
+  const emptyDescription = emptyState.querySelector("span");
+
+  if (searchTerm) {
+    emptyTitle.textContent = "Nenhum resultado encontrado";
+
+    emptyDescription.textContent =
+      "Pesquise por nome, celular, e-mail, código da OS ou serviço.";
+  } else {
+    emptyTitle.textContent = "Nenhum atalho encontrado";
+
+    emptyDescription.textContent = "Tente pesquisar usando outro termo.";
+  }
+
+  emptyState.hidden = displayedItems.length !== 0;
 }
 
 /* ==============================
@@ -542,6 +765,10 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     changeProfile(role, userProfile);
+
+    if (role === "admin") {
+      loadAdminSearchData();
+    }
   } catch (error) {
     console.error("[Principal] Não foi possível validar o acesso:", error);
 
