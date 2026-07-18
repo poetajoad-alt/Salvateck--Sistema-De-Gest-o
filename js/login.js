@@ -333,6 +333,8 @@ const urlParameters = new URLSearchParams(window.location.search);
 
 const registrationCompleted = urlParameters.get("cadastro") === "sucesso";
 
+const activationEmailSent = urlParameters.get("ativacao") === "enviada";
+
 const registeredEmail = urlParameters.get("email") || "";
 
 if (registeredEmail) {
@@ -342,6 +344,11 @@ if (registeredEmail) {
 if (registrationCompleted) {
   showFeedback(
     "Cadastro realizado com sucesso. Agora entre com seu e-mail e senha.",
+    "success",
+  );
+} else if (activationEmailSent) {
+  showFeedback(
+    "Encontramos um cadastro criado para você. Enviamos um link para o seu e-mail definir a senha de acesso. Verifique também a pasta Spam ou Lixo Eletrônico.",
     "success",
   );
 }

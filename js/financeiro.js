@@ -1,5 +1,17 @@
-const FINANCE_STORAGE_KEY = "salvateckLancamentosFinanceiros";
+import "./auth-guard.js";
 
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
 const incomeCategories = {
   servico: "Prestação de serviço",
   manutencao: "Manutenção",
@@ -62,101 +74,6 @@ function dateToISO(date) {
 
   return `${year}-${month}-${day}`;
 }
-
-function dateWithOffset(days) {
-  const date = new Date(today);
-
-  date.setDate(date.getDate() + days);
-
-  return dateToISO(date);
-}
-
-const defaultEntries = [
-  {
-    id: "financeiro-0001",
-    codigo: "FIN-0001",
-    tipo: "income",
-    descricao: "Manutenção preventiva de bombas",
-    categoria: "manutencao",
-    valor: 850,
-    vencimento: dateWithOffset(5),
-    status: "pending",
-    pagamentoEm: "",
-    formaPagamento: "",
-    cliente: "Administradora Horizonte",
-    condominio: "Condomínio Jardim Primavera",
-    ordem: "OS-0021",
-    observacoes: "",
-  },
-
-  {
-    id: "financeiro-0002",
-    codigo: "FIN-0002",
-    tipo: "income",
-    descricao: "Reparo de vazamento hidráulico",
-    categoria: "servico",
-    valor: 460,
-    vencimento: dateWithOffset(-4),
-    status: "pending",
-    pagamentoEm: "",
-    formaPagamento: "",
-    cliente: "João Martins",
-    condominio: "Edifício Central",
-    ordem: "OS-0018",
-    observacoes: "",
-  },
-
-  {
-    id: "financeiro-0003",
-    codigo: "FIN-0003",
-    tipo: "income",
-    descricao: "Contrato mensal de manutenção",
-    categoria: "contrato",
-    valor: 1200,
-    vencimento: dateWithOffset(-8),
-    status: "paid",
-    pagamentoEm: dateWithOffset(-7),
-    formaPagamento: "pix",
-    cliente: "Administradora Nova Gestão",
-    condominio: "Residencial das Flores",
-    ordem: "",
-    observacoes: "",
-  },
-
-  {
-    id: "financeiro-0004",
-    codigo: "FIN-0004",
-    tipo: "expense",
-    descricao: "Compra de materiais hidráulicos",
-    categoria: "material",
-    valor: 285.9,
-    vencimento: dateWithOffset(-2),
-    status: "paid",
-    pagamentoEm: dateWithOffset(-2),
-    formaPagamento: "cartao",
-    cliente: "",
-    condominio: "",
-    ordem: "OS-0021",
-    observacoes: "",
-  },
-
-  {
-    id: "financeiro-0005",
-    codigo: "FIN-0005",
-    tipo: "expense",
-    descricao: "Abastecimento do veículo",
-    categoria: "combustivel",
-    valor: 220,
-    vencimento: dateWithOffset(1),
-    status: "pending",
-    pagamentoEm: "",
-    formaPagamento: "",
-    cliente: "",
-    condominio: "",
-    ordem: "",
-    observacoes: "",
-  },
-];
 
 /* ELEMENTOS */
 
@@ -244,6 +161,8 @@ const entryPaymentDate = document.getElementById("entry-payment-date");
 
 const entryPaymentMethod = document.getElementById("entry-payment-method");
 
+const entryClientSearch = document.getElementById("entry-client-search");
+
 const entryClient = document.getElementById("entry-client");
 
 const entryCondominium = document.getElementById("entry-condominium");
@@ -252,11 +171,22 @@ const entryOrder = document.getElementById("entry-order");
 
 const entryNotes = document.getElementById("entry-notes");
 
+const saveEntryButton = document.getElementById("save-entry-button");
+
 const feedbackMessage = document.getElementById("feedback-message");
 
 /* ESTADO */
 
 let entries = [];
+
+let currentSession = null;
+
+let clients = [];
+
+let condominiums = [];
+
+let orders = [];
+
 let currentView = "all";
 
 let appliedFilters = {
@@ -266,6 +196,7 @@ let appliedFilters = {
 };
 
 let editingEntryId = null;
+
 let feedbackTimeout;
 
 /* UTILITÁRIOS */
@@ -287,7 +218,27 @@ function parseLocalDate(value) {
     return null;
   }
 
-  return new Date(`${value}T12:00:00`);
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (value instanceof Date) {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const text = String(value).trim();
+
+  if (!text) {
+    return null;
+  }
+
+  const date = new Date(`${text.split("T")[0]}T12:00:00`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function formatDate(value) {
@@ -346,6 +297,74 @@ function getEntryById(id) {
   return entries.find((entry) => entry.id === id);
 }
 
+function normalizeLinkedReference(value, fallbackId = "") {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return {
+      ...value,
+      id: String(value.id || fallbackId || "").trim(),
+    };
+  }
+
+  const id = String(value || fallbackId || "").trim();
+
+  return id ? { id } : null;
+}
+
+function getReferenceId(reference) {
+  if (reference && typeof reference === "object") {
+    return String(reference.id || "").trim();
+  }
+
+  return String(reference || "").trim();
+}
+
+function getClientLabel(reference) {
+  const id = getReferenceId(reference);
+
+  const storedName =
+    reference && typeof reference === "object"
+      ? String(reference.nome || "").trim()
+      : "";
+
+  return storedName || clients.find((client) => client.id === id)?.nome || "";
+}
+
+function getCondominiumLabel(reference) {
+  const id = getReferenceId(reference);
+
+  const storedName =
+    reference && typeof reference === "object"
+      ? String(reference.nome || "").trim()
+      : "";
+
+  return (
+    storedName ||
+    condominiums.find((condominium) => condominium.id === id)?.nome ||
+    ""
+  );
+}
+
+function getOrderLabel(reference) {
+  const id = getReferenceId(reference);
+
+  const storedCode =
+    reference && typeof reference === "object"
+      ? String(reference.codigo || "").trim()
+      : "";
+
+  const storedTitle =
+    reference && typeof reference === "object"
+      ? String(reference.titulo || "").trim()
+      : "";
+
+  const linkedOrder = orders.find((order) => order.id === id);
+
+  const code = storedCode || linkedOrder?.codigo || "";
+  const title = storedTitle || linkedOrder?.titulo || "";
+
+  return [code, title].filter(Boolean).join(" — ");
+}
+
 function getEffectiveStatus(entry) {
   if (entry.status === "pending" && parseLocalDate(entry.vencimento) < today) {
     return "overdue";
@@ -361,15 +380,13 @@ function getCategoryLabel(entry) {
   return config[entry.categoria] || entry.categoria || "Sem categoria";
 }
 
-/* ARMAZENAMENTO */
+/* FIRESTORE */
 
-function normalizeEntry(entry, index) {
+function normalizeEntry(entry, documentId = "") {
   return {
-    ...entry,
+    id: documentId || entry.id || "",
 
-    id: entry.id || `financeiro-${String(index + 1).padStart(4, "0")}`,
-
-    codigo: entry.codigo || `FIN-${String(index + 1).padStart(4, "0")}`,
+    codigo: entry.codigo || "Lançamento",
 
     tipo: entry.tipo === "expense" ? "expense" : "income",
 
@@ -387,39 +404,327 @@ function normalizeEntry(entry, index) {
 
     formaPagamento: entry.formaPagamento || "",
 
-    cliente: entry.cliente || "",
+    cliente: normalizeLinkedReference(entry.cliente, entry.clienteUid),
 
-    condominio: entry.condominio || "",
+    condominio: normalizeLinkedReference(entry.condominio, entry.condominioId),
 
-    ordem: entry.ordem || "",
+    ordem: normalizeLinkedReference(entry.ordem, entry.ordemId),
 
     observacoes: entry.observacoes || "",
+
+    criadoEm: entry.criadoEm || null,
+
+    atualizadoEm: entry.atualizadoEm || null,
   };
 }
 
-function loadEntries() {
-  try {
-    const saved = JSON.parse(
-      localStorage.getItem(FINANCE_STORAGE_KEY) || "null",
-    );
+async function loadEntries() {
+  const snapshot = await getDocs(collection(db, "financeiro"));
 
-    if (Array.isArray(saved)) {
-      entries = saved.map(normalizeEntry);
-      return;
-    }
-  } catch (error) {
-    console.warn("Erro ao carregar lançamentos.", error);
+  entries = snapshot.docs.map((documentSnapshot) =>
+    normalizeEntry(documentSnapshot.data(), documentSnapshot.id),
+  );
+
+  console.info(
+    `[Financeiro] ${entries.length} lançamento(s) carregado(s) do Firestore.`,
+  );
+}
+function createSelectOption(value, text) {
+  const option = document.createElement("option");
+
+  option.value = value;
+
+  option.textContent = text;
+
+  return option;
+}
+
+function mapClientDocument(documentSnapshot) {
+  const data = documentSnapshot.data();
+
+  const status =
+    data.statusCadastro || (data.ativo === false ? "inativo" : "ativo");
+
+  return {
+    id: documentSnapshot.id,
+
+    nome: String(data.nome || "Cliente sem nome").trim(),
+
+    email: String(data.email || "").trim(),
+
+    telefone: String(data.telefone || "").trim(),
+
+    status,
+  };
+}
+
+function mapCondominiumDocument(documentSnapshot) {
+  const data = documentSnapshot.data();
+
+  return {
+    id: documentSnapshot.id,
+
+    codigo: String(data.codigo || "").trim(),
+
+    nome: String(data.nome || "Condomínio sem nome").trim(),
+
+    clientesVinculados: Array.isArray(data.clientesVinculados)
+      ? data.clientesVinculados
+      : [],
+  };
+}
+
+function mapOrderDocument(documentSnapshot) {
+  const data = documentSnapshot.data();
+
+  return {
+    id: documentSnapshot.id,
+
+    codigo: String(data.codigo || documentSnapshot.id).trim(),
+
+    titulo: String(
+      data.titulo || data.servicoPrincipal || "Ordem de serviço",
+    ).trim(),
+
+    clienteId: String(data.cliente?.id || data.clienteUid || "").trim(),
+
+    condominioId: String(data.condominio?.id || data.condominioId || "").trim(),
+  };
+}
+
+async function loadFinancialLinks() {
+  const clientsQuery = query(
+    collection(db, "usuarios"),
+    where("role", "==", "cliente"),
+  );
+
+  const results = await Promise.allSettled([
+    getDocs(clientsQuery),
+    getDocs(collection(db, "condominios")),
+    getDocs(collection(db, "ordens")),
+  ]);
+
+  const [clientsResult, condominiumsResult, ordersResult] = results;
+
+  clients = [];
+
+  if (clientsResult.status === "fulfilled") {
+    clients = clientsResult.value.docs
+      .map(mapClientDocument)
+      .sort((clientA, clientB) =>
+        clientA.nome.localeCompare(clientB.nome, "pt-BR"),
+      );
+
+    console.info(`[Financeiro] ${clients.length} cliente(s) carregado(s).`);
+  } else {
+    console.error(
+      "[Financeiro] Não foi possível carregar os clientes:",
+      clientsResult.reason,
+    );
   }
 
-  entries = cloneData(defaultEntries).map(normalizeEntry);
+  condominiums = [];
 
-  saveEntries();
+  if (condominiumsResult.status === "fulfilled") {
+    condominiums = condominiumsResult.value.docs
+      .map(mapCondominiumDocument)
+      .sort((condominiumA, condominiumB) =>
+        condominiumA.nome.localeCompare(condominiumB.nome, "pt-BR"),
+      );
+  } else {
+    console.error(
+      "[Financeiro] Não foi possível carregar os condomínios:",
+      condominiumsResult.reason,
+    );
+  }
+
+  orders = [];
+
+  if (ordersResult.status === "fulfilled") {
+    orders = ordersResult.value.docs
+      .map(mapOrderDocument)
+      .sort((orderA, orderB) =>
+        orderA.codigo.localeCompare(orderB.codigo, "pt-BR"),
+      );
+  } else {
+    console.error(
+      "[Financeiro] Não foi possível carregar as ordens:",
+      ordersResult.reason,
+    );
+  }
+
+  populateClientSelect();
+
+  console.info(
+    `[Financeiro] ${clients.length} cliente(s), ${condominiums.length} condomínio(s) e ${orders.length} ordem(ns) disponíveis para vínculo.`,
+  );
+}
+function getFilteredFinanceClients() {
+  const term = normalizeText(entryClientSearch.value);
+
+  if (!term) {
+    return [...clients];
+  }
+
+  const phoneSearch = String(entryClientSearch.value || "").replace(/\D/g, "");
+
+  return clients.filter((client) => {
+    const searchableContent = normalizeText(
+      [client.nome, client.email, client.telefone].join(" "),
+    );
+
+    const clientPhone = String(client.telefone || "").replace(/\D/g, "");
+
+    return (
+      searchableContent.includes(term) ||
+      Boolean(phoneSearch && clientPhone.includes(phoneSearch))
+    );
+  });
 }
 
-function saveEntries() {
-  localStorage.setItem(FINANCE_STORAGE_KEY, JSON.stringify(entries));
+function populateClientSelect(selectedClientId = "") {
+  const currentClientId = selectedClientId || entryClient.value;
+
+  const term = normalizeText(entryClientSearch.value);
+
+  const filteredClients = getFilteredFinanceClients();
+
+  entryClient.innerHTML = "";
+
+  let initialText = "Selecione um cliente";
+
+  if (clients.length === 0) {
+    initialText = "Nenhum cliente carregado";
+  } else if (term && filteredClients.length === 0) {
+    initialText = "Nenhum cliente encontrado";
+  } else if (term) {
+    initialText = `${filteredClients.length} cliente(s) encontrado(s)`;
+  }
+
+  entryClient.appendChild(createSelectOption("", initialText));
+
+  filteredClients.forEach((client) => {
+    const details = [client.email, client.telefone].filter(Boolean).join(" · ");
+
+    const optionText = details ? `${client.nome} — ${details}` : client.nome;
+
+    entryClient.appendChild(createSelectOption(client.id, optionText));
+  });
+
+  entryClient.value = filteredClients.some(
+    (client) => client.id === currentClientId,
+  )
+    ? currentClientId
+    : "";
+
+  populateCondominiumSelect();
+
+  populateOrderSelect();
 }
 
+function condominiumBelongsToClient(condominium, clientId) {
+  if (!clientId) {
+    return false;
+  }
+
+  return condominium.clientesVinculados.some(
+    (link) => String(link.clienteId || "").trim() === clientId,
+  );
+}
+
+function populateCondominiumSelect(selectedCondominiumId = "") {
+  const clientId = entryClient.value;
+
+  entryCondominium.innerHTML = "";
+
+  if (!clientId) {
+    entryCondominium.appendChild(
+      createSelectOption("", "Selecione primeiro o cliente"),
+    );
+
+    entryCondominium.disabled = true;
+
+    return;
+  }
+
+  const clientCondominiums = condominiums.filter((condominium) =>
+    condominiumBelongsToClient(condominium, clientId),
+  );
+
+  entryCondominium.appendChild(
+    createSelectOption(
+      "",
+      clientCondominiums.length
+        ? "Nenhum condomínio específico"
+        : "Cliente sem condomínio vinculado",
+    ),
+  );
+
+  clientCondominiums.forEach((condominium) => {
+    const code = condominium.codigo ? `${condominium.codigo} — ` : "";
+
+    entryCondominium.appendChild(
+      createSelectOption(condominium.id, `${code}${condominium.nome}`),
+    );
+  });
+
+  entryCondominium.disabled = false;
+
+  entryCondominium.value = clientCondominiums.some(
+    (condominium) => condominium.id === selectedCondominiumId,
+  )
+    ? selectedCondominiumId
+    : "";
+}
+
+function populateOrderSelect(selectedOrderId = "") {
+  const clientId = entryClient.value;
+
+  const condominiumId = entryCondominium.value;
+
+  entryOrder.innerHTML = "";
+
+  if (!clientId) {
+    entryOrder.appendChild(
+      createSelectOption("", "Selecione primeiro o cliente"),
+    );
+
+    entryOrder.disabled = true;
+
+    return;
+  }
+
+  const clientOrders = orders.filter((order) => {
+    if (order.clienteId !== clientId) {
+      return false;
+    }
+
+    if (condominiumId && order.condominioId !== condominiumId) {
+      return false;
+    }
+
+    return true;
+  });
+
+  entryOrder.appendChild(
+    createSelectOption(
+      "",
+      clientOrders.length ? "Nenhuma OS específica" : "Nenhuma OS encontrada",
+    ),
+  );
+
+  clientOrders.forEach((order) => {
+    entryOrder.appendChild(
+      createSelectOption(order.id, `${order.codigo} — ${order.titulo}`),
+    );
+  });
+
+  entryOrder.disabled = false;
+
+  entryOrder.value = clientOrders.some((order) => order.id === selectedOrderId)
+    ? selectedOrderId
+    : "";
+}
 /* RESUMO */
 
 function isCurrentMonth(value) {
@@ -503,19 +808,41 @@ function matchesSearch(entry) {
     return true;
   }
 
-  const content = normalizeText(
+  const clientData =
+    entry.cliente && typeof entry.cliente === "object"
+      ? [
+          entry.cliente.nome,
+          entry.cliente.email,
+          entry.cliente.telefone,
+          entry.cliente.id,
+        ]
+      : [entry.cliente];
+
+  const condominiumData =
+    entry.condominio && typeof entry.condominio === "object"
+      ? [entry.condominio.nome, entry.condominio.codigo, entry.condominio.id]
+      : [entry.condominio];
+
+  const orderData =
+    entry.ordem && typeof entry.ordem === "object"
+      ? [entry.ordem.codigo, entry.ordem.titulo, entry.ordem.id]
+      : [entry.ordem];
+
+  const searchableContent = normalizeText(
     [
       entry.codigo,
       entry.descricao,
-      entry.cliente,
-      entry.condominio,
-      entry.ordem,
+      ...clientData,
+      ...condominiumData,
+      ...orderData,
       getCategoryLabel(entry),
       entry.observacoes,
-    ].join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
   );
 
-  return content.includes(search);
+  return searchableContent.includes(search);
 }
 
 function matchesPeriod(entry) {
@@ -638,7 +965,11 @@ function renderEntries() {
     description.textContent = entry.descricao;
 
     reference.textContent =
-      [entry.cliente, entry.condominio, entry.ordem]
+      [
+        getClientLabel(entry.cliente),
+        getCondominiumLabel(entry.condominio),
+        getOrderLabel(entry.ordem),
+      ]
         .filter(Boolean)
         .join(" · ") || "Sem vínculo informado";
 
@@ -913,23 +1244,6 @@ function populateEntryCategories(type, selected = "") {
   }
 }
 
-function generateIdentifiers() {
-  const numbers = entries.map((entry) => {
-    const match = String(entry.codigo).match(/\d+/);
-
-    return match ? Number(match[0]) : 0;
-  });
-
-  const next = Math.max(0, ...numbers) + 1;
-
-  const formatted = String(next).padStart(4, "0");
-
-  return {
-    id: `financeiro-${formatted}`,
-    codigo: `FIN-${formatted}`,
-  };
-}
-
 function clearFormErrors() {
   financeEntryForm.querySelectorAll(".form-field").forEach((field) => {
     field.classList.remove("has-error");
@@ -977,7 +1291,11 @@ function validateEntryForm() {
 
   if (!entryCategory.value) {
     setFieldError(entryCategory, "Selecione uma categoria.");
+    valid = false;
+  }
 
+  if (entryType.value === "income" && !entryClient.value) {
+    setFieldError(entryClient, "Selecione o cliente deste recebimento.");
     valid = false;
   }
 
@@ -988,7 +1306,12 @@ function openEntryModal(entry = null) {
   editingEntryId = entry?.id || null;
 
   financeEntryForm.reset();
+
   clearFormErrors();
+
+  entryClientSearch.value = "";
+
+  populateClientSelect();
 
   entryModalEyebrow.textContent = entry
     ? "Editar lançamento"
@@ -1011,17 +1334,24 @@ function openEntryModal(entry = null) {
     entryPaymentDate.value = entry.pagamentoEm;
     entryPaymentMethod.value = entry.formaPagamento;
 
-    entryClient.value = entry.cliente;
-    entryCondominium.value = entry.condominio;
+    const clientId = getReferenceId(entry.cliente);
+    const condominiumId = getReferenceId(entry.condominio);
+    const orderId = getReferenceId(entry.ordem);
 
-    entryOrder.value = entry.ordem;
+    populateClientSelect(clientId);
+    populateCondominiumSelect(condominiumId);
+    populateOrderSelect(orderId);
+
+    entryClientSearch.value = getClientLabel(entry.cliente);
+
     entryNotes.value = entry.observacoes;
   } else {
-    const identifiers = generateIdentifiers();
+    entryId.value = "";
 
-    entryId.value = identifiers.id;
     entryType.value = "income";
+
     entryStatus.value = "pending";
+
     entryDueDate.value = dateToISO(today);
 
     populateEntryCategories("income");
@@ -1046,90 +1376,214 @@ function closeEntryModal() {
   clearFormErrors();
 }
 
-function saveEntry(event) {
+async function saveEntry(event) {
   event.preventDefault();
 
   if (!validateEntryForm()) {
     showFeedback("Revise os campos destacados.");
-
     return;
   }
 
   const existing = getEntryById(editingEntryId);
-
-  const identifiers = existing
-    ? {
-        id: existing.id,
-        codigo: existing.codigo,
-      }
-    : generateIdentifiers();
-
   const status = entryStatus.value;
 
-  const entry = normalizeEntry(
-    {
-      id: identifiers.id,
-      codigo: identifiers.codigo,
-
-      tipo: entryType.value,
-
-      descricao: entryDescription.value.trim(),
-
-      categoria: entryCategory.value,
-
-      valor: currencyInputToNumber(entryAmount.value),
-
-      vencimento: entryDueDate.value,
-
-      status,
-
-      pagamentoEm:
-        status === "paid" ? entryPaymentDate.value || dateToISO(today) : "",
-
-      formaPagamento: status === "paid" ? entryPaymentMethod.value : "",
-
-      cliente: entryClient.value.trim(),
-
-      condominio: entryCondominium.value.trim(),
-
-      ordem: entryOrder.value.trim(),
-
-      observacoes: entryNotes.value.trim(),
-    },
-    entries.length,
+  const selectedClient = clients.find(
+    (client) => client.id === entryClient.value,
   );
 
-  if (existing) {
-    const index = entries.findIndex((item) => item.id === existing.id);
+  const selectedCondominium = condominiums.find(
+    (condominium) => condominium.id === entryCondominium.value,
+  );
 
-    entries[index] = entry;
-  } else {
-    entries.push(entry);
+  const selectedOrder = orders.find((order) => order.id === entryOrder.value);
+
+  if (entryType.value === "income" && !selectedClient) {
+    setFieldError(entryClient, "Selecione um cliente válido.");
+    showFeedback("Selecione novamente o cliente.");
+    return;
   }
 
-  saveEntries();
-  closeEntryModal();
-  updateSummary();
-  renderEntries();
+  if (entryOrder.value && !selectedOrder) {
+    setFieldError(entryOrder, "A ordem selecionada não foi encontrada.");
+    showFeedback("Selecione novamente a ordem de serviço.");
+    return;
+  }
 
-  showFeedback(existing ? "Lançamento atualizado." : "Lançamento registrado.");
+  if (
+    selectedOrder &&
+    selectedClient &&
+    selectedOrder.clienteId &&
+    selectedOrder.clienteId !== selectedClient.id
+  ) {
+    setFieldError(
+      entryOrder,
+      "Esta ordem não pertence ao cliente selecionado.",
+    );
+
+    showFeedback("A ordem não pertence ao cliente selecionado.");
+    return;
+  }
+
+  if (
+    selectedOrder &&
+    selectedCondominium &&
+    selectedOrder.condominioId &&
+    selectedOrder.condominioId !== selectedCondominium.id
+  ) {
+    setFieldError(
+      entryOrder,
+      "Esta ordem não pertence ao condomínio selecionado.",
+    );
+
+    showFeedback("A ordem não pertence ao condomínio selecionado.");
+    return;
+  }
+
+  const originalButtonText = saveEntryButton.textContent;
+
+  saveEntryButton.disabled = true;
+  saveEntryButton.textContent = existing ? "Atualizando..." : "Salvando...";
+
+  const data = {
+    tipo: entryType.value,
+
+    descricao: entryDescription.value.trim(),
+
+    categoria: entryCategory.value,
+
+    valor: currencyInputToNumber(entryAmount.value),
+
+    vencimento: entryDueDate.value,
+
+    status,
+
+    pagamentoEm:
+      status === "paid" ? entryPaymentDate.value || dateToISO(today) : "",
+
+    formaPagamento: status === "paid" ? entryPaymentMethod.value : "",
+
+    clienteUid: selectedClient?.id || "",
+
+    condominioId: selectedCondominium?.id || "",
+
+    ordemId: selectedOrder?.id || "",
+
+    cliente: selectedClient
+      ? {
+          id: selectedClient.id,
+          nome: selectedClient.nome,
+          email: selectedClient.email,
+          telefone: selectedClient.telefone,
+        }
+      : null,
+
+    condominio: selectedCondominium
+      ? {
+          id: selectedCondominium.id,
+          codigo: selectedCondominium.codigo,
+          nome: selectedCondominium.nome,
+        }
+      : null,
+
+    ordem: selectedOrder
+      ? {
+          id: selectedOrder.id,
+          codigo: selectedOrder.codigo,
+          titulo: selectedOrder.titulo,
+        }
+      : null,
+
+    observacoes: entryNotes.value.trim(),
+
+    atualizadoEm: serverTimestamp(),
+
+    atualizadoPorUid: currentSession?.uid || "",
+  };
+
+  try {
+    if (existing) {
+      await updateDoc(doc(db, "financeiro", existing.id), data);
+    } else {
+      const documentReference = doc(collection(db, "financeiro"));
+
+      const code = `FIN-${documentReference.id.slice(0, 8).toUpperCase()}`;
+
+      await setDoc(documentReference, {
+        ...data,
+
+        id: documentReference.id,
+
+        codigo: code,
+
+        criadoEm: serverTimestamp(),
+
+        criadoPorUid: currentSession?.uid || "",
+      });
+    }
+
+    await Promise.all([loadEntries(), loadFinancialLinks()]);
+
+    closeEntryModal();
+
+    updateSummary();
+
+    renderEntries();
+
+    showFeedback(
+      existing ? "Lançamento atualizado." : "Lançamento registrado.",
+    );
+  } catch (error) {
+    console.error("[Financeiro] Não foi possível salvar o lançamento:", error);
+
+    showFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a gravação do lançamento."
+        : "Não foi possível salvar o lançamento.",
+    );
+  } finally {
+    saveEntryButton.disabled = false;
+
+    saveEntryButton.textContent = originalButtonText;
+  }
 }
 
-function markEntryAsPaid(id) {
+async function markEntryAsPaid(id) {
   const entry = getEntryById(id);
 
   if (!entry) {
     return;
   }
 
-  entry.status = "paid";
-  entry.pagamentoEm = dateToISO(today);
+  try {
+    await updateDoc(doc(db, "financeiro", id), {
+      status: "paid",
 
-  saveEntries();
-  updateSummary();
-  renderEntries();
+      pagamentoEm: dateToISO(today),
 
-  showFeedback("Pagamento registrado.");
+      atualizadoEm: serverTimestamp(),
+
+      atualizadoPorUid: currentSession?.uid || "",
+    });
+
+    await loadEntries();
+
+    updateSummary();
+
+    renderEntries();
+
+    showFeedback("Pagamento registrado.");
+  } catch (error) {
+    console.error(
+      "[Financeiro] Não foi possível registrar o pagamento:",
+      error,
+    );
+
+    showFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a atualização do pagamento."
+        : "Não foi possível registrar o pagamento.",
+    );
+  }
 }
 
 /* EVENTOS */
@@ -1157,6 +1611,20 @@ newEntryButton.addEventListener("click", () => openEntryModal());
 closeEntryModalButton.addEventListener("click", closeEntryModal);
 
 cancelEntryButton.addEventListener("click", closeEntryModal);
+
+entryClientSearch.addEventListener("input", () => {
+  populateClientSelect(entryClient.value);
+});
+
+entryClient.addEventListener("change", () => {
+  populateCondominiumSelect();
+
+  populateOrderSelect();
+});
+
+entryCondominium.addEventListener("change", () => {
+  populateOrderSelect();
+});
 
 financeEntryForm.addEventListener("submit", saveEntry);
 
@@ -1197,9 +1665,39 @@ document.addEventListener("keydown", (event) => {
 
 /* INICIALIZAÇÃO */
 
-loadEntries();
-populateCategoryFilter();
-updateSummary();
-updateFilterCount();
-renderActiveFilters();
-changeView("all");
+async function initializeFinancePage() {
+  try {
+    currentSession = await window.salvateckSessionReady;
+
+    if (!currentSession || currentSession.role !== "admin") {
+      throw new Error("ADMIN_SESSION_NOT_FOUND");
+    }
+
+    await Promise.all([loadEntries(), loadFinancialLinks()]);
+  } catch (error) {
+    console.error(
+      "[Financeiro] Não foi possível carregar os lançamentos:",
+      error,
+    );
+
+    entries = [];
+
+    showFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura dos lançamentos financeiros."
+        : "Não foi possível carregar os lançamentos financeiros.",
+    );
+  }
+
+  populateCategoryFilter();
+
+  updateSummary();
+
+  updateFilterCount();
+
+  renderActiveFilters();
+
+  changeView("all");
+}
+
+initializeFinancePage();

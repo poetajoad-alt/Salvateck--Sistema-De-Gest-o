@@ -10,7 +10,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebas
 
 import { getStorage } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCzWVnlc7a8vY0KN8KxiZhYlqefPMzRY1o",
   authDomain: "salvateck-app.firebaseapp.com",
   projectId: "salvateck-app",

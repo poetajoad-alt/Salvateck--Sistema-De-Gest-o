@@ -99,12 +99,7 @@ const profileConfig = {
         target: "condominios.html?perfil=admin",
         icon: "building",
       },
-      {
-        title: "Serviços",
-        description: "Consulte categorias e serviços disponíveis.",
-        target: "servicos.html?perfil=admin",
-        icon: "tools",
-      },
+
       {
         title: "Funcionários",
         description: "Área preparada para a futura gestão da equipe.",

@@ -3,6 +3,7 @@ import {
   updateProfile,
   deleteUser,
   signOut,
+  sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
 import {
@@ -268,6 +269,36 @@ registerForm.addEventListener("submit", async (event) => {
     window.location.replace(`login.html?${parameters.toString()}`);
   } catch (error) {
     console.error("[Cadastro] Não foi possível criar a conta:", error);
+
+    if (error?.code === "auth/email-already-in-use") {
+      try {
+        await sendPasswordResetEmail(auth, email);
+
+        const parameters = new URLSearchParams({
+          ativacao: "enviada",
+          email,
+        });
+
+        window.location.replace(`login.html?${parameters.toString()}`);
+
+        return;
+      } catch (activationError) {
+        console.error(
+          "[Cadastro] Não foi possível enviar o e-mail de ativação:",
+          activationError,
+        );
+
+        showFeedback(
+          activationError?.code === "auth/network-request-failed"
+            ? "Não foi possível acessar o Firebase. Verifique sua internet."
+            : "Encontramos seu cadastro, mas não foi possível enviar o link para definir sua senha.",
+        );
+
+        setLoading(false);
+
+        return;
+      }
+    }
 
     if (createdUser) {
       try {

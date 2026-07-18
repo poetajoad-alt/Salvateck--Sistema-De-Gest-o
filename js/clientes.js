@@ -2,18 +2,109 @@
    CONFIGURAÇÕES GERAIS
 ========================================= */
 
-const CUSTOMERS_STORAGE_KEY = "salvateckClientesTemporarios";
-const CONDOMINIUMS_STORAGE_KEY = "salvateckCondominiosTemporarios";
+const FIREBASE_VERSION = "12.16.0";
 
-const LEGACY_CUSTOMER_ID_MAP = {
-  "cliente-joao": "CLI-0001",
-  "cliente-maria": "CLI-0002",
-  "cliente-carlos": "CLI-0003",
-  "cliente-ana": "CLI-0004",
-  "cliente-roberto": "CLI-0005",
-  "cliente-patricia": "CLI-0006",
-  "cliente-fernanda": "CLI-0007",
-};
+let db;
+let collection;
+let doc;
+let getDocs;
+let query;
+let where;
+let setDoc;
+let serverTimestamp;
+let writeBatch;
+
+/* Firebase App secundário */
+
+let initializeApp;
+let deleteApp;
+
+/* Firebase Authentication secundário */
+
+let getAuth;
+let setPersistence;
+let inMemoryPersistence;
+let createUserWithEmailAndPassword;
+let updateProfile;
+let sendPasswordResetEmail;
+let deleteUser;
+let signOut;
+
+/* Configuração compartilhada */
+
+let firebaseConfig;
+
+let clientes = [];
+let condominios = [];
+
+async function prepararFirebaseDeClientes() {
+  const [
+    firebaseAppModule,
+    firebaseAuthModule,
+    firestoreModule,
+    firebaseConfigModule,
+  ] = await Promise.all([
+    import(
+      `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`
+    ),
+
+    import(
+      `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`
+    ),
+
+    import(
+      `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`
+    ),
+
+    import("./firebase-config.js"),
+  ]);
+
+  db = firebaseConfigModule.db;
+
+  firebaseConfig = firebaseConfigModule.firebaseConfig;
+
+  if (!firebaseConfig) {
+    throw new Error("FIREBASE_CONFIG_NOT_EXPORTED");
+  }
+
+  ({ initializeApp, deleteApp } = firebaseAppModule);
+
+  ({
+    getAuth,
+    setPersistence,
+    inMemoryPersistence,
+    createUserWithEmailAndPassword,
+    updateProfile,
+    sendPasswordResetEmail,
+    deleteUser,
+    signOut,
+  } = firebaseAuthModule);
+
+  ({
+    collection,
+    doc,
+    getDocs,
+    query,
+    where,
+    setDoc,
+    serverTimestamp,
+    writeBatch,
+  } = firestoreModule);
+}
+
+async function aguardarSessaoDaPagina() {
+  if (window.salvateckSessionReady) {
+    return window.salvateckSessionReady;
+  }
+
+  return new Promise((resolve) => {
+    window.addEventListener(
+      "salvateck:auth-ready",
+      (event) => resolve(event.detail),
+      { once: true },
+    );
+  });
+}
 
 /* =========================================
    FUNÇÕES DE DATA
@@ -29,328 +120,11 @@ function obterInicioDoDia(data = new Date()) {
 
 function obterDataISO(data) {
   const ano = data.getFullYear();
-
   const mes = String(data.getMonth() + 1).padStart(2, "0");
-
   const dia = String(data.getDate()).padStart(2, "0");
 
   return `${ano}-${mes}-${dia}`;
 }
-
-function criarDataComOffset(dias) {
-  const data = obterInicioDoDia();
-
-  data.setDate(data.getDate() + dias);
-
-  return obterDataISO(data);
-}
-
-/* =========================================
-   DADOS TEMPORÁRIOS DOS CLIENTES
-========================================= */
-
-const clientesIniciais = [
-  {
-    id: "CLI-0001",
-
-    nome: "João da Silva",
-
-    telefone: "(11) 99999-0000",
-
-    email: "joao@email.com",
-
-    cep: "01001-000",
-
-    estado: "SP",
-
-    rua: "Rua Exemplo",
-
-    numero: "150",
-
-    complemento: "Casa 2",
-
-    bairro: "Centro",
-
-    cidade: "São Paulo",
-
-    cidadeSlug: "sao-paulo",
-
-    canalPreferido: "whatsapp",
-
-    status: "ativo",
-
-    cadastradoEm: criarDataComOffset(-210),
-
-    quantidadeOrdens: 9,
-
-    ordensAtivas: 3,
-
-    valorMovimentado: 1835,
-
-    observacoes: "Entrar em contato antes de chegar ao endereço.",
-
-    aviso: "",
-  },
-
-  {
-    id: "CLI-0002",
-
-    nome: "Maria Oliveira",
-
-    telefone: "(11) 98888-1122",
-
-    email: "maria.oliveira@email.com",
-
-    cep: "01310-100",
-
-    estado: "SP",
-
-    rua: "Avenida das Flores",
-
-    numero: "380",
-
-    complemento: "Apartamento 42",
-
-    bairro: "Vila Nova",
-
-    cidade: "São Paulo",
-
-    cidadeSlug: "sao-paulo",
-
-    canalPreferido: "whatsapp",
-
-    status: "ativo",
-
-    cadastradoEm: criarDataComOffset(-95),
-
-    quantidadeOrdens: 4,
-
-    ordensAtivas: 1,
-
-    valorMovimentado: 720,
-
-    observacoes: "Preferência por atendimentos no período da manhã.",
-
-    aviso: "",
-  },
-
-  {
-    id: "CLI-0003",
-
-    nome: "Carlos Henrique",
-
-    telefone: "(11) 97777-3344",
-
-    email: "carlos.henrique@email.com",
-
-    cep: "06010-030",
-
-    estado: "SP",
-
-    rua: "Rua das Palmeiras",
-
-    numero: "45",
-
-    complemento: "",
-
-    bairro: "Jardim Sul",
-
-    cidade: "Osasco",
-
-    cidadeSlug: "osasco",
-
-    canalPreferido: "telefone",
-
-    status: "com-pendencia",
-
-    cadastradoEm: criarDataComOffset(-72),
-
-    quantidadeOrdens: 5,
-
-    ordensAtivas: 1,
-
-    valorMovimentado: 1480,
-
-    observacoes:
-      "Cliente solicitou contato telefônico antes de qualquer alteração na ordem.",
-
-    aviso: "Existe uma pendência financeira vinculada a um atendimento.",
-  },
-
-  {
-    id: "CLI-0004",
-
-    nome: "Ana Paula Santos",
-
-    telefone: "(11) 96666-7788",
-
-    email: "ana.paula@email.com",
-
-    cep: "06401-110",
-
-    estado: "SP",
-
-    rua: "Rua dos Ipês",
-
-    numero: "92",
-
-    complemento: "",
-
-    bairro: "Bela Vista",
-
-    cidade: "Barueri",
-
-    cidadeSlug: "barueri",
-
-    canalPreferido: "email",
-
-    status: "ativo",
-
-    cadastradoEm: criarDataComOffset(-21),
-
-    quantidadeOrdens: 2,
-
-    ordensAtivas: 0,
-
-    valorMovimentado: 465,
-
-    observacoes: "Enviar confirmação do atendimento também por e-mail.",
-
-    aviso: "",
-  },
-
-  {
-    id: "CLI-0005",
-
-    nome: "Roberto Mendes",
-
-    telefone: "(11) 95555-8899",
-
-    email: "roberto.mendes@email.com",
-
-    cep: "06320-020",
-
-    estado: "SP",
-
-    rua: "Avenida Central",
-
-    numero: "1020",
-
-    complemento: "Sala 6",
-
-    bairro: "Centro",
-
-    cidade: "Carapicuíba",
-
-    cidadeSlug: "carapicuiba",
-
-    canalPreferido: "whatsapp",
-
-    status: "inativo",
-
-    cadastradoEm: criarDataComOffset(-320),
-
-    quantidadeOrdens: 3,
-
-    ordensAtivas: 0,
-
-    valorMovimentado: 590,
-
-    observacoes: "Cadastro inativado após solicitação do cliente.",
-
-    aviso: "",
-  },
-
-  {
-    id: "CLI-0006",
-
-    nome: "Patrícia Souza",
-
-    telefone: "(11) 94444-2211",
-
-    email: "patricia.souza@email.com",
-
-    cep: "01011-000",
-
-    estado: "SP",
-
-    rua: "Rua São Bento",
-
-    numero: "318",
-
-    complemento: "",
-
-    bairro: "Centro",
-
-    cidade: "São Paulo",
-
-    cidadeSlug: "sao-paulo",
-
-    canalPreferido: "whatsapp",
-
-    status: "cadastro-incompleto",
-
-    cadastradoEm: criarDataComOffset(-8),
-
-    quantidadeOrdens: 1,
-
-    ordensAtivas: 0,
-
-    valorMovimentado: 0,
-
-    observacoes: "Aguardando confirmação de alguns dados do endereço.",
-
-    aviso: "O cadastro possui informações que ainda precisam ser confirmadas.",
-  },
-
-  {
-    id: "CLI-0007",
-
-    nome: "Fernanda Lima",
-
-    telefone: "(11) 93333-4567",
-
-    email: "fernanda.lima@email.com",
-
-    cep: "01414-002",
-
-    estado: "SP",
-
-    rua: "Rua das Acácias",
-
-    numero: "114",
-
-    complemento: "",
-
-    bairro: "Jardim Paulista",
-
-    cidade: "São Paulo",
-
-    cidadeSlug: "sao-paulo",
-
-    canalPreferido: "telefone",
-
-    status: "ativo",
-
-    cadastradoEm: criarDataComOffset(-2),
-
-    quantidadeOrdens: 1,
-
-    ordensAtivas: 1,
-
-    valorMovimentado: 0,
-
-    observacoes: "Novo cadastro realizado durante uma solicitação de serviço.",
-
-    aviso: "",
-  },
-];
-
-let clientes = clientesIniciais.map((cliente) => ({
-  ...cliente,
-}));
-
-let condominios = [];
 
 /* =========================================
    CONFIGURAÇÕES DOS CAMPOS
@@ -841,7 +615,7 @@ function obterCondominioPorId(condominioId) {
 }
 
 function normalizarIdClienteVinculado(clienteId) {
-  return LEGACY_CUSTOMER_ID_MAP[clienteId] || clienteId;
+  return String(clienteId || "").trim();
 }
 
 function mostrarFeedback(mensagem) {
@@ -899,109 +673,190 @@ function abrirCadastroDoCondominio(condominioId) {
   window.location.href = `condominios.html?${parametros.toString()}`;
 }
 /* =========================================
-   ARMAZENAMENTO LOCAL
+   DADOS DO FIRESTORE
 ========================================= */
 
-function carregarClientesSalvos() {
-  try {
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem(CUSTOMERS_STORAGE_KEY) || "null",
-    );
+function converterDataDoFirestoreParaISO(valor) {
+  if (!valor) {
+    return "";
+  }
 
-    if (Array.isArray(dadosSalvos) && dadosSalvos.length > 0) {
-      clientes = dadosSalvos;
+  if (typeof valor.toDate === "function") {
+    return obterDataISO(valor.toDate());
+  }
 
+  if (valor instanceof Date) {
+    return obterDataISO(valor);
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  return texto.includes("T") ? texto.split("T")[0] : texto;
+}
+
+function obterEnderecoDoDocumento(dados) {
+  const endereco = dados?.endereco || {};
+
+  return {
+    cep: endereco.cep || dados?.cep || "",
+    estado: endereco.estado || dados?.estado || "",
+    rua:
+      endereco.rua ||
+      endereco.logradouro ||
+      dados?.rua ||
+      dados?.logradouro ||
+      "",
+    numero: endereco.numero || dados?.numero || "",
+    complemento: endereco.complemento || dados?.complemento || "",
+    bairro: endereco.bairro || dados?.bairro || "",
+    cidade: endereco.cidade || dados?.cidade || "",
+  };
+}
+
+function mapearClienteDoFirestore(clienteSnapshot) {
+  const dados = clienteSnapshot.data();
+  const endereco = obterEnderecoDoDocumento(dados);
+
+  const status =
+    dados.statusCadastro || (dados.ativo === false ? "inativo" : "ativo");
+
+  return {
+    id: clienteSnapshot.id,
+    uid: dados.uid || clienteSnapshot.id,
+    possuiAcesso: dados.possuiAcesso !== false,
+    origemCadastro: dados.origemCadastro || "registro",
+
+    nome: dados.nome || "",
+    telefone: dados.telefone || "",
+    email: dados.email || "",
+
+    cep: endereco.cep,
+    estado: endereco.estado,
+    rua: endereco.rua,
+    numero: endereco.numero,
+    complemento: endereco.complemento,
+    bairro: endereco.bairro,
+    cidade: endereco.cidade,
+
+    cidadeSlug: dados.cidadeSlug || criarSlug(endereco.cidade),
+    canalPreferido: dados.canalPreferido || "whatsapp",
+    status,
+
+    cadastradoEm: converterDataDoFirestoreParaISO(
+      dados.criadoEm || dados.cadastradoEm,
+    ),
+
+    quantidadeOrdens: 0,
+    ordensAtivas: 0,
+    valorMovimentado: 0,
+
+    observacoes: dados.observacoesAdministrativas || dados.observacoes || "",
+
+    aviso: dados.aviso || obterAvisoPorStatus(status),
+  };
+}
+
+function mapearCondominioDoFirestore(condominioSnapshot) {
+  const dados = condominioSnapshot.data();
+
+  return {
+    ...dados,
+    id: condominioSnapshot.id,
+    nome: dados.nome || "Condomínio sem nome",
+
+    clientesVinculados: Array.isArray(dados.clientesVinculados)
+      ? dados.clientesVinculados
+      : [],
+  };
+}
+
+function obterClienteIdDaOrdem(ordem) {
+  return String(ordem?.clienteUid || ordem?.cliente?.id || "").trim();
+}
+
+function obterValorMovimentadoDaOrdem(ordem) {
+  const valoresPossiveis = [
+    ordem?.valorTotal,
+    ordem?.valor,
+    ordem?.valorFinal,
+    ordem?.financeiro?.valorTotal,
+    ordem?.financeiro?.valorFinal,
+    ordem?.orcamento?.valorAprovado,
+  ];
+
+  const valorEncontrado = valoresPossiveis.find((valor) => {
+    const numero = Number(valor);
+
+    return Number.isFinite(numero);
+  });
+
+  return Number(valorEncontrado) || 0;
+}
+
+function ordemEstaAtiva(ordem) {
+  if (
+    ordem?.ativo === false ||
+    ordem?.arquivada === true ||
+    ordem?.arquivado === true
+  ) {
+    return false;
+  }
+
+  const status = normalizarTexto(ordem?.status);
+
+  const indicadoresDeEncerramento = ["conclu", "finaliz", "cancel", "recus"];
+
+  return !indicadoresDeEncerramento.some((indicador) =>
+    status.includes(indicador),
+  );
+}
+
+function aplicarMetricasDasOrdens(ordens) {
+  const clientesPorId = new Map(
+    clientes.map((cliente) => [cliente.id, cliente]),
+  );
+
+  ordens.forEach((ordem) => {
+    const clienteId = obterClienteIdDaOrdem(ordem);
+    const cliente = clientesPorId.get(clienteId);
+
+    if (!cliente) {
       return;
     }
 
-    salvarClientesLocalmente();
-  } catch (error) {
-    console.warn("Não foi possível carregar os clientes temporários.", error);
-  }
-}
+    cliente.quantidadeOrdens += 1;
+    cliente.valorMovimentado += obterValorMovimentadoDaOrdem(ordem);
 
-function salvarClientesLocalmente() {
-  try {
-    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(clientes));
-
-    return true;
-  } catch (error) {
-    console.warn("Não foi possível salvar os clientes temporários.", error);
-
-    return false;
-  }
-}
-
-function carregarCondominiosSalvos() {
-  try {
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem(CONDOMINIUMS_STORAGE_KEY) || "null",
-    );
-
-    condominios = Array.isArray(dadosSalvos) ? dadosSalvos : [];
-  } catch (error) {
-    console.warn(
-      "Não foi possível carregar os condomínios temporários.",
-      error,
-    );
-
-    condominios = [];
-  }
-}
-
-function salvarCondominiosLocalmente() {
-  try {
-    localStorage.setItem(CONDOMINIUMS_STORAGE_KEY, JSON.stringify(condominios));
-
-    return true;
-  } catch (error) {
-    console.warn("Não foi possível salvar os vínculos dos condomínios.", error);
-
-    return false;
-  }
-}
-
-function migrarIdsLegadosDosCondominios() {
-  let alterou = false;
-
-  condominios.forEach((condominio) => {
-    const vinculos = Array.isArray(condominio.clientesVinculados)
-      ? condominio.clientesVinculados
-      : [];
-
-    const normalizados = vinculos.map((vinculo) => {
-      const novoId = normalizarIdClienteVinculado(vinculo.clienteId);
-
-      if (novoId !== vinculo.clienteId) {
-        alterou = true;
-      }
-
-      return {
-        ...vinculo,
-        clienteId: novoId,
-      };
-    });
-
-    const chaves = new Set();
-
-    condominio.clientesVinculados = normalizados.filter((vinculo) => {
-      const chave = `${vinculo.clienteId}::` + `${vinculo.papel || "outro"}`;
-
-      if (chaves.has(chave)) {
-        alterou = true;
-
-        return false;
-      }
-
-      chaves.add(chave);
-
-      return true;
-    });
+    if (ordemEstaAtiva(ordem)) {
+      cliente.ordensAtivas += 1;
+    }
   });
+}
 
-  if (alterou) {
-    salvarCondominiosLocalmente();
-  }
+async function carregarDadosDeClientesDoFirestore() {
+  const clientesQuery = query(
+    collection(db, "usuarios"),
+    where("role", "==", "cliente"),
+  );
+
+  const [clientesSnapshot, condominiosSnapshot, ordensSnapshot] =
+    await Promise.all([
+      getDocs(clientesQuery),
+      getDocs(collection(db, "condominios")),
+      getDocs(collection(db, "ordens")),
+    ]);
+
+  clientes = clientesSnapshot.docs.map(mapearClienteDoFirestore);
+
+  condominios = condominiosSnapshot.docs.map(mapearCondominioDoFirestore);
+
+  aplicarMetricasDasOrdens(
+    ordensSnapshot.docs.map((ordemSnapshot) => ordemSnapshot.data()),
+  );
 }
 
 /* =========================================
@@ -1042,53 +897,78 @@ function obterVinculosDoCliente(clienteId) {
   return vinculos;
 }
 
-function sincronizarVinculosDoCliente(clienteId) {
+async function sincronizarVinculosDoCliente(clienteId) {
+  const batch = writeBatch(db);
+  let possuiAlteracoes = false;
+
   condominios.forEach((condominio) => {
-    const atuais = Array.isArray(condominio.clientesVinculados)
+    const vinculosAtuais = Array.isArray(condominio.clientesVinculados)
       ? condominio.clientesVinculados
       : [];
 
-    condominio.clientesVinculados = atuais.filter(
-      (vinculo) =>
-        normalizarIdClienteVinculado(vinculo.clienteId) !== clienteId,
+    const vinculosAtualizados = vinculosAtuais
+      .filter(
+        (vinculo) =>
+          normalizarIdClienteVinculado(vinculo.clienteId) !== clienteId,
+      )
+      .map((vinculo) => ({ ...vinculo }));
+
+    const vinculosDoCondominio = vinculosDoClienteRascunho.filter(
+      (vinculo) => vinculo.condominioId === condominio.id,
     );
-  });
 
-  vinculosDoClienteRascunho.forEach((vinculoRascunho) => {
-    const condominio = obterCondominioPorId(vinculoRascunho.condominioId);
+    vinculosDoCondominio.forEach((vinculoRascunho) => {
+      if (vinculoRascunho.contatoPrincipal) {
+        vinculosAtualizados.forEach((vinculo) => {
+          vinculo.contatoPrincipal = false;
+        });
+      }
 
-    if (!condominio) {
+      if (vinculoRascunho.responsavelFinanceiro) {
+        vinculosAtualizados.forEach((vinculo) => {
+          vinculo.responsavelFinanceiro = false;
+        });
+      }
+
+      vinculosAtualizados.push({
+        clienteId,
+
+        papel: vinculoRascunho.papel,
+
+        contatoPrincipal: Boolean(vinculoRascunho.contatoPrincipal),
+
+        responsavelFinanceiro: Boolean(vinculoRascunho.responsavelFinanceiro),
+      });
+    });
+
+    const antes = JSON.stringify(vinculosAtuais);
+    const depois = JSON.stringify(vinculosAtualizados);
+
+    if (antes === depois) {
       return;
     }
 
-    if (!Array.isArray(condominio.clientesVinculados)) {
-      condominio.clientesVinculados = [];
-    }
+    possuiAlteracoes = true;
 
-    if (vinculoRascunho.contatoPrincipal) {
-      condominio.clientesVinculados.forEach((vinculo) => {
-        vinculo.contatoPrincipal = false;
-      });
-    }
+    condominio.clientesVinculados = vinculosAtualizados;
 
-    if (vinculoRascunho.responsavelFinanceiro) {
-      condominio.clientesVinculados.forEach((vinculo) => {
-        vinculo.responsavelFinanceiro = false;
-      });
-    }
-
-    condominio.clientesVinculados.push({
-      clienteId,
-
-      papel: vinculoRascunho.papel,
-
-      contatoPrincipal: Boolean(vinculoRascunho.contatoPrincipal),
-
-      responsavelFinanceiro: Boolean(vinculoRascunho.responsavelFinanceiro),
-    });
+    batch.set(
+      doc(db, "condominios", condominio.id),
+      {
+        clientesVinculados: vinculosAtualizados,
+        atualizadoEm: serverTimestamp(),
+      },
+      {
+        merge: true,
+      },
+    );
   });
 
-  return salvarCondominiosLocalmente();
+  if (possuiAlteracoes) {
+    await batch.commit();
+  }
+
+  return true;
 }
 
 function popularSelectDeCondominios() {
@@ -2157,16 +2037,6 @@ function validarFormularioDoCliente() {
   return true;
 }
 
-function gerarNovoIdDeCliente() {
-  const maiorNumero = clientes.reduce((maior, cliente) => {
-    const numero = Number(String(cliente.id).replace(/\D/g, ""));
-
-    return Math.max(maior, numero || 0);
-  }, 0);
-
-  return `CLI-${String(maiorNumero + 1).padStart(4, "0")}`;
-}
-
 function obterAvisoPorStatus(status) {
   if (status === "cadastro-incompleto") {
     return "O cadastro possui informações que ainda precisam ser confirmadas.";
@@ -2178,7 +2048,114 @@ function obterAvisoPorStatus(status) {
 
   return "";
 }
+/* =========================================
+   ACESSO DO CLIENTE
+========================================= */
 
+function gerarSenhaTemporariaSegura() {
+  const caracteres =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+
+  const valoresAleatorios = new Uint32Array(24);
+
+  window.crypto.getRandomValues(valoresAleatorios);
+
+  const parteAleatoria = Array.from(
+    valoresAleatorios,
+    (valor) => caracteres[valor % caracteres.length],
+  ).join("");
+
+  return `Aa1!${parteAleatoria}`;
+}
+
+async function criarContaSecundariaDoCliente(nome, email) {
+  const nomeDoAplicativo = `cliente-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const aplicativoSecundario = initializeApp(firebaseConfig, nomeDoAplicativo);
+
+  const autenticacaoSecundaria = getAuth(aplicativoSecundario);
+
+  let usuarioCriado = null;
+
+  try {
+    autenticacaoSecundaria.languageCode = "pt-BR";
+
+    await setPersistence(autenticacaoSecundaria, inMemoryPersistence);
+
+    const credencial = await createUserWithEmailAndPassword(
+      autenticacaoSecundaria,
+      email,
+      gerarSenhaTemporariaSegura(),
+    );
+
+    usuarioCriado = credencial.user;
+
+    await updateProfile(usuarioCriado, {
+      displayName: nome,
+    });
+
+    return {
+      app: aplicativoSecundario,
+      auth: autenticacaoSecundaria,
+      user: usuarioCriado,
+    };
+  } catch (error) {
+    if (usuarioCriado) {
+      try {
+        await deleteUser(usuarioCriado);
+      } catch (deleteError) {
+        console.warn(
+          "[Clientes] Não foi possível desfazer a conta incompleta:",
+          deleteError,
+        );
+      }
+    }
+
+    try {
+      await signOut(autenticacaoSecundaria);
+    } catch (signOutError) {
+      console.warn(
+        "[Clientes] Não foi possível encerrar a autenticação secundária:",
+        signOutError,
+      );
+    }
+
+    try {
+      await deleteApp(aplicativoSecundario);
+    } catch (deleteAppError) {
+      console.warn(
+        "[Clientes] Não foi possível remover o aplicativo secundário:",
+        deleteAppError,
+      );
+    }
+
+    throw error;
+  }
+}
+
+async function encerrarContaSecundaria(contexto) {
+  if (!contexto) {
+    return;
+  }
+
+  try {
+    await signOut(contexto.auth);
+  } catch (error) {
+    console.warn(
+      "[Clientes] Não foi possível encerrar a sessão secundária:",
+      error,
+    );
+  }
+
+  try {
+    await deleteApp(contexto.app);
+  } catch (error) {
+    console.warn(
+      "[Clientes] Não foi possível remover o aplicativo secundário:",
+      error,
+    );
+  }
+}
 /* =========================================
    SALVAMENTO DO CLIENTE
 ========================================= */
@@ -2202,26 +2179,22 @@ async function salvarCliente(event) {
 
   definirEstadoDeSalvamento(true);
 
-  await aguardar(650);
-
   const clienteExistente = obterClientePorId(clienteEmEdicaoId);
 
   const status = customerStatusInput.value;
 
-  const clienteIdSalvo = clienteExistente?.id || gerarNovoIdDeCliente();
+  const nome = limparTexto(customerNameInput.value);
 
-  const dadosDoCliente = {
-    nome: limparTexto(customerNameInput.value),
+  const email = limparTexto(customerEmailInput.value).toLowerCase();
 
-    telefone: formatarTelefone(customerPhoneInput.value),
-
-    email: limparTexto(customerEmailInput.value),
-
+  const endereco = {
     cep: formatarCep(customerPostalCodeInput.value),
 
     estado: customerStateInput.value,
 
     rua: limparTexto(customerStreetInput.value),
+
+    logradouro: limparTexto(customerStreetInput.value),
 
     numero: limparTexto(customerAddressNumberInput.value),
 
@@ -2230,60 +2203,184 @@ async function salvarCliente(event) {
     bairro: limparTexto(customerDistrictInput.value),
 
     cidade: limparTexto(customerCityInput.value),
-
-    cidadeSlug: criarSlug(customerCityInput.value),
-
-    canalPreferido: customerContactPreferenceInput.value,
-
-    status,
-
-    observacoes: limparTexto(customerNotesInput.value),
-
-    aviso: obterAvisoPorStatus(status),
   };
 
-  if (clienteExistente) {
-    Object.assign(clienteExistente, dadosDoCliente);
-  } else {
-    clientes.push({
-      id: clienteIdSalvo,
+  let contextoAcesso = null;
 
-      ...dadosDoCliente,
+  let cadastroPersistido = false;
 
-      cadastradoEm: obterDataISO(new Date()),
+  let emailDeDefinicaoEnviado = false;
 
-      quantidadeOrdens: 0,
+  try {
+    let clienteUid = clienteExistente?.uid || clienteExistente?.id || "";
 
-      ordensAtivas: 0,
+    if (!clienteExistente) {
+      contextoAcesso = await criarContaSecundariaDoCliente(nome, email);
 
-      valorMovimentado: 0,
+      clienteUid = contextoAcesso.user.uid;
+    }
+
+    const clienteReference = doc(db, "usuarios", clienteUid);
+
+    const dadosDoCliente = {
+      uid: clienteUid,
+
+      role: "cliente",
+
+      nome,
+
+      telefone: formatarTelefone(customerPhoneInput.value),
+
+      telefoneNumeros: somenteNumeros(customerPhoneInput.value),
+
+      email,
+
+      ativo: status !== "inativo",
+
+      statusCadastro: status,
+
+      statusAcesso:
+        clienteExistente?.statusAcesso || "aguardando-definicao-senha",
+
+      canalPreferido: customerContactPreferenceInput.value,
+
+      observacoesAdministrativas: limparTexto(customerNotesInput.value),
+
+      aviso: obterAvisoPorStatus(status),
+
+      cidadeSlug: criarSlug(customerCityInput.value),
+
+      endereco,
+
+      cep: endereco.cep,
+
+      estado: endereco.estado,
+
+      rua: endereco.rua,
+
+      numero: endereco.numero,
+
+      complemento: endereco.complemento,
+
+      bairro: endereco.bairro,
+
+      cidade: endereco.cidade,
+
+      possuiAcesso: clienteExistente?.possuiAcesso ?? false,
+
+      origemCadastro:
+        clienteExistente?.origemCadastro || "cadastro-administrativo",
+
+      atualizadoEm: serverTimestamp(),
+    };
+
+    if (!clienteExistente) {
+      dadosDoCliente.criadoEm = serverTimestamp();
+    }
+
+    await setDoc(clienteReference, dadosDoCliente, {
+      merge: true,
     });
+
+    cadastroPersistido = true;
+
+    await sincronizarVinculosDoCliente(clienteReference.id);
+
+    if (!clienteExistente && contextoAcesso) {
+      try {
+        await sendPasswordResetEmail(contextoAcesso.auth, email);
+
+        emailDeDefinicaoEnviado = true;
+
+        await setDoc(
+          clienteReference,
+          {
+            conviteEnviadoEm: serverTimestamp(),
+          },
+          {
+            merge: true,
+          },
+        );
+      } catch (emailError) {
+        console.warn(
+          "[Clientes] Cliente criado, mas o e-mail para definição de senha não foi enviado:",
+          emailError,
+        );
+      }
+    }
+
+    await carregarDadosDeClientesDoFirestore();
+
+    fecharModalDeCliente();
+
+    atualizarOpcoesDeOrdenacao();
+
+    atualizarAbas();
+
+    atualizarResumo();
+
+    popularSelectDeCondominios();
+
+    renderizarClientes();
+
+    if (clienteExistente) {
+      mostrarFeedback("Cadastro e vínculos atualizados com sucesso.");
+    } else if (emailDeDefinicaoEnviado) {
+      mostrarFeedback(
+        "Cliente cadastrado. O e-mail para definir a senha foi enviado.",
+      );
+    } else {
+      mostrarFeedback(
+        "Cliente cadastrado, mas o e-mail de acesso não pôde ser enviado. Ele poderá usar a recuperação de senha.",
+      );
+    }
+  } catch (error) {
+    console.error("[Clientes] Não foi possível salvar o cliente:", error);
+
+    if (contextoAcesso?.user && !cadastroPersistido) {
+      try {
+        await deleteUser(contextoAcesso.user);
+      } catch (deleteError) {
+        console.warn(
+          "[Clientes] Não foi possível desfazer a conta criada:",
+          deleteError,
+        );
+      }
+    }
+
+    if (error?.code === "auth/email-already-in-use") {
+      definirErroDoCampo(
+        customerEmailInput,
+        "Este e-mail já possui uma conta cadastrada.",
+      );
+
+      mostrarFeedback("Já existe uma conta utilizando este e-mail.");
+    } else if (error?.code === "auth/invalid-email") {
+      definirErroDoCampo(customerEmailInput, "Informe um e-mail válido.");
+
+      mostrarFeedback("O e-mail informado não é válido.");
+    } else if (error?.code === "auth/network-request-failed") {
+      mostrarFeedback(
+        "Não foi possível acessar o Firebase. Verifique sua internet.",
+      );
+    } else if (error?.code === "permission-denied") {
+      mostrarFeedback(
+        "O Firebase bloqueou a gravação. Revise as regras do Firestore.",
+      );
+    } else if (cadastroPersistido) {
+      mostrarFeedback(
+        "O cliente foi criado, mas houve uma falha ao concluir o cadastro. Atualize a página e confira os dados.",
+      );
+    } else {
+      mostrarFeedback("Não foi possível salvar os dados do cliente.");
+    }
+  } finally {
+    await encerrarContaSecundaria(contextoAcesso);
+
+    definirEstadoDeSalvamento(false);
   }
-
-  const clienteSalvo = salvarClientesLocalmente();
-
-  const vinculosSalvos = sincronizarVinculosDoCliente(clienteIdSalvo);
-
-  definirEstadoDeSalvamento(false);
-
-  if (!clienteSalvo || !vinculosSalvos) {
-    mostrarFeedback("Não foi possível salvar todos os dados do cliente.");
-
-    return;
-  }
-
-  fecharModalDeCliente();
-
-  atualizarResumo();
-
-  renderizarClientes();
-
-  mostrarFeedback(
-    clienteExistente
-      ? "Cadastro e vínculos atualizados com sucesso."
-      : "Cliente cadastrado com sucesso.",
-  );
 }
+
 /* =========================================
    CONSULTA DE CEP
 ========================================= */
@@ -3001,22 +3098,33 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarClientesSalvos();
+async function inicializarPaginaDeClientes() {
+  try {
+    await prepararFirebaseDeClientes();
 
-carregarCondominiosSalvos();
+    await aguardarSessaoDaPagina();
 
-migrarIdsLegadosDosCondominios();
+    await carregarDadosDeClientesDoFirestore();
+  } catch (error) {
+    console.error("[Clientes] Não foi possível carregar os dados:", error);
 
-sincronizarEstiloDosFiltros();
+    clientes = [];
+    condominios = [];
 
-atualizarContagemDeFiltros();
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura dos clientes. Revise as regras."
+        : "Não foi possível carregar os clientes.",
+    );
+  }
 
-atualizarOpcoesDeOrdenacao();
+  sincronizarEstiloDosFiltros();
+  atualizarContagemDeFiltros();
+  atualizarOpcoesDeOrdenacao();
+  atualizarAbas();
+  atualizarResumo();
+  popularSelectDeCondominios();
+  renderizarClientes();
+}
 
-atualizarAbas();
-
-atualizarResumo();
-
-popularSelectDeCondominios();
-
-renderizarClientes();
+inicializarPaginaDeClientes();

@@ -48,7 +48,54 @@ function revealPage() {
 function redirectToLogin() {
   window.location.replace("login.html");
 }
+/* =========================================
+   NAVEGAÇÃO DOS BOTÕES VOLTAR
+========================================= */
 
+function configurarBotoesVoltar() {
+  document.addEventListener("click", (event) => {
+    const botaoVoltar = event.target.closest(
+      'a.header-button[aria-label^="Voltar"], button.header-button[aria-label^="Voltar"]',
+    );
+
+    if (!botaoVoltar) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const paginaAlternativa =
+      botaoVoltar.getAttribute("href") ||
+      botaoVoltar.dataset.fallback ||
+      "principal.html";
+
+    const paginaAnterior = document.referrer;
+
+    let possuiPaginaAnteriorInterna = false;
+
+    if (paginaAnterior) {
+      try {
+        const urlAnterior = new URL(paginaAnterior);
+
+        possuiPaginaAnteriorInterna =
+          urlAnterior.origin === window.location.origin &&
+          urlAnterior.href !== window.location.href;
+      } catch (error) {
+        possuiPaginaAnteriorInterna = false;
+      }
+    }
+
+    if (possuiPaginaAnteriorInterna && window.history.length > 1) {
+      window.history.back();
+
+      return;
+    }
+
+    window.location.href = paginaAlternativa;
+  });
+}
+
+configurarBotoesVoltar();
 async function invalidateSession(message) {
   validationCompleted = true;
 
@@ -64,7 +111,60 @@ async function invalidateSession(message) {
 
   redirectToLogin();
 }
+/* =========================================
+   LOGOS DAS PÁGINAS INTERNAS → PRINCIPAL
+========================================= */
 
+function configurarLogosParaPrincipal() {
+  const paginaAtual = window.location.pathname.split("/").pop().toLowerCase();
+
+  if (paginaAtual === "principal.html") {
+    return;
+  }
+
+  const logos = document.querySelectorAll('img[src*="logo.salvateck"]');
+
+  logos.forEach((logo) => {
+    const elementoClicavel = logo.closest("a, button");
+
+    if (elementoClicavel) {
+      elementoClicavel.setAttribute("href", "principal.html");
+
+      elementoClicavel.setAttribute(
+        "aria-label",
+        "Voltar para a tela principal",
+      );
+
+      return;
+    }
+
+    logo.classList.add("logo-home-link");
+
+    logo.setAttribute("role", "button");
+
+    logo.setAttribute("tabindex", "0");
+
+    logo.setAttribute("aria-label", "Voltar para a tela principal");
+
+    logo.setAttribute("title", "Voltar para a tela principal");
+
+    logo.addEventListener("click", () => {
+      window.location.href = "principal.html";
+    });
+
+    logo.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+
+      window.location.href = "principal.html";
+    });
+  });
+}
+
+configurarLogosParaPrincipal();
 /* =========================================
    VALIDAÇÃO
 ========================================= */

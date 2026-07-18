@@ -1,18 +1,23 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
+
 /* =========================================
    CONFIGURAÇÕES GERAIS
 ========================================= */
 
-const clienteAtualId = "cliente-joao";
-
-const clienteAtualNome = "João da Silva";
-
-const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
-
-const ORDERS_STATE_STORAGE_KEY = "salvateckEstadoOrdensTemporarias";
-
-const REQUEST_DETAILS_STORAGE_KEY = "salvateckDetalhesSolicitacoesTeste";
-
 const FILTROS_RAPIDOS = ["todos", "confirmado", "a-confirmar", "encerrados"];
+
+let servicosAgendados = [];
+
+let sessaoAtual = null;
 
 /* =========================================
    FUNÇÕES INICIAIS DE DATA
@@ -35,140 +40,6 @@ function obterDataISO(data) {
 
   return `${ano}-${mes}-${dia}`;
 }
-
-function criarDataComOffset(dias) {
-  const data = obterInicioDoDia();
-
-  data.setDate(data.getDate() + dias);
-
-  return obterDataISO(data);
-}
-
-/* =========================================
-   DADOS TEMPORÁRIOS DOS SERVIÇOS
-========================================= */
-
-const servicosAgendados = [
-  {
-    id: "OS-0001",
-    clienteId: "cliente-joao",
-
-    titulo: "Vazamento na torneira da cozinha",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Torneira vazando", "Ajustar torneira"],
-
-    data: criarDataComOffset(0),
-
-    periodo: "manha",
-    horario: "09:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0002",
-    clienteId: "cliente-joao",
-
-    titulo: "Instalação de luminária",
-
-    categorias: ["eletrica", "instalacoes"],
-
-    servicos: ["Instalar luminária"],
-
-    data: criarDataComOffset(1),
-
-    periodo: "tarde",
-    horario: "14:30",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "a-confirmar",
-  },
-
-  {
-    id: "OS-0003",
-    clienteId: "cliente-joao",
-
-    titulo: "Pintura de parede do quarto",
-
-    categorias: ["pintura"],
-
-    servicos: ["Preparação da superfície", "Pintura de parede"],
-
-    data: criarDataComOffset(5),
-
-    periodo: "tarde",
-    horario: "14:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0009",
-    clienteId: "cliente-joao",
-
-    titulo: "Ajuste da porta da área de serviço",
-
-    categorias: ["manutencao-geral"],
-
-    servicos: ["Ajustar porta", "Trocar maçaneta"],
-
-    data: criarDataComOffset(13),
-
-    periodo: "manha",
-    horario: "10:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0007",
-    clienteId: "cliente-joao",
-
-    titulo: "Manutenção da descarga",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Reparo da descarga", "Teste de funcionamento"],
-
-    data: criarDataComOffset(-4),
-
-    periodo: "manha",
-    horario: "08:30",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "concluido",
-  },
-
-  {
-    id: "OS-0008",
-    clienteId: "cliente-joao",
-
-    titulo: "Instalação de prateleira",
-
-    categorias: ["instalacoes"],
-
-    servicos: ["Instalar prateleira"],
-
-    data: criarDataComOffset(-9),
-
-    periodo: "tarde",
-    horario: "15:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "cancelado",
-  },
-];
 
 /* =========================================
    CONFIGURAÇÕES DOS CAMPOS
@@ -378,7 +249,29 @@ function criarDataLocal(valor) {
     return null;
   }
 
-  return new Date(`${valor}T12:00:00`);
+  if (typeof valor.toDate === "function") {
+    const data = valor.toDate();
+
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  if (valor instanceof Date) {
+    const data = new Date(valor);
+
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return null;
+  }
+
+  const apenasData = texto.split("T")[0];
+
+  const data = new Date(`${apenasData}T12:00:00`);
+
+  return Number.isNaN(data.getTime()) ? null : data;
 }
 
 function resolverData(valor) {
@@ -531,30 +424,51 @@ function abrirEnderecoNoMapa(endereco) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 /* =========================================
-   INTEGRAÇÃO COM AS ORDENS SALVAS
+   INTEGRAÇÃO COM O FIRESTORE
 ========================================= */
 
 function normalizarStatusParaAgenda(status) {
   const statusNormalizado = normalizarTexto(status);
 
   const statusMap = {
+    "nova-solicitacao": "a-confirmar",
+
     "aguardando-confirmacao": "a-confirmar",
 
+    "aguardando-agendamento": "a-confirmar",
+
+    pendente: "a-confirmar",
+
+    solicitada: "a-confirmar",
+
     agendada: "confirmado",
+
     agendado: "confirmado",
+
     confirmado: "confirmado",
 
     "em-deslocamento": "em-deslocamento",
 
     "em-atendimento": "em-atendimento",
 
+    "em-andamento": "em-atendimento",
+
+    iniciada: "em-atendimento",
+
     concluida: "concluido",
+
     concluido: "concluido",
 
+    finalizada: "concluido",
+
+    finalizado: "concluido",
+
     cancelada: "cancelado",
+
     cancelado: "cancelado",
 
     recusada: "cancelado",
+
     recusado: "cancelado",
   };
 
@@ -582,31 +496,29 @@ function obterEnderecoDaOrdemSalva(ordem) {
     return ordem.endereco;
   }
 
-  const resumo = String(ordem.endereco?.resumo || "").trim();
+  const endereco = ordem.endereco || {};
+
+  const resumo = String(endereco.resumo || "").trim();
 
   if (resumo) {
     return resumo;
   }
 
   const primeiraLinha = [
-    ordem.endereco?.logradouro || ordem.endereco?.rua,
+    endereco.logradouro || endereco.rua,
 
-    ordem.endereco?.numero,
+    endereco.numero,
 
-    ordem.endereco?.complemento,
+    endereco.complemento,
   ]
     .filter(Boolean)
     .join(", ");
 
-  const cidadeEstado = [
-    ordem.endereco?.cidade,
-
-    ordem.endereco?.uf || ordem.endereco?.estado,
-  ]
+  const cidadeEstado = [endereco.cidade, endereco.uf || endereco.estado]
     .filter(Boolean)
     .join("/");
 
-  const segundaLinha = [ordem.endereco?.bairro, cidadeEstado]
+  const segundaLinha = [endereco.bairro, cidadeEstado]
     .filter(Boolean)
     .join(" — ");
 
@@ -616,129 +528,80 @@ function obterEnderecoDaOrdemSalva(ordem) {
   );
 }
 
-function ordemPertenceAoClienteAtual(ordem) {
-  const clienteId = ordem.cliente?.id || ordem.clienteId || "";
+function converterDataParaISO(valor) {
+  const data = criarDataLocal(valor);
 
-  const clienteNome = ordem.cliente?.nome || ordem.clienteNome || "";
-
-  const perfilCriador = normalizarTexto(ordem.perfilCriador);
-
-  if (clienteId === clienteAtualId) {
-    return true;
-  }
-
-  if (normalizarTexto(clienteNome) === normalizarTexto(clienteAtualNome)) {
-    return true;
-  }
-
-  return perfilCriador === "cliente" && !clienteId;
+  return data ? obterDataISO(data) : "";
 }
 
-function mesclarOrdemComEstadosLocais(ordem, estadosSalvos, detalhesSalvos) {
-  const estado = estadosSalvos[ordem.id] || {};
+function normalizarOrdemParaAgenda(documentSnapshot) {
+  const ordem = documentSnapshot.data();
 
-  const detalhes = detalhesSalvos[ordem.id] || {};
-
-  const dataConfirmada =
-    estado.dataAgendada ||
-    detalhes.atendimento?.dataConfirmada ||
-    ordem.atendimento?.dataConfirmada ||
-    "";
-
-  const periodoConfirmado =
-    estado.periodo ||
-    detalhes.atendimento?.periodoConfirmado ||
-    ordem.atendimento?.periodoConfirmado ||
-    "";
-
-  const horarioConfirmado =
-    estado.horario ||
-    detalhes.atendimento?.horarioConfirmado ||
-    ordem.atendimento?.horarioConfirmado ||
-    "";
-
-  return {
-    ...ordem,
-
-    status: estado.status || detalhes.status || ordem.status,
-
-    proposta: Object.prototype.hasOwnProperty.call(detalhes, "proposta")
-      ? detalhes.proposta
-      : ordem.proposta,
-
-    atendimento: {
-      ...(ordem.atendimento || {}),
-
-      ...(detalhes.atendimento || {}),
-
-      dataConfirmada,
-
-      periodoConfirmado,
-
-      horarioConfirmado,
-    },
-  };
-}
-
-function normalizarOrdemParaAgenda(ordem, indice) {
-  const status = normalizarStatusParaAgenda(ordem.status);
+  const status = normalizarStatusParaAgenda(
+    ordem.status || ordem.vistoria?.status,
+  );
 
   if (!status) {
     return null;
   }
 
   const categorias =
-    Array.isArray(ordem.categorias) && ordem.categorias.length
-      ? ordem.categorias
+    Array.isArray(ordem.categorias) && ordem.categorias.length > 0
+      ? ordem.categorias.filter(Boolean)
       : [ordem.categoriaPrincipal].filter(Boolean);
 
-  const data =
+  const data = converterDataParaISO(
     ordem.atendimento?.dataConfirmada ||
-    ordem.dataAgendada ||
-    ordem.proposta?.data ||
-    ordem.atendimento?.dataPreferida ||
-    ordem.dataPreferida ||
-    "";
+      ordem.dataAgendada ||
+      ordem.proposta?.data ||
+      ordem.atendimento?.dataPreferida ||
+      ordem.dataPreferida ||
+      "",
+  );
 
   if (!data) {
     return null;
   }
 
-  const periodo =
+  const periodo = String(
     ordem.atendimento?.periodoConfirmado ||
-    ordem.periodoConfirmado ||
-    ordem.proposta?.periodo ||
-    ordem.periodo ||
-    ordem.atendimento?.periodo ||
-    "";
+      ordem.periodoConfirmado ||
+      ordem.proposta?.periodo ||
+      ordem.periodo ||
+      ordem.atendimento?.periodo ||
+      "",
+  ).trim();
 
-  const horario =
+  const horario = String(
     ordem.atendimento?.horarioConfirmado ||
-    ordem.horarioConfirmado ||
-    ordem.proposta?.horario ||
-    ordem.horario ||
-    ordem.atendimento?.horarioPreferido ||
-    "";
+      ordem.horarioConfirmado ||
+      ordem.proposta?.horario ||
+      ordem.horario ||
+      ordem.atendimento?.horarioPreferido ||
+      "",
+  ).trim();
 
   return {
-    id: ordem.id || `ordem-temporaria-${indice + 1}`,
+    id: documentSnapshot.id,
 
-    codigo: ordem.codigo || ordem.numero || ordem.id || `OS-TEMP-${indice + 1}`,
+    codigo:
+      String(ordem.codigo || ordem.numero || "").trim() || documentSnapshot.id,
 
-    clienteId: clienteAtualId,
+    clienteId: String(ordem.cliente?.id || "").trim(),
 
-    titulo:
+    titulo: String(
       ordem.titulo ||
-      ordem.servicoPrincipal ||
-      (categorias.includes("vistoria")
-        ? "Vistoria técnica"
-        : "Serviço agendado"),
+        ordem.servicoPrincipal ||
+        (categorias.includes("vistoria")
+          ? "Vistoria técnica"
+          : "Serviço agendado"),
+    ).trim(),
 
     categorias,
 
     servicos: obterServicosDaOrdemSalva(ordem),
 
-    data: String(data).split("T")[0],
+    data,
 
     periodo,
 
@@ -750,57 +613,28 @@ function normalizarOrdemParaAgenda(ordem, indice) {
   };
 }
 
-function carregarServicosSalvos() {
-  try {
-    const ordensSalvas = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
+async function carregarServicosDoFirestore(sessao) {
+  const uid = String(sessao?.uid || "").trim();
 
-    if (!Array.isArray(ordensSalvas)) {
-      return;
-    }
-
-    const estadosSalvos = JSON.parse(
-      localStorage.getItem(ORDERS_STATE_STORAGE_KEY) || "{}",
-    );
-
-    const detalhesSalvos = JSON.parse(
-      localStorage.getItem(REQUEST_DETAILS_STORAGE_KEY) || "{}",
-    );
-
-    const ordensDoCliente = ordensSalvas
-      .filter(ordemPertenceAoClienteAtual)
-      .map((ordem) => {
-        return mesclarOrdemComEstadosLocais(
-          ordem,
-          estadosSalvos,
-          detalhesSalvos,
-        );
-      })
-      .map(normalizarOrdemParaAgenda)
-      .filter(Boolean);
-
-    ordensDoCliente.forEach((servicoSalvo) => {
-      const indiceExistente = servicosAgendados.findIndex((servicoAtual) => {
-        const codigoAtual = servicoAtual.codigo || servicoAtual.id;
-
-        return (
-          servicoAtual.id === servicoSalvo.id ||
-          codigoAtual === servicoSalvo.codigo
-        );
-      });
-
-      if (indiceExistente >= 0) {
-        servicosAgendados[indiceExistente] = servicoSalvo;
-
-        return;
-      }
-
-      servicosAgendados.push(servicoSalvo);
-    });
-  } catch (error) {
-    console.warn("Não foi possível carregar os serviços salvos.", error);
+  if (!uid) {
+    throw new Error("CLIENT_UID_NOT_FOUND");
   }
+
+  const consulta = query(
+    collection(db, "ordens"),
+
+    where("clienteUid", "==", uid),
+  );
+
+  const snapshot = await getDocs(consulta);
+
+  servicosAgendados = snapshot.docs
+    .map(normalizarOrdemParaAgenda)
+    .filter(Boolean);
+
+  console.info(
+    `[Serviços Agendados] ${servicosAgendados.length} serviço(s) do cliente carregado(s) do Firestore.`,
+  );
 }
 /* =========================================
    INTERVALOS DE DATA
@@ -849,9 +683,7 @@ function obterInicioDoCalendario(data) {
 ========================================= */
 
 function obterServicosDoCliente() {
-  return ordenarServicos(
-    servicosAgendados.filter((servico) => servico.clienteId === clienteAtualId),
-  );
+  return ordenarServicos(servicosAgendados);
 }
 
 /* =========================================
@@ -1318,19 +1150,23 @@ function preencherCard(servico) {
 
   title.textContent = servico.titulo;
 
-  services.textContent = servico.servicos.join(" • ");
-
+  services.textContent =
+    servico.servicos.join(" • ") || "Serviço não informado";
   address.textContent = servico.endereco || "Endereço não informado";
 
   dateInformation.textContent = formatarDataCompleta(servico.data);
 
-  toggle.setAttribute("aria-label", `Mostrar detalhes da ordem ${servico.id}`);
-
-  mapButton.setAttribute("aria-label", `Abrir endereço da ordem ${servico.id}`);
-
+  toggle.setAttribute(
+    "aria-label",
+    `Mostrar detalhes da ordem ${servico.codigo}`,
+  );
+  mapButton.setAttribute(
+    "aria-label",
+    `Abrir endereço da ordem ${servico.codigo}`,
+  );
   detailsButton.setAttribute(
     "aria-label",
-    `Abrir detalhes da ordem ${servico.id}`,
+    `Abrir detalhes da ordem ${servico.codigo}`,
   );
 
   toggle.addEventListener("click", () => {
@@ -1619,18 +1455,45 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarServicosSalvos();
+async function inicializarPaginaDeServicosAgendados() {
+  try {
+    const sessao = await window.salvateckSessionReady;
 
-sincronizarFormularioComFiltros();
+    if (!sessao || sessao.role !== "cliente") {
+      throw new Error("CLIENT_SESSION_NOT_FOUND");
+    }
 
-atualizarContagemDeFiltros();
+    sessaoAtual = sessao;
 
-renderizarFiltrosAtivos();
+    await carregarServicosDoFirestore(sessaoAtual);
+  } catch (error) {
+    console.error(
+      "[Serviços Agendados] Não foi possível carregar os serviços:",
+      error,
+    );
 
-alterarFiltroRapido(filtroRapido);
+    servicosAgendados = [];
 
-renderizarProximoAtendimento();
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura dos seus serviços."
+        : "Não foi possível carregar seus serviços.",
+    );
+  }
 
-atualizarResumo();
+  sincronizarFormularioComFiltros();
 
-renderizarCalendario();
+  atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
+  alterarFiltroRapido(filtroRapido);
+
+  renderizarProximoAtendimento();
+
+  atualizarResumo();
+
+  renderizarCalendario();
+}
+
+inicializarPaginaDeServicosAgendados();

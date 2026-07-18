@@ -3,6 +3,7 @@ import "./auth-guard.js";
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   runTransaction,
@@ -161,6 +162,8 @@ const addressRadios = document.querySelectorAll('input[name="tipoEndereco"]');
 
 const registeredAddress = document.getElementById("registered-address");
 
+const registeredAddressTitle = registeredAddress?.querySelector("strong");
+
 const registeredAddressLine1 = document.getElementById(
   "registered-address-line-1",
 );
@@ -290,6 +293,8 @@ let currentProfile = null;
 let currentSession = null;
 
 let selectedClientUid = "";
+
+let selectedCondominium = null;
 
 let hasRegisteredAddress = false;
 
@@ -641,7 +646,177 @@ function getProfileAddress(profile = {}) {
     ).trim(),
   };
 }
+function getCondominiumAddress(condominium = {}) {
+  const address = condominium.endereco || {};
 
+  return {
+    cep: String(address.cep || "").trim(),
+
+    rua: String(address.logradouro || address.rua || "").trim(),
+
+    numero: String(address.numero || "").trim(),
+
+    complemento: String(address.complemento || "").trim(),
+
+    bairro: String(address.bairro || "").trim(),
+
+    cidade: String(address.cidade || "").trim(),
+
+    estado: String(address.estado || address.uf || "").trim(),
+  };
+}
+
+function applySelectedCondominium(condominium) {
+  selectedCondominium = condominium;
+
+  const address = getCondominiumAddress(condominium);
+
+  hasRegisteredAddress = Boolean(
+    address.rua || address.bairro || address.cidade || address.cep,
+  );
+
+  if (registeredAddressTitle) {
+    registeredAddressTitle.textContent =
+      condominium.nome || "Condomínio selecionado";
+  }
+
+  if (hasRegisteredAddress) {
+    const firstLine = [address.rua, address.numero, address.complemento]
+      .filter(Boolean)
+      .join(", ");
+
+    const cityAndState = [address.cidade, address.estado]
+      .filter(Boolean)
+      .join("/");
+
+    const secondLine = [address.bairro, cityAndState, address.cep]
+      .filter(Boolean)
+      .join(" — ");
+
+    registeredAddressLine1.textContent = firstLine || "Endereço do condomínio";
+
+    registeredAddressLine2.textContent =
+      secondLine || "Endereço cadastrado no condomínio";
+
+    registeredAddressRadio.disabled = false;
+    registeredAddressRadio.checked = true;
+
+    alternateAddressRadio.checked = false;
+  } else {
+    registeredAddressLine1.textContent = "Condomínio sem endereço cadastrado";
+
+    registeredAddressLine2.textContent =
+      "Selecione outro endereço e preencha os campos.";
+
+    registeredAddressRadio.disabled = true;
+    registeredAddressRadio.checked = false;
+
+    alternateAddressRadio.checked = true;
+  }
+
+  toggleAddressMode();
+}
+
+async function loadLinkedClientFromCondominium(condominium) {
+  const links = Array.isArray(condominium.clientesVinculados)
+    ? condominium.clientesVinculados
+    : [];
+
+  const mainLink =
+    links.find((link) => link.contatoPrincipal) || links[0] || null;
+
+  const clientId = String(mainLink?.clienteId || "").trim();
+
+  if (!clientId) {
+    return false;
+  }
+
+  const clientSnapshot = await getDoc(doc(db, "usuarios", clientId));
+
+  if (!clientSnapshot.exists()) {
+    console.warn(
+      `[Nova Ordem] Cliente vinculado ${clientId} não foi encontrado.`,
+    );
+
+    return false;
+  }
+
+  const client = clientSnapshot.data();
+
+  if (client.ativo === false) {
+    console.warn(`[Nova Ordem] Cliente vinculado ${clientId} está inativo.`);
+
+    return false;
+  }
+
+  selectedClientUid = clientSnapshot.id;
+
+  buscarCliente.value = String(client.nome || "").trim();
+
+  nomeCliente.value = String(client.nome || "").trim();
+
+  telefoneCliente.value = String(client.telefone || "").trim();
+
+  emailCliente.value = String(client.email || "").trim();
+
+  updateClientSummary();
+  updateSummary();
+  updateProgress();
+
+  return true;
+}
+
+async function loadCondominiumFromURL() {
+  const condominiumId = String(orderUrlParams.get("condominio") || "").trim();
+
+  if (!condominiumId || currentProfile !== "admin") {
+    return;
+  }
+
+  const condominiumSnapshot = await getDoc(
+    doc(db, "condominios", condominiumId),
+  );
+
+  if (!condominiumSnapshot.exists()) {
+    showFeedback("O condomínio selecionado não foi encontrado.", "error");
+
+    return;
+  }
+
+  const data = condominiumSnapshot.data();
+
+  selectedCondominium = {
+    id: condominiumSnapshot.id,
+
+    codigo: String(data.codigo || "").trim(),
+
+    nome: String(data.nome || "Condomínio sem nome").trim(),
+
+    endereco: data.endereco || {},
+
+    clientesVinculados: Array.isArray(data.clientesVinculados)
+      ? data.clientesVinculados
+      : [],
+  };
+
+  applySelectedCondominium(selectedCondominium);
+
+  const clientLoaded =
+    await loadLinkedClientFromCondominium(selectedCondominium);
+
+  console.log("[Nova Ordem] Condomínio carregado:", {
+    id: selectedCondominium.id,
+    codigo: selectedCondominium.codigo,
+    nome: selectedCondominium.nome,
+    clienteCarregado: clientLoaded,
+  });
+
+  showFeedback(
+    clientLoaded
+      ? `${selectedCondominium.nome} e responsável carregados.`
+      : `${selectedCondominium.nome} carregado. Selecione o cliente da ordem.`,
+  );
+}
 function applyRegisteredAddress(profile = {}) {
   const address = getProfileAddress(profile);
 
@@ -901,7 +1076,11 @@ async function handleClientSearch() {
 
     emailCliente.value = String(client.email || "").trim();
 
-    applyRegisteredAddress(client);
+    if (selectedCondominium) {
+      applySelectedCondominium(selectedCondominium);
+    } else {
+      applyRegisteredAddress(client);
+    }
 
     /*
   Define o UID depois de preencher os campos,
@@ -951,7 +1130,11 @@ function handleQuickClientCreation() {
   telefoneCliente.value = "";
   emailCliente.value = "";
 
-  applyRegisteredAddress({});
+  if (selectedCondominium) {
+    applySelectedCondominium(selectedCondominium);
+  } else {
+    applyRegisteredAddress({});
+  }
 
   setClientFieldsEditable(true);
 
@@ -1025,6 +1208,55 @@ function getAddressSummary() {
 
   return alternateSummary || "Outro endereço não informado";
 }
+
+function getOrderAddressData() {
+  const mode = getAddressMode();
+
+  if (selectedCondominium && mode === "cadastrado") {
+    const address = getCondominiumAddress(selectedCondominium);
+
+    return {
+      tipo: "condominio",
+
+      enderecoCadastrado: true,
+
+      resumo: getAddressSummary(),
+
+      cep: address.cep,
+
+      rua: address.rua,
+
+      numero: address.numero,
+
+      complemento: address.complemento,
+
+      bairro: address.bairro,
+
+      cidade: address.cidade,
+    };
+  }
+
+  return {
+    tipo: mode,
+
+    enderecoCadastrado: mode === "cadastrado",
+
+    resumo: getAddressSummary(),
+
+    cep: cepAtendimento.value.trim(),
+
+    rua: ruaAtendimento.value.trim(),
+
+    numero: numeroAtendimento.value.trim(),
+
+    complemento: complementoAtendimento.value.trim(),
+
+    bairro: bairroAtendimento.value.trim(),
+
+    cidade: cidadeAtendimento.value.trim(),
+  };
+}
+
 function isAddressComplete() {
   if (getAddressMode() === "cadastrado") {
     return hasRegisteredAddress;
@@ -1596,6 +1828,8 @@ function buildOrderData({ id, numero, codigo }) {
       "",
   ).trim();
 
+  const orderAddress = getOrderAddressData();
+
   return {
     id,
 
@@ -1638,30 +1872,12 @@ function buildOrderData({ id, numero, codigo }) {
     },
 
     condominio: {
-      id: "",
+      id: selectedCondominium?.id || "",
 
-      nome: "",
+      nome: selectedCondominium?.nome || "",
     },
 
-    endereco: {
-      tipo: getAddressMode(),
-
-      enderecoCadastrado: getAddressMode() === "cadastrado",
-
-      resumo: getAddressSummary(),
-
-      cep: cepAtendimento.value.trim(),
-
-      rua: ruaAtendimento.value.trim(),
-
-      numero: numeroAtendimento.value.trim(),
-
-      complemento: complementoAtendimento.value.trim(),
-
-      bairro: bairroAtendimento.value.trim(),
-
-      cidade: cidadeAtendimento.value.trim(),
-    },
+    endereco: orderAddress,
 
     categorias: selectedCategories,
 
@@ -1931,6 +2147,8 @@ async function initializePage() {
     updateObservationCounter();
 
     applyAuthenticatedSession(session);
+
+    await loadCondominiumFromURL();
 
     preselectCategoryFromURL();
 

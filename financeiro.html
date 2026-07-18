@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/financeiro.css" />
 </head>
 
-<body data-page="financeiro" data-profile="admin">
+<body data-page="financeiro" data-profile="admin" data-allowed-roles="admin">
 
   <main class="finance-shell">
 
@@ -661,7 +661,15 @@
                 Cliente
               </span>
 
-              <input type="text" id="entry-client" placeholder="Nome do cliente" />
+              <input type="search" id="entry-client-search" placeholder="Digite o nome, e-mail ou telefone" autocomplete="off" />
+
+              <select id="entry-client">
+
+                <option value="">
+                  Digite para pesquisar
+                </option>
+
+              </select>
 
             </label>
 
@@ -671,7 +679,13 @@
                 Condomínio
               </span>
 
-              <input type="text" id="entry-condominium" placeholder="Nome do condomínio" />
+              <select id="entry-condominium" disabled>
+
+                <option value="">
+                  Selecione primeiro o cliente
+                </option>
+
+              </select>
 
             </label>
 
@@ -681,7 +695,13 @@
                 Ordem de serviço
               </span>
 
-              <input type="text" id="entry-order" placeholder="Ex.: OS-0021" />
+              <select id="entry-order" disabled>
+
+                <option value="">
+                  Selecione primeiro o cliente
+                </option>
+
+              </select>
 
             </label>
 
@@ -719,7 +739,7 @@
 
   <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></div>
 
-  <script src="js/financeiro.js"></script>
+  <script type="module" src="js/financeiro.js?v=1.0.10"></script>
 
 </body>
 

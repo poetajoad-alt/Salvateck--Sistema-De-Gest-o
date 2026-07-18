@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/clientes.css" />
 </head>
 
-<body data-page="clientes" data-profile="admin">
+<body data-page="clientes" data-profile="admin" data-allowed-roles="admin">
 
   <main class="customers-shell">
 
@@ -1599,6 +1599,7 @@
     Ação realizada com sucesso.
   </div>
 
+  <script type="module" src="js/auth-guard.js"></script>
   <script src="js/clientes.js"></script>
 
 </body>

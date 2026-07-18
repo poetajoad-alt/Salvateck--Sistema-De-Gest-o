@@ -1,0 +1,331 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* =====================================
+       FUNÇÕES
+    ===================================== */
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function usuarioAtual() {
+      return get(
+        /databases/$(database)/documents/usuarios/$(request.auth.uid)
+      ).data;
+    }
+
+    function eAdministrador() {
+      return estaAutenticado()
+        && exists(
+          /databases/$(database)/documents/usuarios/$(request.auth.uid)
+        )
+        && usuarioAtual().role == "admin"
+        && usuarioAtual().ativo == true;
+    }
+
+    function contadorOrdensDepois() {
+      return getAfter(
+        /databases/$(database)/documents/contadores/ordens
+      ).data;
+    }
+
+    function ordemDepois(ordemId) {
+      return getAfter(
+        /databases/$(database)/documents/ordens/$(ordemId)
+      ).data;
+    }
+
+    /* =====================================
+       USUÁRIOS
+    ===================================== */
+
+    match /usuarios/{userId} {
+      allow read: if eAdministrador()
+        || (
+          estaAutenticado()
+          && request.auth.uid == userId
+        );
+
+      allow create: if eAdministrador()
+        || (
+          estaAutenticado()
+          && request.auth.uid == userId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.role == "cliente"
+          && request.resource.data.ativo == true
+        );
+
+      allow update: if eAdministrador()
+        || (
+          estaAutenticado()
+          && request.auth.uid == userId
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.ativo == resource.data.ativo
+        );
+
+      allow delete: if eAdministrador();
+    }
+
+    /* =====================================
+       ORDENS DE SERVIÇO
+    ===================================== */
+
+    match /ordens/{ordemId} {
+      allow read: if eAdministrador()
+        || (
+          estaAutenticado()
+          && resource.data.clienteUid == request.auth.uid
+        );
+
+      allow create: if eAdministrador()
+        || (
+          estaAutenticado()
+
+          && request.resource.data.keys().hasOnly([
+            "id",
+            "numero",
+            "codigo",
+            "criadoEm",
+            "atualizadoEm",
+            "statusAtualizadoEm",
+            "perfilCriador",
+            "criadoPorUid",
+            "criadoPorNome",
+            "clienteUid",
+            "tipoAtendimento",
+            "categoriaPrincipal",
+            "servicoPrincipal",
+            "titulo",
+            "cliente",
+            "condominio",
+            "endereco",
+            "categorias",
+            "servicos",
+            "atendimento",
+            "observacoes",
+            "status",
+            "ativo",
+            "arquivado",
+            "quantidadeFotos",
+            "vistoria",
+            "origem"
+          ])
+
+          && request.resource.data.id == ordemId
+          && request.resource.data.codigo is string
+
+          && request.resource.data.numero is int
+          && request.resource.data.numero > 0
+
+          && request.resource.data.clienteUid == request.auth.uid
+          && request.resource.data.criadoPorUid == request.auth.uid
+
+          && request.resource.data.cliente is map
+          && request.resource.data.cliente.id == request.auth.uid
+
+          && request.resource.data.perfilCriador == "cliente"
+          && request.resource.data.status == "nova-solicitacao"
+          && request.resource.data.ativo == true
+          && request.resource.data.arquivado == false
+
+          && request.resource.data.quantidadeFotos is int
+          && request.resource.data.quantidadeFotos >= 0
+          && request.resource.data.quantidadeFotos <= 6
+
+          && request.resource.data.atendimento is map
+
+          && request.resource.data.atendimento.keys().hasAll([
+            "dataPreferida",
+            "periodo",
+            "horarioPreferido",
+            "dataConfirmada",
+            "periodoConfirmado",
+            "horarioConfirmado"
+          ])
+
+          && request.resource.data.atendimento.keys().hasOnly([
+            "dataPreferida",
+            "periodo",
+            "horarioPreferido",
+            "dataConfirmada",
+            "periodoConfirmado",
+            "horarioConfirmado"
+          ])
+
+          && request.resource.data.atendimento.dataPreferida == ""
+          && request.resource.data.atendimento.periodo == ""
+          && request.resource.data.atendimento.horarioPreferido == ""
+          && request.resource.data.atendimento.dataConfirmada == ""
+          && request.resource.data.atendimento.periodoConfirmado == ""
+          && request.resource.data.atendimento.horarioConfirmado == ""
+
+          && request.resource.data.observacoes is map
+
+          && request.resource.data.observacoes.keys().hasAll([
+            "cliente",
+            "resposta",
+            "interna"
+          ])
+
+          && request.resource.data.observacoes.keys().hasOnly([
+            "cliente",
+            "resposta",
+            "interna"
+          ])
+
+          && request.resource.data.observacoes.resposta == ""
+          && request.resource.data.observacoes.interna == ""
+
+          && request.resource.data.origem is map
+          && request.resource.data.origem.tipo == "solicitacao-cliente"
+
+          && request.resource.data.criadoEm == request.time
+          && request.resource.data.atualizadoEm == request.time
+          && request.resource.data.statusAtualizadoEm == request.time
+
+          && contadorOrdensDepois().ultimoNumero
+            == request.resource.data.numero
+
+          && contadorOrdensDepois().ultimoDocumentoId
+            == ordemId
+        );
+
+      allow update: if eAdministrador()
+        || (
+          estaAutenticado()
+
+          && resource.data.clienteUid == request.auth.uid
+          && request.resource.data.clienteUid == request.auth.uid
+
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "status",
+              "atualizadoEm",
+              "statusAtualizadoEm",
+              "observacoes"
+            ])
+
+          && resource.data.status in [
+            "nova-solicitacao",
+            "em-analise",
+            "aguardando-confirmacao",
+            "agendada"
+          ]
+
+          && request.resource.data.status == "cancelada"
+          && request.resource.data.atualizadoEm == request.time
+          && request.resource.data.statusAtualizadoEm == request.time
+
+          && request.resource.data.observacoes is map
+
+          && request.resource.data.observacoes.keys().hasAll([
+            "cliente",
+            "resposta",
+            "interna"
+          ])
+
+          && request.resource.data.observacoes.keys().hasOnly([
+            "cliente",
+            "resposta",
+            "interna"
+          ])
+
+          && request.resource.data.observacoes.cliente
+            == resource.data.observacoes.cliente
+
+          && request.resource.data.observacoes.interna
+            == resource.data.observacoes.interna
+
+          && request.resource.data.observacoes.resposta
+            == "A solicitação foi cancelada pelo cliente."
+        );
+
+      allow delete: if eAdministrador();
+    }
+
+    /* =====================================
+       DADOS PRIVADOS DAS ORDENS
+    ===================================== */
+
+    match /ordensPrivadas/{ordemId} {
+      allow read, create, update, delete: if eAdministrador();
+    }
+
+    /* =====================================
+       CONTADOR DAS ORDENS
+    ===================================== */
+
+    match /contadores/{contadorId} {
+      allow get: if estaAutenticado()
+        && contadorId == "ordens";
+
+      allow list: if eAdministrador();
+
+      allow create, delete: if eAdministrador();
+
+      allow update: if eAdministrador()
+        || (
+          estaAutenticado()
+
+          && contadorId == "ordens"
+
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "ultimoNumero",
+              "ultimoDocumentoId",
+              "atualizadoEm"
+            ])
+
+          && request.resource.data.ultimoNumero is int
+
+          && request.resource.data.ultimoNumero
+            == resource.data.ultimoNumero + 1
+
+          && request.resource.data.ultimoDocumentoId is string
+          && request.resource.data.ultimoDocumentoId != ""
+
+          && request.resource.data.atualizadoEm == request.time
+
+          && ordemDepois(
+            request.resource.data.ultimoDocumentoId
+          ).numero == request.resource.data.ultimoNumero
+
+          && ordemDepois(
+            request.resource.data.ultimoDocumentoId
+          ).clienteUid == request.auth.uid
+
+          && ordemDepois(
+            request.resource.data.ultimoDocumentoId
+          ).criadoPorUid == request.auth.uid
+
+          && ordemDepois(
+            request.resource.data.ultimoDocumentoId
+          ).perfilCriador == "cliente"
+        );
+    }
+
+    /* =====================================
+       FINANCEIRO
+    ===================================== */
+
+    match /financeiro/{lancamentoId} {
+      allow read, create, update, delete: if eAdministrador();
+    }
+
+    /* =====================================
+       ACESSO ADMINISTRATIVO GERAL
+    ===================================== */
+
+    match /{document=**} {
+      allow read, write: if eAdministrador();
+    }
+  }
+}

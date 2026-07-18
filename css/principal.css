@@ -159,6 +159,8 @@
   padding: 12px;
 
   overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
 
   background-color: var(--color-white);
 
@@ -166,6 +168,32 @@
   border-radius: 50%;
 
   box-shadow: var(--shadow-soft);
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.profile-logo:active {
+  transform: scale(0.96);
+}
+
+.profile-logo:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .profile-logo:hover {
+    transform: translateY(-2px);
+
+    border-color: #dd9a17;
+
+    box-shadow:
+      var(--shadow-soft),
+      0 0 0 5px rgba(221, 154, 23, 0.12);
+  }
 }
 
 .profile-logo img {

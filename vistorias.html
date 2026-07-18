@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/vistorias.css" />
 </head>
 
-<body data-page="vistorias" data-profile="admin">
+<body data-page="vistorias" data-profile="admin" data-allowed-roles="admin">
 
   <main class="inspections-shell">
 
@@ -611,7 +611,7 @@
 
   <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></div>
 
-  <script src="js/vistorias.js"></script>
+  <script type="module" src="js/vistorias.js?v=1.0.1"></script>
 
 </body>
 

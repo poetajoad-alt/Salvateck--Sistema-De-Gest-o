@@ -1335,4 +1335,7 @@ body.modal-open {
     align-items: flex-start;
     flex-direction: column;
   }
+  #entry-client {
+    margin-top: 8px;
+  }
 }

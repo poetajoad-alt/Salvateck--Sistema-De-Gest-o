@@ -1,13 +1,25 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  doc,
+  getDocs,
+  serverTimestamp,
+  updateDoc,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
+
 /* =========================================
    CONFIGURAÇÕES GERAIS
 ========================================= */
 
-const AGENDA_STORAGE_KEY = "salvateckAgendaTemporaria";
-
 const MODOS_VISUALIZACAO = ["mes", "semana", "dia", "lista"];
 
+let atendimentos = [];
+
 /* =========================================
-   FUNÇÕES PARA DATAS TEMPORÁRIAS
+   FUNÇÕES DE DATA
 ========================================= */
 
 function obterInicioDoDia(data = new Date()) {
@@ -17,209 +29,6 @@ function obterInicioDoDia(data = new Date()) {
 
   return novaData;
 }
-
-function criarDataComOffset(dias) {
-  const data = obterInicioDoDia();
-
-  data.setDate(data.getDate() + dias);
-
-  return obterDataISO(data);
-}
-
-/* =========================================
-   DADOS TEMPORÁRIOS DA AGENDA
-========================================= */
-
-const atendimentos = [
-  {
-    id: "OS-0004",
-    clienteId: "cliente-maria",
-    clienteNome: "Maria Oliveira",
-
-    titulo: "Troca de tomada danificada",
-
-    categorias: ["eletrica"],
-
-    servicos: ["Trocar tomada", "Verificar fiação"],
-
-    data: criarDataComOffset(0),
-
-    periodo: "manha",
-    horario: "08:30",
-
-    endereco:
-      "Avenida das Flores, 380, Apartamento 42 — Vila Nova, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "em-atendimento",
-  },
-
-  {
-    id: "OS-0001",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-
-    titulo: "Vazamento na torneira da cozinha",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Torneira vazando", "Ajustar torneira"],
-
-    data: criarDataComOffset(1),
-
-    periodo: "manha",
-    horario: "09:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0002",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-
-    titulo: "Instalação de luminária",
-
-    categorias: ["eletrica", "instalacoes"],
-
-    servicos: ["Instalar luminária"],
-
-    data: criarDataComOffset(2),
-
-    periodo: "tarde",
-    horario: "14:30",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    responsavel: "equipe-apoio",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0005",
-    clienteId: "cliente-carlos",
-    clienteNome: "Carlos Henrique",
-
-    titulo: "Reparo em parede com infiltração",
-
-    categorias: ["alvenaria", "pintura"],
-
-    servicos: [
-      "Correção de infiltração",
-      "Reparo em parede",
-      "Retoque de pintura",
-    ],
-
-    data: criarDataComOffset(3),
-
-    periodo: "manha",
-    horario: "10:00",
-
-    endereco: "Rua das Palmeiras, 45 — Jardim Sul, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "a-confirmar",
-  },
-
-  {
-    id: "OS-0007",
-    clienteId: "cliente-roberto",
-    clienteNome: "Roberto Mendes",
-
-    titulo: "Manutenção em porta e fechadura",
-
-    categorias: ["manutencao-geral"],
-
-    servicos: ["Ajustar porta", "Trocar fechadura"],
-
-    data: criarDataComOffset(5),
-
-    periodo: "tarde",
-    horario: "15:00",
-
-    endereco: "Avenida Central, 1020, Sala 6 — Centro, Osasco/SP",
-
-    responsavel: "nao-definido",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0003",
-    clienteId: "cliente-joao",
-    clienteNome: "João da Silva",
-
-    titulo: "Pintura de parede do quarto",
-
-    categorias: ["pintura"],
-
-    servicos: ["Preparação da superfície", "Pintura de parede"],
-
-    data: criarDataComOffset(7),
-
-    periodo: "tarde",
-    horario: "14:00",
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    responsavel: "equipe-apoio",
-
-    status: "confirmado",
-  },
-
-  {
-    id: "OS-0006",
-    clienteId: "cliente-ana",
-    clienteNome: "Ana Paula Santos",
-
-    titulo: "Instalação de suporte para televisão",
-
-    categorias: ["instalacoes"],
-
-    servicos: ["Instalar suporte de TV"],
-
-    data: criarDataComOffset(9),
-
-    periodo: "manha",
-    horario: "11:00",
-
-    endereco: "Rua dos Ipês, 92 — Bela Vista, São Paulo/SP",
-
-    responsavel: "jose",
-
-    status: "cancelado",
-  },
-
-  {
-    id: "OS-0008",
-    clienteId: "cliente-patricia",
-    clienteNome: "Patrícia Souza",
-
-    titulo: "Desentupimento de vaso sanitário",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Vaso sanitário entupido", "Desentupimento"],
-
-    data: criarDataComOffset(12),
-
-    periodo: "manha",
-    horario: "08:00",
-
-    endereco: "Rua São Bento, 318 — Centro, São Paulo/SP",
-
-    responsavel: "nao-definido",
-
-    status: "a-confirmar",
-  },
-];
 
 /* =========================================
    CONFIGURAÇÕES DOS CAMPOS
@@ -270,12 +79,14 @@ const categoriaConfig = {
   alvenaria: "Alvenaria",
   instalacoes: "Instalações",
   "manutencao-geral": "Manutenção geral",
+  vistoria: "Vistoria técnica",
 };
 
 const periodoConfig = {
   manha: "Manhã",
   tarde: "Tarde",
   noite: "Noite",
+  horario: "Horário específico",
 };
 
 const responsavelConfig = {
@@ -414,7 +225,29 @@ function criarDataLocal(valor) {
     return null;
   }
 
-  return new Date(`${valor}T12:00:00`);
+  if (typeof valor.toDate === "function") {
+    const data = valor.toDate();
+
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  if (valor instanceof Date) {
+    const data = new Date(valor);
+
+    return Number.isNaN(data.getTime()) ? null : data;
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return null;
+  }
+
+  const apenasData = texto.split("T")[0];
+
+  const data = new Date(`${apenasData}T12:00:00`);
+
+  return Number.isNaN(data.getTime()) ? null : data;
 }
 
 function obterDataISO(data) {
@@ -589,45 +422,246 @@ function abrirEnderecoNoMapa(endereco) {
 }
 
 /* =========================================
-   ARMAZENAMENTO LOCAL TEMPORÁRIO
+   FIRESTORE E NORMALIZAÇÃO DAS ORDENS
 ========================================= */
 
-function carregarEstadoLocal() {
-  try {
-    const dados = JSON.parse(localStorage.getItem(AGENDA_STORAGE_KEY) || "{}");
+function converterDataParaISO(valor) {
+  const data = criarDataLocal(valor);
 
-    atendimentos.forEach((atendimento) => {
-      const alteracao = dados[atendimento.id];
-
-      if (!alteracao) {
-        return;
-      }
-
-      atendimento.status = alteracao.status || atendimento.status;
-
-      atendimento.responsavel =
-        alteracao.responsavel || atendimento.responsavel;
-    });
-  } catch (error) {
-    console.warn("Não foi possível carregar a agenda temporária.", error);
-  }
+  return data ? obterDataISO(data) : "";
 }
 
-function salvarEstadoLocal() {
-  try {
-    const dados = {};
+function obterDataAgendadaDaOrdem(ordem = {}) {
+  return converterDataParaISO(
+    ordem.atendimento?.dataConfirmada ||
+      ordem.atendimento?.dataPreferida ||
+      ordem.dataAgendada ||
+      "",
+  );
+}
 
-    atendimentos.forEach((atendimento) => {
-      dados[atendimento.id] = {
-        status: atendimento.status,
-        responsavel: atendimento.responsavel,
-      };
+function obterResumoEnderecoDaOrdem(ordem = {}) {
+  const endereco = ordem.endereco || {};
+
+  if (String(endereco.resumo || "").trim()) {
+    return String(endereco.resumo).trim();
+  }
+
+  const primeiraLinha = [
+    endereco.rua || endereco.logradouro,
+    endereco.numero,
+    endereco.complemento,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const segundaLinha = [endereco.bairro, endereco.cidade]
+    .filter(Boolean)
+    .join(" — ");
+
+  return (
+    [primeiraLinha, segundaLinha].filter(Boolean).join(" | ") ||
+    "Endereço não informado"
+  );
+}
+
+function normalizarStatusDaOrdem(valor) {
+  const status = normalizarTexto(valor);
+
+  if (status.includes("cancel") || status.includes("recus")) {
+    return "cancelado";
+  }
+
+  if (status.includes("conclu") || status.includes("finaliz")) {
+    return "concluido";
+  }
+
+  if (status.includes("desloc")) {
+    return "em-deslocamento";
+  }
+
+  if (
+    status.includes("atendimento") ||
+    status.includes("iniciad") ||
+    status.includes("andamento")
+  ) {
+    return "em-atendimento";
+  }
+
+  if (status.includes("agend") || status.includes("confirm")) {
+    return "confirmado";
+  }
+
+  return "a-confirmar";
+}
+
+function obterStatusDoFirestore(statusAgenda) {
+  const statusMap = {
+    confirmado: "agendado",
+
+    "a-confirmar": "aguardando-confirmacao",
+
+    "em-deslocamento": "em-deslocamento",
+
+    "em-atendimento": "em-atendimento",
+
+    concluido: "concluida",
+
+    cancelado: "cancelada",
+  };
+
+  return statusMap[statusAgenda] || statusAgenda;
+}
+
+function criarSlugResponsavel(valor) {
+  return normalizarTexto(valor)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function obterResponsavelDaOrdem(ordem = {}) {
+  const responsavel = ordem.responsavel || ordem.executor || {};
+
+  const id = String(
+    responsavel.id || responsavel.uid || ordem.responsavelUid || "",
+  ).trim();
+
+  const nome = String(responsavel.nome || ordem.responsavelNome || "").trim();
+
+  if (id) {
+    responsavelConfig[id] = nome || responsavelConfig[id] || id;
+
+    return id;
+  }
+
+  if (nome) {
+    const slug = criarSlugResponsavel(nome) || "responsavel";
+
+    responsavelConfig[slug] = nome;
+
+    return slug;
+  }
+
+  return "nao-definido";
+}
+
+function mapearOrdemParaAtendimento(documentSnapshot) {
+  const ordem = documentSnapshot.data();
+
+  const data = obterDataAgendadaDaOrdem(ordem);
+
+  if (!data || ordem.ativo === false || ordem.arquivado === true) {
+    return null;
+  }
+
+  const categorias = Array.isArray(ordem.categorias)
+    ? ordem.categorias.filter(Boolean)
+    : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const servicos = Array.isArray(ordem.servicos)
+    ? ordem.servicos
+        .map((servico) =>
+          typeof servico === "string" ? servico : servico?.servico,
+        )
+        .filter(Boolean)
+    : [ordem.servicoPrincipal].filter(Boolean);
+
+  const periodo = String(
+    ordem.atendimento?.periodoConfirmado || ordem.atendimento?.periodo || "",
+  ).trim();
+
+  const horario = String(
+    ordem.atendimento?.horarioConfirmado ||
+      ordem.atendimento?.horarioPreferido ||
+      "",
+  ).trim();
+
+  return {
+    id: documentSnapshot.id,
+
+    codigo: String(ordem.codigo || "").trim() || documentSnapshot.id,
+
+    clienteId: String(ordem.cliente?.id || ordem.clienteUid || "").trim(),
+
+    clienteNome: String(ordem.cliente?.nome || "Cliente não informado").trim(),
+
+    titulo: String(
+      ordem.titulo || ordem.servicoPrincipal || "Ordem de serviço",
+    ).trim(),
+
+    categorias,
+
+    servicos,
+
+    data,
+
+    periodo,
+
+    horario,
+
+    endereco: obterResumoEnderecoDaOrdem(ordem),
+
+    responsavel: obterResponsavelDaOrdem(ordem),
+
+    status: normalizarStatusDaOrdem(ordem.status),
+
+    ehVistoria:
+      normalizarTexto(ordem.tipoAtendimento) === "vistoria" ||
+      Boolean(ordem.vistoria),
+  };
+}
+
+function popularFiltroDeResponsaveis() {
+  const valorAtual = employeeFilter.value;
+
+  const responsaveisUsados = new Set(
+    atendimentos.map((atendimento) => atendimento.responsavel),
+  );
+
+  employeeFilter.innerHTML = "";
+
+  const opcaoTodos = document.createElement("option");
+
+  opcaoTodos.value = "";
+
+  opcaoTodos.textContent = "Todos os responsáveis";
+
+  employeeFilter.appendChild(opcaoTodos);
+
+  Array.from(responsaveisUsados)
+    .sort((responsavelA, responsavelB) =>
+      String(responsavelConfig[responsavelA] || responsavelA).localeCompare(
+        String(responsavelConfig[responsavelB] || responsavelB),
+        "pt-BR",
+      ),
+    )
+    .forEach((responsavelId) => {
+      const option = document.createElement("option");
+
+      option.value = responsavelId;
+
+      option.textContent = responsavelConfig[responsavelId] || responsavelId;
+
+      employeeFilter.appendChild(option);
     });
 
-    localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(dados));
-  } catch (error) {
-    console.warn("Não foi possível salvar a agenda temporária.", error);
-  }
+  employeeFilter.value = Array.from(employeeFilter.options).some(
+    (option) => option.value === valorAtual,
+  )
+    ? valorAtual
+    : "";
+}
+
+async function carregarAgendaDoFirestore() {
+  const snapshot = await getDocs(collection(db, "ordens"));
+
+  atendimentos = snapshot.docs.map(mapearOrdemParaAtendimento).filter(Boolean);
+
+  popularFiltroDeResponsaveis();
+
+  console.info(
+    `[Agenda] ${atendimentos.length} atendimento(s) com data carregado(s) do Firestore.`,
+  );
 }
 
 /* =========================================
@@ -1159,10 +1193,10 @@ function alternarDetalhesDoCard(card) {
    AÇÕES DOS ATENDIMENTOS
 ========================================= */
 
-function alterarStatusDoAtendimento(atendimento, novoStatus, mensagem) {
-  atendimento.status = novoStatus;
+async function alterarStatusDoAtendimento(atendimento, novoStatus, mensagem) {
+  const statusAnterior = atendimento.status;
 
-  salvarEstadoLocal();
+  atendimento.status = novoStatus;
 
   fecharTodosOsMenus();
 
@@ -1170,7 +1204,40 @@ function alterarStatusDoAtendimento(atendimento, novoStatus, mensagem) {
 
   renderizarAgenda();
 
-  mostrarFeedback(mensagem);
+  try {
+    const atualizacoes = {
+      status: obterStatusDoFirestore(novoStatus),
+
+      atualizadoEm: serverTimestamp(),
+
+      statusAtualizadoEm: serverTimestamp(),
+    };
+
+    if (atendimento.ehVistoria) {
+      atualizacoes["vistoria.status"] = obterStatusDoFirestore(novoStatus);
+
+      if (novoStatus === "concluido") {
+        atualizacoes["vistoria.concluidaEm"] = serverTimestamp();
+      }
+    }
+
+    await updateDoc(doc(db, "ordens", atendimento.id), atualizacoes);
+
+    mostrarFeedback(mensagem);
+  } catch (error) {
+    console.error(
+      `[Agenda] Não foi possível atualizar a ordem ${atendimento.id}:`,
+      error,
+    );
+
+    atendimento.status = statusAnterior;
+
+    atualizarResumo();
+
+    renderizarAgenda();
+
+    mostrarFeedback("Não foi possível atualizar o atendimento.");
+  }
 }
 
 function executarAcaoDoAtendimento(atendimento, acao) {
@@ -1263,7 +1330,7 @@ function preencherCard(atendimento) {
 
   timePeriod.textContent = periodoConfig[atendimento.periodo] || "Período";
 
-  code.textContent = atendimento.id;
+  code.textContent = atendimento.codigo;
 
   status.textContent = statusData.nome;
 
@@ -1273,7 +1340,8 @@ function preencherCard(atendimento) {
 
   title.textContent = atendimento.titulo;
 
-  services.textContent = atendimento.servicos.join(" • ");
+  services.textContent =
+    atendimento.servicos.join(" • ") || "Serviço não informado";
 
   address.textContent = atendimento.endereco || "Endereço não informado";
 
@@ -1282,15 +1350,15 @@ function preencherCard(atendimento) {
 
   toggle.setAttribute(
     "aria-label",
-    `Mostrar detalhes da ordem ${atendimento.id}`,
+    `Mostrar detalhes da ordem ${atendimento.codigo}`,
   );
 
   mapButton.setAttribute(
     "aria-label",
-    `Abrir endereço da ordem ${atendimento.id}`,
+    `Abrir endereço da ordem ${atendimento.codigo}`,
   );
 
-  detailsButton.setAttribute("aria-label", `Abrir ordem ${atendimento.id}`);
+  detailsButton.setAttribute("aria-label", `Abrir ordem ${atendimento.codigo}`);
 
   toggle.addEventListener("click", () => {
     alternarDetalhesDoCard(card);
@@ -1774,14 +1842,34 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarEstadoLocal();
+async function inicializarPaginaDeAgenda() {
+  try {
+    await window.salvateckSessionReady;
 
-sincronizarFormularioComFiltros();
+    await carregarAgendaDoFirestore();
+  } catch (error) {
+    console.error("[Agenda] Não foi possível carregar os atendimentos:", error);
 
-atualizarContagemDeFiltros();
+    atendimentos = [];
 
-renderizarFiltrosAtivos();
+    popularFiltroDeResponsaveis();
 
-atualizarResumo();
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura da agenda."
+        : "Não foi possível carregar a agenda.",
+    );
+  }
 
-alterarModoDeVisualizacao(modoVisualizacao);
+  sincronizarFormularioComFiltros();
+
+  atualizarContagemDeFiltros();
+
+  renderizarFiltrosAtivos();
+
+  atualizarResumo();
+
+  alterarModoDeVisualizacao(modoVisualizacao);
+}
+
+inicializarPaginaDeAgenda();

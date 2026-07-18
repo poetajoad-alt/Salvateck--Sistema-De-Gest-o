@@ -2,9 +2,46 @@
    CONFIGURAÇÕES GERAIS
 ========================================= */
 
-const CONDOMINIUMS_STORAGE_KEY = "salvateckCondominiosTemporarios";
+const FIREBASE_VERSION = "12.16.0";
 
 const ABAS_PERMITIDAS = ["todos", "ativos", "atencao", "inativos"];
+
+let db;
+let collection;
+let doc;
+let getDocs;
+let query;
+let where;
+let setDoc;
+let serverTimestamp;
+
+async function prepararFirebaseDeCondominios() {
+  const [firestoreModule, firebaseConfigModule] = await Promise.all([
+    import(
+      `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`
+    ),
+    import("./firebase-config.js"),
+  ]);
+
+  db = firebaseConfigModule.db;
+
+  ({ collection, doc, getDocs, query, where, setDoc, serverTimestamp } =
+    firestoreModule);
+}
+
+async function aguardarSessaoDaPagina() {
+  if (window.salvateckSessionReady) {
+    return window.salvateckSessionReady;
+  }
+
+  return new Promise((resolve) => {
+    window.addEventListener(
+      "salvateck:auth-ready",
+      (event) => resolve(event.detail),
+      { once: true },
+    );
+  });
+}
 
 /* =========================================
    FUNÇÕES DE DATA
@@ -26,14 +63,6 @@ function obterDataISO(data = new Date()) {
   const dia = String(data.getDate()).padStart(2, "0");
 
   return `${ano}-${mes}-${dia}`;
-}
-
-function criarDataComOffset(dias) {
-  const data = obterInicioDoDia();
-
-  data.setDate(data.getDate() + dias);
-
-  return obterDataISO(data);
 }
 
 function criarDataLocal(valor) {
@@ -102,35 +131,6 @@ const papelConfig = {
   outro: "Outro",
 };
 
-const clienteConfig = {
-  "cliente-administradora": {
-    nome: "Administradora Predial XYZ",
-    iniciais: "AP",
-  },
-
-  "cliente-joao": {
-    nome: "João da Silva",
-    iniciais: "JS",
-  },
-
-  "cliente-maria": {
-    nome: "Maria Oliveira",
-    iniciais: "MO",
-  },
-
-  "cliente-carlos": {
-    nome: "Carlos Henrique",
-    iniciais: "CH",
-  },
-};
-
-const cidadeConfig = {
-  "sao-paulo": "São Paulo",
-  osasco: "Osasco",
-  barueri: "Barueri",
-  guarulhos: "Guarulhos",
-};
-
 const equipamentoFiltroConfig = {
   elevador: "Elevador",
   bomba: "Bombas",
@@ -168,460 +168,6 @@ const abasConfig = {
     subtitulo: "Cadastros desativados",
   },
 };
-
-/* =========================================
-   DADOS TEMPORÁRIOS
-========================================= */
-
-const condominiosPadrao = [
-  {
-    id: "condominio-0001",
-    codigo: "COND-0001",
-
-    nome: "Residencial Jardim Azul",
-
-    cnpj: "12.345.678/0001-90",
-
-    status: "atencao",
-
-    blocos: 3,
-    unidades: 96,
-
-    endereco: {
-      cep: "01310-100",
-      logradouro: "Avenida Paulista",
-      numero: "1500",
-      complemento: "Blocos A, B e C",
-      bairro: "Bela Vista",
-      cidade: "São Paulo",
-      estado: "SP",
-    },
-
-    observacoes:
-      "Acesso de prestadores pela portaria de serviço. Atendimentos devem ser confirmados com antecedência.",
-
-    clientesVinculados: [
-      {
-        clienteId: "cliente-administradora",
-
-        papel: "administradora",
-
-        contatoPrincipal: false,
-
-        responsavelFinanceiro: true,
-      },
-
-      {
-        clienteId: "cliente-joao",
-
-        papel: "sindico",
-
-        contatoPrincipal: true,
-
-        responsavelFinanceiro: false,
-      },
-    ],
-
-    equipamentos: [
-      "portaria",
-      "portao-automatico",
-      "interfone",
-      "cftv",
-      "controle-acesso",
-      "quadro-eletrico",
-      "iluminacao-emergencia",
-      "gerador",
-      "spda",
-      "bombas",
-      "reservatorio-superior",
-      "reservatorio-inferior",
-      "rede-hidraulica",
-      "extintores",
-      "hidrantes",
-      "alarme-incendio",
-      "sinalizacao-emergencia",
-      "elevador-social",
-      "elevador-servico",
-      "piscina",
-      "playground",
-      "academia",
-      "salao-festas",
-      "garagem",
-      "jardim",
-      "fachada",
-      "cobertura",
-      "escadas",
-      "casa-maquinas",
-    ],
-
-    documentos: [
-      {
-        id: "DOC-0001",
-
-        nome: "AVCB",
-
-        vencimento: criarDataComOffset(120),
-
-        status: "regular",
-      },
-
-      {
-        id: "DOC-0002",
-
-        nome: "Laudo do SPDA",
-
-        vencimento: criarDataComOffset(-10),
-
-        status: "vencido",
-      },
-    ],
-
-    historico: [
-      {
-        id: "HIST-0001",
-
-        tipo: "vistoria",
-
-        titulo: "Vistoria preventiva realizada",
-
-        descricao:
-          "Foram identificadas duas pendências na cobertura e no sistema de iluminação de emergência.",
-
-        data: criarDataComOffset(-8),
-      },
-
-      {
-        id: "HIST-0002",
-
-        tipo: "ordem",
-
-        titulo: "Ordem OS-0017 concluída",
-
-        descricao: "Reparo de infiltração realizado na área comum.",
-
-        data: criarDataComOffset(-18),
-      },
-
-      {
-        id: "HIST-0003",
-
-        tipo: "documento",
-
-        titulo: "Laudo do SPDA próximo do vencimento",
-
-        descricao: "Recomendado solicitar renovação do documento.",
-
-        data: criarDataComOffset(-25),
-      },
-    ],
-
-    pendencias: 2,
-
-    criadoEm: criarDataComOffset(-180),
-
-    atualizadoEm: criarDataComOffset(-8),
-  },
-
-  {
-    id: "condominio-0002",
-    codigo: "COND-0002",
-
-    nome: "Edifício Santa Clara",
-
-    cnpj: "45.678.901/0001-21",
-
-    status: "ativo",
-
-    blocos: 1,
-    unidades: 48,
-
-    endereco: {
-      cep: "06016-030",
-      logradouro: "Rua Antônio Agú",
-      numero: "485",
-      complemento: "",
-      bairro: "Centro",
-      cidade: "Osasco",
-      estado: "SP",
-    },
-
-    observacoes:
-      "Condomínio comercial e residencial. Entrada de prestadores pela garagem.",
-
-    clientesVinculados: [
-      {
-        clienteId: "cliente-administradora",
-
-        papel: "administradora",
-
-        contatoPrincipal: true,
-
-        responsavelFinanceiro: true,
-      },
-
-      {
-        clienteId: "cliente-maria",
-
-        papel: "gerente",
-
-        contatoPrincipal: false,
-
-        responsavelFinanceiro: false,
-      },
-    ],
-
-    equipamentos: [
-      "portaria",
-      "portao-automatico",
-      "interfone",
-      "cftv",
-      "quadro-eletrico",
-      "iluminacao-emergencia",
-      "bombas",
-      "reservatorio-superior",
-      "reservatorio-inferior",
-      "extintores",
-      "hidrantes",
-      "sinalizacao-emergencia",
-      "elevador-social",
-      "elevador-servico",
-      "garagem",
-      "fachada",
-      "cobertura",
-      "escadas",
-    ],
-
-    documentos: [
-      {
-        id: "DOC-0003",
-
-        nome: "AVCB",
-
-        vencimento: criarDataComOffset(240),
-
-        status: "regular",
-      },
-
-      {
-        id: "DOC-0004",
-
-        nome: "Contrato de manutenção dos elevadores",
-
-        vencimento: criarDataComOffset(60),
-
-        status: "regular",
-      },
-    ],
-
-    historico: [
-      {
-        id: "HIST-0004",
-
-        tipo: "ordem",
-
-        titulo: "Ordem OS-0019 agendada",
-
-        descricao: "Manutenção no sistema hidráulico agendada.",
-
-        data: criarDataComOffset(-3),
-      },
-
-      {
-        id: "HIST-0005",
-
-        tipo: "vistoria",
-
-        titulo: "Vistoria de rotina concluída",
-
-        descricao: "Nenhuma não conformidade crítica identificada.",
-
-        data: criarDataComOffset(-45),
-      },
-    ],
-
-    pendencias: 0,
-
-    criadoEm: criarDataComOffset(-130),
-
-    atualizadoEm: criarDataComOffset(-3),
-  },
-
-  {
-    id: "condominio-0003",
-    codigo: "COND-0003",
-
-    nome: "Condomínio Parque Central",
-
-    cnpj: "78.901.234/0001-55",
-
-    status: "ativo",
-
-    blocos: 4,
-    unidades: 152,
-
-    endereco: {
-      cep: "06454-000",
-      logradouro: "Alameda Rio Negro",
-      numero: "780",
-      complemento: "Torres 1 a 4",
-      bairro: "Alphaville",
-      cidade: "Barueri",
-      estado: "SP",
-    },
-
-    observacoes:
-      "Necessário apresentar documento na portaria. Serviços ruidosos somente entre 9h e 17h.",
-
-    clientesVinculados: [
-      {
-        clienteId: "cliente-carlos",
-
-        papel: "sindico",
-
-        contatoPrincipal: true,
-
-        responsavelFinanceiro: true,
-      },
-    ],
-
-    equipamentos: [
-      "portaria",
-      "portao-automatico",
-      "interfone",
-      "cftv",
-      "controle-acesso",
-      "quadro-eletrico",
-      "iluminacao-emergencia",
-      "gerador",
-      "spda",
-      "bombas",
-      "reservatorio-superior",
-      "reservatorio-inferior",
-      "rede-hidraulica",
-      "extintores",
-      "hidrantes",
-      "alarme-incendio",
-      "sinalizacao-emergencia",
-      "elevador-social",
-      "elevador-servico",
-      "plataforma-acessibilidade",
-      "piscina",
-      "playground",
-      "academia",
-      "salao-festas",
-      "garagem",
-      "jardim",
-      "fachada",
-      "cobertura",
-      "escadas",
-      "casa-maquinas",
-    ],
-
-    documentos: [
-      {
-        id: "DOC-0005",
-
-        nome: "AVCB",
-
-        vencimento: criarDataComOffset(90),
-
-        status: "regular",
-      },
-
-      {
-        id: "DOC-0006",
-
-        nome: "Laudo de acessibilidade",
-
-        vencimento: "",
-
-        status: "pendente",
-      },
-    ],
-
-    historico: [
-      {
-        id: "HIST-0006",
-
-        tipo: "cadastro",
-
-        titulo: "Cadastro atualizado",
-
-        descricao: "Foram adicionados equipamentos da academia e da piscina.",
-
-        data: criarDataComOffset(-12),
-      },
-    ],
-
-    pendencias: 1,
-
-    criadoEm: criarDataComOffset(-90),
-
-    atualizadoEm: criarDataComOffset(-12),
-  },
-
-  {
-    id: "condominio-0004",
-    codigo: "COND-0004",
-
-    nome: "Residencial Vila Nova",
-
-    cnpj: "",
-
-    status: "inativo",
-
-    blocos: 2,
-    unidades: 32,
-
-    endereco: {
-      cep: "07011-020",
-      logradouro: "Rua Sete de Setembro",
-      numero: "210",
-      complemento: "",
-      bairro: "Centro",
-      cidade: "Guarulhos",
-      estado: "SP",
-    },
-
-    observacoes: "Contrato de manutenção encerrado.",
-
-    clientesVinculados: [],
-
-    equipamentos: [
-      "portaria",
-      "interfone",
-      "quadro-eletrico",
-      "bombas",
-      "reservatorio-superior",
-      "extintores",
-      "garagem",
-      "fachada",
-    ],
-
-    documentos: [],
-
-    historico: [
-      {
-        id: "HIST-0007",
-
-        tipo: "cadastro",
-
-        titulo: "Condomínio desativado",
-
-        descricao:
-          "Cadastro marcado como inativo após encerramento do contrato.",
-
-        data: criarDataComOffset(-60),
-      },
-    ],
-
-    pendencias: 0,
-
-    criadoEm: criarDataComOffset(-220),
-
-    atualizadoEm: criarDataComOffset(-60),
-  },
-];
 
 /* =========================================
    ELEMENTOS DA PÁGINA
@@ -753,6 +299,8 @@ const modalTabPanels = document.querySelectorAll("[data-modal-panel]");
    VÍNCULOS
 ========================================= */
 
+const linkedClientSearch = document.getElementById("linked-client-search");
+
 const linkedClientSelect = document.getElementById("linked-client-select");
 
 const linkedClientRole = document.getElementById("linked-client-role");
@@ -809,6 +357,10 @@ const feedbackMessage = document.getElementById("feedback-message");
 
 let condominios = [];
 
+let clientes = [];
+
+let ordens = [];
+
 let abaAtual = "todos";
 
 let abaAtualModal = "general";
@@ -856,16 +408,39 @@ function obterCondominioPorId(id) {
   return condominios.find((condominio) => condominio.id === id);
 }
 
-function obterClientePrincipal(condominio) {
-  const principal = condominio.clientesVinculados.find(
-    (vinculo) => vinculo.contatoPrincipal,
-  );
+function obterClientePorId(clienteId) {
+  return clientes.find((cliente) => cliente.id === clienteId) || null;
+}
 
-  return principal || condominio.clientesVinculados[0] || null;
+function obterIniciais(nome) {
+  const partes = String(nome || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (partes.length === 0) {
+    return "CL";
+  }
+
+  if (partes.length === 1) {
+    return partes[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
+}
+
+function obterClientePrincipal(condominio) {
+  const vinculos = Array.isArray(condominio.clientesVinculados)
+    ? condominio.clientesVinculados
+    : [];
+
+  const principal = vinculos.find((vinculo) => vinculo.contatoPrincipal);
+
+  return principal || vinculos[0] || null;
 }
 
 function obterNomeCliente(clienteId) {
-  return clienteConfig[clienteId]?.nome || "Cliente não identificado";
+  return obterClientePorId(clienteId)?.nome || "Cliente não identificado";
 }
 
 function obterNomeResponsavel(condominio) {
@@ -880,6 +455,14 @@ function obterNomeResponsavel(condominio) {
   const papel = papelConfig[vinculo.papel] || "Responsável";
 
   return `${cliente} — ${papel}`;
+}
+
+function obterNomeCidadePorSlug(slug) {
+  const condominio = condominios.find(
+    (item) => criarSlug(item.endereco?.cidade) === slug,
+  );
+
+  return condominio?.endereco?.cidade || slug;
 }
 
 function obterEnderecoCompleto(condominio) {
@@ -916,7 +499,7 @@ function mostrarFeedback(mensagem) {
 
 function gerarIdentificadores() {
   const numeros = condominios.map((condominio) => {
-    const correspondencia = String(condominio.codigo).match(/\d+/);
+    const correspondencia = String(condominio.codigo || "").match(/\d+/);
 
     return correspondencia ? Number(correspondencia[0]) : 0;
   });
@@ -926,7 +509,7 @@ function gerarIdentificadores() {
   const numeroFormatado = String(proximoNumero).padStart(4, "0");
 
   return {
-    id: `condominio-${numeroFormatado}`,
+    id: doc(collection(db, "condominios")).id,
 
     codigo: `COND-${numeroFormatado}`,
   };
@@ -941,35 +524,507 @@ function gerarIdHistorico() {
 }
 
 /* =========================================
-   ARMAZENAMENTO LOCAL
+   FIRESTORE
 ========================================= */
 
-function carregarCondominios() {
-  try {
-    const dadosSalvos = JSON.parse(
-      localStorage.getItem(CONDOMINIUMS_STORAGE_KEY) || "null",
+function converterDataDoFirestoreParaISO(valor) {
+  if (!valor) {
+    return "";
+  }
+
+  if (typeof valor.toDate === "function") {
+    return obterDataISO(valor.toDate());
+  }
+
+  if (valor instanceof Date) {
+    return obterDataISO(valor);
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  return texto.includes("T") ? texto.split("T")[0] : texto;
+}
+
+function mapearClienteDoFirestore(clienteSnapshot) {
+  const dados = clienteSnapshot.data();
+
+  const status =
+    dados.statusCadastro || (dados.ativo === false ? "inativo" : "ativo");
+
+  return {
+    id: clienteSnapshot.id,
+    uid: dados.uid || clienteSnapshot.id,
+    nome: dados.nome || "Cliente sem nome",
+    email: dados.email || "",
+    telefone: dados.telefone || "",
+    status,
+    iniciais: obterIniciais(dados.nome),
+  };
+}
+
+function normalizarHistorico(historico) {
+  if (!Array.isArray(historico)) {
+    return [];
+  }
+
+  return historico
+    .filter((registro) => registro && typeof registro === "object")
+    .map((registro) => ({
+      id: registro.id || gerarIdHistorico(),
+
+      tipo: registro.tipo || "cadastro",
+
+      titulo: registro.titulo || "Atualização do cadastro",
+
+      descricao: registro.descricao || "",
+
+      data: converterDataDoFirestoreParaISO(registro.data),
+
+      origemFirestore: false,
+    }));
+}
+
+function mapearCondominioDoFirestore(condominioSnapshot) {
+  const dados = condominioSnapshot.data();
+
+  const endereco = dados.endereco || {};
+
+  return {
+    id: condominioSnapshot.id,
+
+    codigo:
+      dados.codigo || `COND-${condominioSnapshot.id.slice(0, 6).toUpperCase()}`,
+
+    nome: dados.nome || "",
+    cnpj: dados.cnpj || "",
+
+    status: ["ativo", "atencao", "inativo"].includes(dados.status)
+      ? dados.status
+      : "ativo",
+
+    blocos: Math.max(0, Number(dados.blocos) || 0),
+
+    unidades: Math.max(0, Number(dados.unidades) || 0),
+
+    endereco: {
+      cep: endereco.cep || dados.cep || "",
+
+      logradouro:
+        endereco.logradouro ||
+        endereco.rua ||
+        dados.logradouro ||
+        dados.rua ||
+        "",
+
+      numero: endereco.numero || dados.numero || "",
+
+      complemento: endereco.complemento || dados.complemento || "",
+
+      bairro: endereco.bairro || dados.bairro || "",
+
+      cidade: endereco.cidade || dados.cidade || "",
+
+      estado: endereco.estado || dados.estado || "SP",
+    },
+
+    observacoes: dados.observacoes || "",
+
+    clientesVinculados: Array.isArray(dados.clientesVinculados)
+      ? dados.clientesVinculados.map((vinculo) => ({
+          clienteId: String(vinculo.clienteId || "").trim(),
+
+          papel: vinculo.papel || "outro",
+
+          contatoPrincipal: Boolean(vinculo.contatoPrincipal),
+
+          responsavelFinanceiro: Boolean(vinculo.responsavelFinanceiro),
+        }))
+      : [],
+
+    equipamentos: Array.isArray(dados.equipamentos) ? dados.equipamentos : [],
+
+    documentos: Array.isArray(dados.documentos)
+      ? dados.documentos.map((documento) => ({
+          id: documento.id || gerarIdDocumento(),
+
+          nome: documento.nome || "Documento",
+
+          vencimento: converterDataDoFirestoreParaISO(documento.vencimento),
+
+          status: documento.status || "pendente",
+        }))
+      : [],
+
+    historico: normalizarHistorico(dados.historico),
+
+    pendencias: 0,
+
+    criadoEm: converterDataDoFirestoreParaISO(dados.criadoEm),
+
+    atualizadoEm: converterDataDoFirestoreParaISO(dados.atualizadoEm),
+  };
+}
+
+function obterCondominioIdDaOrdem(ordem) {
+  return String(ordem?.condominio?.id || ordem?.condominioId || "").trim();
+}
+
+function criarHistoricoDaOrdem(ordem) {
+  const vistoria = ordem.tipoAtendimento === "vistoria";
+
+  const codigo = ordem.codigo || "Ordem";
+
+  const titulo =
+    ordem.titulo || (vistoria ? "Vistoria técnica" : "Ordem de serviço");
+
+  return {
+    id: `ordem-${ordem.id}`,
+
+    tipo: vistoria ? "vistoria" : "ordem",
+
+    titulo: `${codigo} — ${titulo}`,
+
+    descricao: ordem.status
+      ? `Status atual: ${String(ordem.status).replace(/-/g, " ")}.`
+      : "Ordem registrada no sistema.",
+
+    data: converterDataDoFirestoreParaISO(ordem.atualizadoEm || ordem.criadoEm),
+
+    origemFirestore: true,
+  };
+}
+
+function calcularPendenciasDoCondominio(condominio, ordensRelacionadas) {
+  const documentosPendentes = condominio.documentos.filter(
+    (documento) => atualizarStatusDocumento(documento) !== "regular",
+  ).length;
+
+  const pendenciasDeVistorias = ordensRelacionadas
+    .filter((ordem) => ordem.tipoAtendimento === "vistoria")
+    .reduce((total, ordem) => {
+      const vistoria = ordem.vistoria || {};
+
+      return (
+        total +
+        Math.max(0, Number(vistoria.naoConformidades) || 0) +
+        Math.max(0, Number(vistoria.pendenciasCriticas) || 0)
+      );
+    }, 0);
+
+  const total = documentosPendentes + pendenciasDeVistorias;
+
+  if (condominio.status === "atencao" && total === 0) {
+    return 1;
+  }
+
+  return total;
+}
+
+function aplicarOrdensAosCondominios() {
+  condominios.forEach((condominio) => {
+    const historicoAdministrativo = condominio.historico.filter(
+      (registro) => !registro.origemFirestore,
     );
 
-    if (Array.isArray(dadosSalvos)) {
-      condominios = dadosSalvos;
+    const ordensRelacionadas = ordens.filter(
+      (ordem) => obterCondominioIdDaOrdem(ordem) === condominio.id,
+    );
 
-      return;
+    const historicoOperacional = ordensRelacionadas.map(criarHistoricoDaOrdem);
+
+    condominio.historico = [
+      ...historicoAdministrativo,
+      ...historicoOperacional,
+    ];
+
+    condominio.pendencias = calcularPendenciasDoCondominio(
+      condominio,
+      ordensRelacionadas,
+    );
+  });
+}
+
+async function carregarDadosDeCondominiosDoFirestore() {
+  const clientesQuery = query(
+    collection(db, "usuarios"),
+    where("role", "==", "cliente"),
+  );
+
+  const resultados = await Promise.allSettled([
+    getDocs(collection(db, "condominios")),
+    getDocs(clientesQuery),
+    getDocs(collection(db, "ordens")),
+  ]);
+
+  const [resultadoCondominios, resultadoClientes, resultadoOrdens] = resultados;
+
+  /* =========================================
+     CONDOMÍNIOS
+  ========================================= */
+
+  if (resultadoCondominios.status === "rejected") {
+    console.error(
+      "[Condomínios] Erro ao consultar a coleção condominios:",
+      resultadoCondominios.reason,
+    );
+
+    throw resultadoCondominios.reason;
+  }
+
+  condominios = [];
+
+  resultadoCondominios.value.docs.forEach((condominioSnapshot) => {
+    try {
+      const condominio = mapearCondominioDoFirestore(condominioSnapshot);
+
+      condominios.push(condominio);
+    } catch (error) {
+      console.error(
+        `[Condomínios] Erro ao interpretar o documento ${condominioSnapshot.id}:`,
+        error,
+        condominioSnapshot.data(),
+      );
     }
-  } catch (error) {
-    console.warn("Não foi possível carregar os condomínios.", error);
+  });
+
+  /* =========================================
+     CLIENTES
+  ========================================= */
+
+  clientes = [];
+
+  if (resultadoClientes.status === "fulfilled") {
+    resultadoClientes.value.docs.forEach((clienteSnapshot) => {
+      try {
+        clientes.push(mapearClienteDoFirestore(clienteSnapshot));
+      } catch (error) {
+        console.error(
+          `[Condomínios] Erro ao interpretar o cliente ${clienteSnapshot.id}:`,
+          error,
+          clienteSnapshot.data(),
+        );
+      }
+    });
+
+    clientes.sort((clienteA, clienteB) =>
+      clienteA.nome.localeCompare(clienteB.nome, "pt-BR"),
+    );
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar os clientes:",
+      resultadoClientes.reason,
+    );
   }
 
-  condominios = clonarDados(condominiosPadrao);
-}
+  /* =========================================
+     ORDENS
+  ========================================= */
 
-function salvarCondominios() {
-  try {
-    localStorage.setItem(CONDOMINIUMS_STORAGE_KEY, JSON.stringify(condominios));
-  } catch (error) {
-    console.warn("Não foi possível salvar os condomínios.", error);
+  ordens = [];
+
+  if (resultadoOrdens.status === "fulfilled") {
+    resultadoOrdens.value.docs.forEach((ordemSnapshot) => {
+      try {
+        ordens.push({
+          id: ordemSnapshot.id,
+          ...ordemSnapshot.data(),
+        });
+      } catch (error) {
+        console.error(
+          `[Condomínios] Erro ao interpretar a ordem ${ordemSnapshot.id}:`,
+          error,
+        );
+      }
+    });
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar as ordens:",
+      resultadoOrdens.reason,
+    );
   }
+
+  atualizarStatusDosDocumentos();
+  aplicarOrdensAosCondominios();
+
+  console.info(
+    `[Condomínios] ${condominios.length} condomínio(s), ${clientes.length} cliente(s) e ${ordens.length} ordem(ns) carregados.`,
+  );
 }
 
+function criarOpcao(valor, texto) {
+  const option = document.createElement("option");
+
+  option.value = valor;
+  option.textContent = texto;
+
+  return option;
+}
+
+function popularFiltroDeCidades() {
+  const valorAtual = cityFilter.value;
+
+  cityFilter.innerHTML = "";
+
+  cityFilter.appendChild(criarOpcao("", "Todas as cidades"));
+
+  const cidades = new Map();
+
+  condominios.forEach((condominio) => {
+    const cidade = String(condominio.endereco?.cidade || "").trim();
+
+    const slug = criarSlug(cidade);
+
+    if (cidade && slug && !cidades.has(slug)) {
+      cidades.set(slug, cidade);
+    }
+  });
+
+  Array.from(cidades.entries())
+    .sort(([, cidadeA], [, cidadeB]) => cidadeA.localeCompare(cidadeB, "pt-BR"))
+    .forEach(([slug, cidade]) => {
+      cityFilter.appendChild(criarOpcao(slug, cidade));
+    });
+
+  cityFilter.value = Array.from(cityFilter.options).some(
+    (option) => option.value === valorAtual,
+  )
+    ? valorAtual
+    : "";
+}
+
+function obterClientesFiltradosParaVinculo() {
+  const termo = normalizarTexto(linkedClientSearch.value);
+
+  if (!termo) {
+    return [...clientes];
+  }
+
+  return clientes.filter((cliente) => {
+    const conteudoPesquisavel = normalizarTexto(
+      [cliente.nome, cliente.email, cliente.telefone].join(" "),
+    );
+
+    return conteudoPesquisavel.includes(termo);
+  });
+}
+
+function popularSelectDeClientesVinculaveis() {
+  const clienteSelecionado = linkedClientSelect.value;
+
+  const termo = normalizarTexto(linkedClientSearch.value);
+
+  const clientesFiltrados = obterClientesFiltradosParaVinculo();
+
+  linkedClientSelect.innerHTML = "";
+
+  const textoInicial = termo
+    ? clientesFiltrados.length === 1
+      ? "1 cliente encontrado"
+      : `${clientesFiltrados.length} clientes encontrados`
+    : "Selecione um cliente";
+
+  linkedClientSelect.appendChild(criarOpcao("", textoInicial));
+
+  if (clientesFiltrados.length === 0) {
+    const opcaoSemResultados = criarOpcao("", "Nenhum cliente encontrado");
+
+    opcaoSemResultados.disabled = true;
+
+    linkedClientSelect.appendChild(opcaoSemResultados);
+
+    return;
+  }
+
+  clientesFiltrados.forEach((cliente) => {
+    const complemento = cliente.status === "inativo" ? " — Inativo" : "";
+
+    linkedClientSelect.appendChild(
+      criarOpcao(cliente.id, `${cliente.nome}${complemento}`),
+    );
+  });
+
+  const clienteAindaEstaVisivel = Array.from(linkedClientSelect.options).some(
+    (option) => option.value === clienteSelecionado,
+  );
+
+  linkedClientSelect.value = clienteAindaEstaVisivel ? clienteSelecionado : "";
+}
+
+function popularOpcoesDeClientes() {
+  const responsavelAtual = managerFilter.value;
+
+  managerFilter.innerHTML = "";
+
+  managerFilter.appendChild(criarOpcao("", "Todos os responsáveis"));
+
+  clientes.forEach((cliente) => {
+    const complemento = cliente.status === "inativo" ? " — Inativo" : "";
+
+    managerFilter.appendChild(
+      criarOpcao(cliente.id, `${cliente.nome}${complemento}`),
+    );
+  });
+
+  managerFilter.appendChild(criarOpcao("sem-responsavel", "Sem responsável"));
+
+  managerFilter.value = Array.from(managerFilter.options).some(
+    (option) => option.value === responsavelAtual,
+  )
+    ? responsavelAtual
+    : "";
+
+  popularSelectDeClientesVinculaveis();
+}
+
+async function salvarCondominioNoFirestore(condominio, novoCadastro) {
+  const historicoPersistido = condominio.historico
+    .filter((registro) => !registro.origemFirestore)
+    .map(({ origemFirestore, ...registro }) => registro);
+
+  const dados = {
+    id: condominio.id,
+    codigo: condominio.codigo,
+    nome: condominio.nome,
+    cnpj: condominio.cnpj,
+    status: condominio.status,
+    blocos: condominio.blocos,
+    unidades: condominio.unidades,
+
+    endereco: {
+      ...condominio.endereco,
+    },
+
+    observacoes: condominio.observacoes,
+
+    clientesVinculados: condominio.clientesVinculados.map((vinculo) => ({
+      ...vinculo,
+    })),
+
+    equipamentos: [...condominio.equipamentos],
+
+    documentos: condominio.documentos.map((documento) => ({
+      ...documento,
+
+      status: atualizarStatusDocumento(documento),
+    })),
+
+    historico: historicoPersistido,
+
+    atualizadoEm: serverTimestamp(),
+  };
+
+  if (novoCadastro) {
+    dados.criadoEm = serverTimestamp();
+  }
+
+  await setDoc(doc(db, "condominios", condominio.id), dados, {
+    merge: true,
+  });
+}
 /* =========================================
    DOCUMENTOS
 ========================================= */
@@ -996,18 +1051,26 @@ function atualizarStatusDocumento(documento) {
 
 function atualizarStatusDosDocumentos() {
   condominios.forEach((condominio) => {
-    condominio.documentos.forEach((documento) => {
+    const documentos = Array.isArray(condominio.documentos)
+      ? condominio.documentos
+      : [];
+
+    documentos.forEach((documento) => {
       documento.status = atualizarStatusDocumento(documento);
     });
   });
 }
 
 function obterSituacaoDocumental(condominio) {
-  if (condominio.documentos.length === 0) {
+  const documentos = Array.isArray(condominio.documentos)
+    ? condominio.documentos
+    : [];
+
+  if (documentos.length === 0) {
     return "sem-documentos";
   }
 
-  const possuiVencido = condominio.documentos.some(
+  const possuiVencido = documentos.some(
     (documento) => atualizarStatusDocumento(documento) === "vencido",
   );
 
@@ -1015,7 +1078,7 @@ function obterSituacaoDocumental(condominio) {
     return "vencida";
   }
 
-  const possuiPendente = condominio.documentos.some(
+  const possuiPendente = documentos.some(
     (documento) => atualizarStatusDocumento(documento) === "pendente",
   );
 
@@ -1298,8 +1361,7 @@ function renderizarFiltrosAtivos() {
   activeFiltersList.innerHTML = "";
 
   if (filtrosAplicados.cidade) {
-    const texto =
-      cidadeConfig[filtrosAplicados.cidade] || filtrosAplicados.cidade;
+    const texto = obterNomeCidadePorSlug(filtrosAplicados.cidade);
 
     activeFiltersList.appendChild(
       criarChipDeFiltro(texto, () => {
@@ -1868,6 +1930,10 @@ function abrirModalDeCondominio(condominio = null) {
     ? clonarDados(condominio)
     : criarCondominioVazio();
 
+  linkedClientSearch.value = "";
+
+  popularSelectDeClientesVinculaveis();
+
   condominiumModalEyebrow.textContent = condominio
     ? "Editar cadastro"
     : "Novo cadastro";
@@ -1921,7 +1987,7 @@ function fecharModalDeCondominio() {
   }
 }
 
-function salvarCondominio(event) {
+async function salvarCondominio(event) {
   event.preventDefault();
 
   if (!condominioRascunho) {
@@ -1942,48 +2008,84 @@ function salvarCondominio(event) {
 
   const estavaEditando = Boolean(condominioEmEdicaoId);
 
-  if (estavaEditando) {
-    const indice = condominios.findIndex(
-      (condominio) => condominio.id === condominioEmEdicaoId,
-    );
+  condominioRascunho.historico.unshift({
+    id: gerarIdHistorico(),
 
-    if (indice >= 0) {
-      condominioRascunho.historico.unshift({
-        id: gerarIdHistorico(),
+    tipo: "cadastro",
 
-        tipo: "cadastro",
+    titulo: estavaEditando ? "Cadastro atualizado" : "Condomínio cadastrado",
 
-        titulo: "Cadastro atualizado",
+    descricao: estavaEditando
+      ? "As informações do condomínio foram atualizadas."
+      : "O condomínio foi adicionado ao sistema.",
 
-        descricao: "As informações do condomínio foram atualizadas.",
+    data: obterDataISO(),
 
-        data: obterDataISO(),
-      });
+    origemFirestore: false,
+  });
 
-      condominios[indice] = clonarDados(condominioRascunho);
-    }
-  } else {
-    condominioRascunho.historico.unshift({
-      id: gerarIdHistorico(),
+  const botaoSalvar = condominiumForm.querySelector('button[type="submit"]');
 
-      tipo: "cadastro",
+  const textoOriginal = botaoSalvar?.textContent || "Salvar condomínio";
 
-      titulo: "Condomínio cadastrado",
-
-      descricao: "O condomínio foi adicionado ao sistema.",
-
-      data: obterDataISO(),
-    });
-
-    condominios.push(clonarDados(condominioRascunho));
+  if (botaoSalvar) {
+    botaoSalvar.disabled = true;
+    botaoSalvar.textContent = "Salvando...";
   }
 
-  salvarCondominios();
+  try {
+    /* Primeiro salva. Se esta etapa falhar,
+       nada foi gravado no Firestore. */
+
+    await salvarCondominioNoFirestore(condominioRascunho, !estavaEditando);
+  } catch (error) {
+    console.error("[Condomínios] O Firestore recusou a gravação:", error);
+
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a gravação. Revise as regras do Firestore."
+        : "Não foi possível gravar o condomínio no Firebase.",
+    );
+
+    if (botaoSalvar) {
+      botaoSalvar.disabled = false;
+      botaoSalvar.textContent = textoOriginal;
+    }
+
+    return;
+  }
+
+  try {
+    /* A gravação já terminou. Agora somente
+       recarregamos os dados para atualizar a tela. */
+
+    await carregarDadosDeCondominiosDoFirestore();
+  } catch (error) {
+    console.error(
+      "[Condomínios] O condomínio foi salvo, mas a listagem não pôde ser recarregada:",
+      error,
+    );
+
+    const condominioLocal = clonarDados(condominioRascunho);
+
+    const indiceExistente = condominios.findIndex(
+      (condominio) => condominio.id === condominioLocal.id,
+    );
+
+    if (indiceExistente >= 0) {
+      condominios[indiceExistente] = condominioLocal;
+    } else {
+      condominios.push(condominioLocal);
+    }
+  }
 
   fecharModalDeCondominio();
 
+  popularFiltroDeCidades();
+  popularOpcoesDeClientes();
+  atualizarAbas();
   atualizarResumo();
-
+  renderizarFiltrosAtivos();
   renderizarCondominios();
 
   mostrarFeedback(
@@ -1991,6 +2093,11 @@ function salvarCondominio(event) {
       ? "Condomínio atualizado com sucesso."
       : "Condomínio cadastrado com sucesso.",
   );
+
+  if (botaoSalvar) {
+    botaoSalvar.disabled = false;
+    botaoSalvar.textContent = textoOriginal;
+  }
 }
 
 /* =========================================
@@ -2033,7 +2140,7 @@ function renderizarClientesVinculados() {
 
     const removeButton = card.querySelector(".linked-client-card__remove");
 
-    const cliente = clienteConfig[vinculo.clienteId];
+    const cliente = obterClientePorId(vinculo.clienteId);
 
     avatar.textContent = cliente?.iniciais || "CL";
 
@@ -2115,7 +2222,9 @@ function vincularCliente() {
     responsavelFinanceiro: linkedClientFinancial.checked,
   });
 
-  linkedClientSelect.value = "";
+  linkedClientSearch.value = "";
+
+  popularSelectDeClientesVinculaveis();
 
   linkedClientRole.value = "sindico";
 
@@ -2124,8 +2233,6 @@ function vincularCliente() {
   linkedClientFinancial.checked = false;
 
   renderizarClientesVinculados();
-
-  mostrarFeedback("Cliente vinculado ao condomínio.");
 }
 
 /* =========================================
@@ -2367,6 +2474,11 @@ modalTabButtons.forEach((button) => {
 
 linkClientButton.addEventListener("click", vincularCliente);
 
+linkedClientSearch.addEventListener(
+  "input",
+  popularSelectDeClientesVinculaveis,
+);
+
 equipmentInputs.forEach((input) => {
   input.addEventListener("change", atualizarContagemEquipamentos);
 });
@@ -2439,21 +2551,36 @@ function abrirCondominioRecebidoPelaURL() {
    INICIALIZAÇÃO
 ========================================= */
 
-carregarCondominios();
+async function inicializarPaginaDeCondominios() {
+  try {
+    await prepararFirebaseDeCondominios();
 
-atualizarStatusDosDocumentos();
+    await aguardarSessaoDaPagina();
 
-salvarCondominios();
+    await carregarDadosDeCondominiosDoFirestore();
+  } catch (error) {
+    console.error("[Condomínios] Não foi possível carregar os dados:", error);
 
-sincronizarFormularioComFiltros();
+    condominios = [];
+    clientes = [];
+    ordens = [];
 
-atualizarContagemDeFiltros();
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura dos condomínios. Revise as regras."
+        : "Não foi possível carregar os condomínios.",
+    );
+  }
 
-renderizarFiltrosAtivos();
+  popularFiltroDeCidades();
+  popularOpcoesDeClientes();
+  sincronizarFormularioComFiltros();
+  atualizarContagemDeFiltros();
+  renderizarFiltrosAtivos();
+  atualizarAbas();
+  atualizarResumo();
+  renderizarCondominios();
+  abrirCondominioRecebidoPelaURL();
+}
 
-atualizarAbas();
-
-atualizarResumo();
-
-renderizarCondominios();
-abrirCondominioRecebidoPelaURL();
+inicializarPaginaDeCondominios();

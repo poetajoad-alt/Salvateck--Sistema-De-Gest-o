@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/condominios.css" />
 </head>
 
-<body data-page="condominios" data-profile="admin">
+<body data-page="condominios" data-profile="admin" data-allowed-roles="admin">
 
   <main class="condominiums-shell">
 
@@ -255,27 +255,7 @@
           </label>
 
           <select id="city-filter" class="filter-select">
-
-            <option value="">
-              Todas as cidades
-            </option>
-
-            <option value="sao-paulo">
-              São Paulo
-            </option>
-
-            <option value="osasco">
-              Osasco
-            </option>
-
-            <option value="barueri">
-              Barueri
-            </option>
-
-            <option value="guarulhos">
-              Guarulhos
-            </option>
-
+            <option value="">Todas as cidades</option>
           </select>
 
         </div>
@@ -287,27 +267,8 @@
           </label>
 
           <select id="manager-filter" class="filter-select">
-
-            <option value="">
-              Todos os responsáveis
-            </option>
-
-            <option value="cliente-administradora">
-              Administradora Predial XYZ
-            </option>
-
-            <option value="cliente-joao">
-              João da Silva
-            </option>
-
-            <option value="cliente-maria">
-              Maria Oliveira
-            </option>
-
-            <option value="sem-responsavel">
-              Sem responsável
-            </option>
-
+            <option value="">Todos os responsáveis</option>
+            <option value="sem-responsavel">Sem responsável</option>
           </select>
 
         </div>
@@ -928,37 +889,21 @@
 
             <div class="modal-grid">
 
-              <label class="modal-field modal-field--wide">
+              <div class="modal-field modal-field--wide">
 
                 <span>
                   Cliente
                 </span>
 
-                <select id="linked-client-select">
+                <input type="search" id="linked-client-search" placeholder="Digite o nome, e-mail ou telefone" autocomplete="off" aria-label="Pesquisar cliente para vincular" />
 
+                <select id="linked-client-select" aria-label="Selecionar cliente encontrado">
                   <option value="">
                     Selecione um cliente
                   </option>
-
-                  <option value="cliente-administradora">
-                    Administradora Predial XYZ
-                  </option>
-
-                  <option value="cliente-joao">
-                    João da Silva
-                  </option>
-
-                  <option value="cliente-maria">
-                    Maria Oliveira
-                  </option>
-
-                  <option value="cliente-carlos">
-                    Carlos Henrique
-                  </option>
-
                 </select>
 
-              </label>
+              </div>
 
               <label class="modal-field">
 
@@ -1786,6 +1731,7 @@
     Ação realizada com sucesso.
   </div>
 
+  <script type="module" src="js/auth-guard.js"></script>
   <script src="js/condominios.js"></script>
 
 </body>

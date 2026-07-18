@@ -1,0 +1,522 @@
+/* =========================================
+   PÁGINAS EM BREVE — SALVATECK
+========================================= */
+
+.auth-checking body {
+  visibility: hidden;
+}
+
+body {
+  min-height: 100vh;
+
+  font-family: "Montserrat", Arial, sans-serif;
+
+  color: #f9f9f9;
+
+  background:
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(221, 154, 23, 0.24),
+      transparent 34%
+    ),
+    linear-gradient(160deg, #0d3861 0%, #0a2e50 48%, #071f34 100%);
+}
+
+.coming-soon-shell {
+  width: min(100%, 760px);
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) clamp(16px, 5vw, 32px)
+    max(24px, env(safe-area-inset-bottom));
+}
+
+/* =========================================
+   CABEÇALHO
+========================================= */
+
+.coming-soon-header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-button {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  color: #f9f9f9;
+  background-color: rgba(249, 249, 249, 0.1);
+
+  border: 1px solid rgba(249, 249, 249, 0.18);
+  border-radius: 50%;
+
+  text-decoration: none;
+
+  backdrop-filter: blur(12px);
+
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.header-button svg {
+  width: 24px;
+  height: 24px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header-button:active {
+  transform: scale(0.96);
+}
+
+.header-button:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 3px;
+}
+
+.coming-soon-header__copy {
+  min-width: 0;
+
+  text-align: center;
+}
+
+.coming-soon-header__copy span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+
+  color: rgba(249, 249, 249, 0.66);
+}
+
+.coming-soon-header__copy h1 {
+  margin: 0;
+
+  font-size: clamp(1.1rem, 4vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+
+  overflow-wrap: anywhere;
+}
+
+.coming-soon-logo {
+  width: 56px;
+  height: 56px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 7px;
+
+  overflow: hidden;
+
+  background-color: #ffffff;
+
+  border: 3px solid rgba(221, 154, 23, 0.8);
+  border-radius: 50%;
+
+  box-shadow: 0 10px 24px rgba(4, 26, 47, 0.28);
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.coming-soon-logo img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+.coming-soon-logo:active {
+  transform: scale(0.96);
+}
+
+.coming-soon-logo:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: 3px;
+}
+
+/* =========================================
+   CONTEÚDO
+========================================= */
+
+.coming-soon-content {
+  flex: 1;
+
+  display: grid;
+  place-items: center;
+
+  padding: 48px 0 34px;
+}
+
+.coming-soon-card {
+  position: relative;
+
+  width: min(100%, 590px);
+
+  padding: clamp(28px, 7vw, 48px);
+
+  overflow: hidden;
+
+  text-align: center;
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(249, 249, 249, 0.5);
+  border-radius: 32px;
+
+  box-shadow:
+    0 30px 70px rgba(4, 26, 47, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.coming-soon-card::before {
+  content: "";
+
+  position: absolute;
+  top: -90px;
+  right: -80px;
+
+  width: 210px;
+  height: 210px;
+
+  background-color: rgba(221, 154, 23, 0.1);
+
+  border-radius: 50%;
+}
+
+.coming-soon-badge {
+  position: relative;
+  z-index: 1;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 32px;
+
+  padding: 0 15px;
+
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border: 1px solid rgba(221, 154, 23, 0.32);
+  border-radius: 999px;
+}
+
+.coming-soon-icon {
+  position: relative;
+  z-index: 1;
+
+  width: 88px;
+  height: 88px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 26px auto 24px;
+
+  color: #0d3861;
+  background: linear-gradient(
+    145deg,
+    rgba(221, 154, 23, 0.26),
+    rgba(221, 154, 23, 0.08)
+  );
+
+  border: 1px solid rgba(221, 154, 23, 0.28);
+  border-radius: 27px;
+
+  box-shadow: 0 14px 28px rgba(13, 56, 97, 0.13);
+}
+
+.coming-soon-icon svg {
+  width: 43px;
+  height: 43px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.coming-soon-eyebrow {
+  position: relative;
+  z-index: 1;
+
+  margin: 0 0 10px;
+
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+
+  color: #dd9a17;
+}
+
+.coming-soon-card h2 {
+  position: relative;
+  z-index: 1;
+
+  max-width: 440px;
+
+  margin: 0 auto;
+
+  font-size: clamp(1.55rem, 6vw, 2.15rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+
+  color: #0d3861;
+}
+
+.coming-soon-description {
+  position: relative;
+  z-index: 1;
+
+  max-width: 470px;
+
+  margin: 18px auto 0;
+
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.65;
+
+  color: #65717d;
+}
+
+/* =========================================
+   RECURSOS FUTUROS
+========================================= */
+
+.coming-soon-features {
+  position: relative;
+  z-index: 1;
+
+  display: grid;
+  gap: 10px;
+
+  margin-top: 28px;
+
+  text-align: left;
+}
+
+.coming-soon-feature {
+  min-height: 50px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 11px 14px;
+
+  font-size: 0.77rem;
+  font-weight: 650;
+  line-height: 1.4;
+
+  color: #384653;
+  background-color: rgba(13, 56, 97, 0.045);
+
+  border: 1px solid rgba(13, 56, 97, 0.08);
+  border-radius: 15px;
+}
+
+.coming-soon-feature__icon {
+  flex: 0 0 auto;
+
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border-radius: 50%;
+}
+
+.coming-soon-feature__icon svg {
+  width: 15px;
+  height: 15px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* =========================================
+   BOTÃO
+========================================= */
+
+.coming-soon-button {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  min-height: 54px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+
+  margin-top: 30px;
+  padding: 0 22px;
+
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+  border-radius: 999px;
+
+  box-shadow: 0 12px 24px rgba(13, 56, 97, 0.21);
+
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.coming-soon-button svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.coming-soon-button:active {
+  transform: scale(0.98);
+}
+
+.coming-soon-button:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.5);
+  outline-offset: 3px;
+}
+
+/* =========================================
+   RODAPÉ
+========================================= */
+
+.coming-soon-footer {
+  padding-top: 12px;
+
+  text-align: center;
+
+  font-size: 0.63rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+
+  color: rgba(249, 249, 249, 0.5);
+}
+
+/* =========================================
+   INTERAÇÕES
+========================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .header-button:hover {
+    background-color: rgba(249, 249, 249, 0.17);
+
+    border-color: rgba(221, 154, 23, 0.55);
+
+    transform: translateY(-2px);
+  }
+
+  .coming-soon-logo:hover {
+    border-color: #dd9a17;
+
+    transform: translateY(-2px);
+  }
+
+  .coming-soon-button:hover {
+    color: #0d3861;
+    background-color: #dd9a17;
+
+    box-shadow: 0 15px 30px rgba(13, 56, 97, 0.26);
+  }
+}
+
+/* =========================================
+   CELULARES MENORES
+========================================= */
+
+@media (max-width: 390px) {
+  .coming-soon-shell {
+    padding-inline: 13px;
+  }
+
+  .coming-soon-header {
+    grid-template-columns: 44px minmax(0, 1fr) 50px;
+
+    gap: 8px;
+  }
+
+  .coming-soon-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .coming-soon-card {
+    padding: 27px 18px;
+
+    border-radius: 25px;
+  }
+
+  .coming-soon-content {
+    padding-top: 36px;
+  }
+}
+
+/* =========================================
+   REDUÇÃO DE MOVIMENTO
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

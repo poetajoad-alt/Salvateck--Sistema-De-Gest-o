@@ -1,8 +1,17 @@
+import "./auth-guard.js";
+
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { db } from "./firebase-config.js";
+
 /* =========================================
    CONFIGURAÇÕES
 ========================================= */
-
-const ORDERS_STORAGE_KEY = "salvateckOrdensTemporarias";
 
 const INSPECTIONS_PER_PAGE = 10;
 
@@ -203,6 +212,18 @@ function parseLocalDate(value) {
     return null;
   }
 
+  if (typeof value.toDate === "function") {
+    const date = value.toDate();
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (value instanceof Date) {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   const dateValue = String(value).split("T")[0];
 
   const date = new Date(`${dateValue}T12:00:00`);
@@ -265,22 +286,25 @@ function showFeedback(message) {
    LEITURA DAS ORDENS
 ========================================= */
 
-function loadOrders() {
-  try {
-    const savedData = JSON.parse(
-      localStorage.getItem(ORDERS_STORAGE_KEY) || "[]",
-    );
+async function loadInspectionOrdersFromFirestore() {
+  const inspectionsQuery = query(
+    collection(db, "ordens"),
+    where("tipoAtendimento", "==", "vistoria"),
+  );
 
-    const orders = Array.isArray(savedData) ? savedData : [];
+  const snapshot = await getDocs(inspectionsQuery);
 
-    inspectionOrders = orders
-      .filter(isInspectionOrder)
-      .map(normalizeInspectionOrder);
-  } catch (error) {
-    console.warn("Não foi possível carregar as ordens de vistoria.", error);
+  inspectionOrders = snapshot.docs
+    .map((documentSnapshot) => ({
+      id: documentSnapshot.id,
+      ...documentSnapshot.data(),
+    }))
+    .filter(isInspectionOrder)
+    .map(normalizeInspectionOrder);
 
-    inspectionOrders = [];
-  }
+  console.info(
+    `[Vistorias] ${inspectionOrders.length} vistoria(s) carregada(s) do Firestore.`,
+  );
 }
 
 function isInspectionOrder(order) {
@@ -1404,36 +1428,41 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("storage", (event) => {
-  if (event.key !== ORDERS_STORAGE_KEY) {
-    return;
-  }
-
-  loadOrders();
-  updateSummary();
-
-  currentLimit = INSPECTIONS_PER_PAGE;
-
-  renderInspections();
-});
-
 /* =========================================
    INICIALIZAÇÃO
 ========================================= */
 
-loadOrders();
+async function initializeInspectionsPage() {
+  try {
+    await window.salvateckSessionReady;
 
-synchronizeFilterForm();
+    await loadInspectionOrdersFromFirestore();
+  } catch (error) {
+    console.error("[Vistorias] Não foi possível carregar as vistorias:", error);
 
-updateFilterCount();
+    inspectionOrders = [];
 
-renderActiveFilters();
+    showFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a leitura das vistorias."
+        : "Não foi possível carregar as vistorias.",
+    );
+  }
 
-updateSummary();
+  synchronizeFilterForm();
 
-changeView("", {
-  forceOpen: true,
-  scroll: false,
-});
+  updateFilterCount();
 
-openInspectionFromURL();
+  renderActiveFilters();
+
+  updateSummary();
+
+  changeView("", {
+    forceOpen: true,
+    scroll: false,
+  });
+
+  openInspectionFromURL();
+}
+
+initializeInspectionsPage();

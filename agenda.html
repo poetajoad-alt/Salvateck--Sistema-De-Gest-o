@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/agenda.css" />
 </head>
 
-<body data-page="agenda" data-profile="admin">
+<body data-page="agenda" data-profile="admin" data-allowed-roles="admin">
 
   <main class="agenda-shell">
 
@@ -347,7 +347,15 @@
             </span>
 
           </label>
+          <label class="filter-option">
 
+            <input type="checkbox" name="statusFilter" value="cancelado" />
+
+            <span>
+              Cancelado
+            </span>
+
+          </label>
         </div>
 
       </div>
@@ -389,7 +397,9 @@
             <option value="manutencao-geral">
               Manutenção geral
             </option>
-
+            <option value="vistoria">
+              Vistoria técnica
+            </option>
           </select>
 
         </div>
@@ -417,7 +427,9 @@
             <option value="noite">
               Noite
             </option>
-
+            <option value="horario">
+              Horário específico
+            </option>
           </select>
 
         </div>
@@ -819,7 +831,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <script src="js/agenda.js"></script>
+  <script type="module" src="js/agenda.js?v=1.0.1"></script>
 
 </body>
 
