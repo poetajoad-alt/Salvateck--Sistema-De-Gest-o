@@ -30,7 +30,7 @@ const profileConfig = {
       {
         title: "Minhas Solicitações",
         description: "Acompanhe pedidos enviados e respostas da equipe.",
-        target: "solicitacoes.html?perfil=cliente",
+        target: "ordens.html?perfil=cliente",
         icon: "inbox",
       },
       {
@@ -61,12 +61,6 @@ const profileConfig = {
     searchPlaceholder: "Pesquisar cliente, ordem ou serviço",
 
     cards: [
-      {
-        title: "Novas Solicitações",
-        description: "Analise pedidos enviados pelos clientes.",
-        target: "solicitacoes.html?perfil=admin",
-        icon: "bell",
-      },
       {
         title: "Nova Ordem de Serviço",
         description: "Cadastre uma ordem manualmente para um cliente.",

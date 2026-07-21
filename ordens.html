@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <meta name="description" content="Gestão administrativa de ordens de serviço da Salvateck" />
+  <meta name="description" content="Gestão de ordens de serviço da Salvateck" />
 
   <meta name="theme-color" content="#0D3861" />
 
@@ -19,40 +19,37 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/ordens.css" />
+  <link rel="stylesheet" href="css/ordens.css?v=2.0.1" />
 </head>
 
-<body data-page="ordens" data-profile="admin">
-
-  <main class="orders-shell">
+<body data-page="ordens" data-allowed-roles="admin,cliente">
+  <main class="requests-shell">
 
     <!-- =====================================
          CABEÇALHO
     ====================================== -->
 
-    <header class="orders-header">
+    <header class="requests-header">
 
-      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
-
+      <a href="principal.html" class="header-button" id="requests-back-button" aria-label="Voltar para a página principal">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
         </svg>
-
       </a>
 
-      <div class="orders-header__content">
+      <div class="requests-header__content">
 
-        <p class="orders-header__eyebrow">
-          Sistema de Gestão
+        <p class="requests-header__eyebrow">
+          Salvateck
         </p>
 
-        <h1>
+        <h1 id="page-title">
           Ordens de Serviço
         </h1>
 
       </div>
 
-      <div class="orders-header__logo">
+      <div class="requests-header__logo">
 
         <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
 
@@ -61,38 +58,36 @@
     </header>
 
     <!-- =====================================
-         APRESENTAÇÃO
+         INTRODUÇÃO
     ====================================== -->
 
-    <section class="orders-intro">
+    <section class="requests-intro">
 
-      <div class="orders-intro__copy">
+      <div class="requests-intro__copy">
 
-        <span class="orders-intro__badge">
-          Operação
+        <span class="requests-intro__badge" id="profile-badge">
+          Área do cliente
         </span>
 
-        <h2>
-          Acompanhe todas as ordens de serviço
+        <h2 id="intro-title">
+          Acompanhe seus pedidos
         </h2>
 
-        <p>
-          Consulte solicitações, acompanhe os status, organize responsáveis e acesse os detalhes de cada atendimento.
+        <p id="intro-description">
+          Veja o andamento das suas solicitações e consulte os detalhes de cada atendimento.
         </p>
 
       </div>
 
-      <a href="nova-ordem.html?perfil=admin" class="new-order-button">
-
+      <a href="nova-ordem.html" class="new-request-button" id="new-request-button">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v14"></path>
           <path d="M5 12h14"></path>
         </svg>
 
         <span>
-          Nova ordem
+          Nova solicitação
         </span>
-
       </a>
 
     </section>
@@ -101,99 +96,170 @@
          RESUMO
     ====================================== -->
 
-    <!-- =====================================
-     RESUMO COMPACTO
-====================================== -->
+    <section class="requests-summary requests-status-filters" id="requests-status-filters" aria-label="Filtros rápidos das ordens de serviço">
 
-    <section class="orders-overview" aria-label="Resumo das ordens de serviço">
+      <button type="button" class="summary-card status-filter-card is-active" data-quick-status="todos">
 
-      <div class="overview-item">
+        <div class="summary-card__icon">
 
-        <span>
-          Total
-        </span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
 
-        <strong id="summary-total">
-          0
-        </strong>
+        </div>
 
-      </div>
+        <div class="summary-card__copy">
 
-      <div class="overview-item">
+          <span>
+            Todas
+          </span>
 
-        <span>
-          Pendentes
-        </span>
+          <strong id="summary-total">
+            0
+          </strong>
 
-        <strong id="summary-pending">
-          0
-        </strong>
+        </div>
 
-      </div>
+      </button>
 
-      <div class="overview-item">
+      <button type="button" class="summary-card status-filter-card" data-quick-status="analise">
 
-        <span>
-          Em andamento
-        </span>
+        <div class="summary-card__icon">
 
-        <strong id="summary-progress">
-          0
-        </strong>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 7v5l3 2"></path>
+          </svg>
 
-      </div>
+        </div>
 
-      <div class="overview-item">
+        <div class="summary-card__copy">
 
-        <span>
-          Concluídas
-        </span>
+          <span>
+            Para analisar
+          </span>
 
-        <strong id="summary-completed">
-          0
-        </strong>
+          <strong id="summary-pending">
+            0
+          </strong>
 
-      </div>
+        </div>
+
+      </button>
+
+      <button type="button" class="summary-card status-filter-card" data-quick-status="aguardando">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v14H4z"></path>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+            <path d="M15 17h5"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Aguardando
+          </span>
+
+          <strong id="summary-awaiting">
+            0
+          </strong>
+
+        </div>
+
+      </button>
+
+      <button type="button" class="summary-card status-filter-card" data-quick-status="agendadas">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+            <path d="m8 15 2 2 5-5"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Agendadas
+          </span>
+
+          <strong id="summary-confirmed">
+            0
+          </strong>
+
+        </div>
+
+      </button>
+
+      <button type="button" class="summary-card status-filter-card" data-quick-status="concluidas">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m8 12 3 3 5-6"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Concluídas
+          </span>
+
+          <strong id="summary-completed">
+            0
+          </strong>
+
+        </div>
+
+      </button>
+
+      <button type="button" class="summary-card status-filter-card" data-quick-status="encerradas">
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m9 9 6 6"></path>
+            <path d="m15 9-6 6"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Encerradas
+          </span>
+
+          <strong id="summary-closed">
+            0
+          </strong>
+
+        </div>
+
+      </button>
 
     </section>
 
     <!-- =====================================
-         ABAS DE STATUS
+         PESQUISA
     ====================================== -->
 
-    <section class="status-tabs" aria-label="Filtro rápido por status">
-
-      <button type="button" class="status-tab is-active" data-status-tab="todos" aria-pressed="true">
-        Todas
-      </button>
-
-      <button type="button" class="status-tab" data-status-tab="novas" aria-pressed="false">
-        Novas
-      </button>
-
-      <button type="button" class="status-tab" data-status-tab="pendentes" aria-pressed="false">
-        Pendentes
-      </button>
-
-      <button type="button" class="status-tab" data-status-tab="agendadas" aria-pressed="false">
-        Agendadas
-      </button>
-
-      <button type="button" class="status-tab" data-status-tab="andamento" aria-pressed="false">
-        Em andamento
-      </button>
-
-      <button type="button" class="status-tab" data-status-tab="encerradas" aria-pressed="false">
-        Encerradas
-      </button>
-
-    </section>
-
-    <!-- =====================================
-         PESQUISA E FILTROS
-    ====================================== -->
-
-    <section class="orders-tools">
+    <section class="requests-tools">
 
       <label class="search-field">
 
@@ -202,11 +268,11 @@
           <path d="m20 20-4-4"></path>
         </svg>
 
-        <input id="orders-search" type="search" placeholder="Pesquisar cliente, ordem ou serviço" autocomplete="off" aria-label="Pesquisar ordens de serviço" />
+        <input id="request-search" type="search" placeholder="Pesquisar solicitação" autocomplete="off" aria-label="Pesquisar solicitação" />
 
       </label>
 
-      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+      <button type="button" class="filter-button" id="open-filter-button" aria-label="Abrir filtros" aria-expanded="false" aria-controls="filter-panel">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 6h16"></path>
@@ -224,53 +290,10 @@
 
       </button>
 
-      <button type="button" class="sort-button" id="sort-button" aria-expanded="false" aria-controls="sort-menu">
-
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 6h12"></path>
-          <path d="M8 12h8"></path>
-          <path d="M8 18h4"></path>
-          <path d="m4 4-2 2 2 2"></path>
-        </svg>
-
-        <span>
-          Ordenar
-        </span>
-
-      </button>
-
-    </section>
-    <!-- =====================================
-     FILTROS ATIVOS
-====================================== -->
-
-    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
-    <!-- =====================================
-         MENU DE ORDENAÇÃO
-    ====================================== -->
-
-    <section class="sort-menu" id="sort-menu" hidden>
-
-      <button type="button" class="sort-option is-active" data-sort-option="mais-recentes">
-        Mais recentes
-      </button>
-
-      <button type="button" class="sort-option" data-sort-option="mais-antigas">
-        Mais antigas
-      </button>
-
-      <button type="button" class="sort-option" data-sort-option="proxima-data">
-        Próxima data agendada
-      </button>
-
-      <button type="button" class="sort-option" data-sort-option="cliente">
-        Nome do cliente
-      </button>
-
     </section>
 
     <!-- =====================================
-         PAINEL DE FILTROS
+         FILTROS
     ====================================== -->
 
     <section class="filter-panel" id="filter-panel" hidden>
@@ -280,7 +303,7 @@
         <div>
 
           <p>
-            Refine a listagem
+            Refine a lista
           </p>
 
           <h2>
@@ -305,10 +328,20 @@
 
           <label class="filter-option">
 
-            <input type="checkbox" name="statusFilter" value="nova" />
+            <input type="checkbox" name="statusFilter" value="nova-solicitacao" />
 
             <span>
-              Nova
+              Nova solicitação
+            </span>
+
+          </label>
+
+          <label class="filter-option">
+
+            <input type="checkbox" name="statusFilter" value="em-analise" />
+
+            <span>
+              Em análise
             </span>
 
           </label>
@@ -332,43 +365,12 @@
             </span>
 
           </label>
-
-          <label class="filter-option">
-
-            <input type="checkbox" name="statusFilter" value="em-deslocamento" />
-
-            <span>
-              Em deslocamento
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="checkbox" name="statusFilter" value="em-atendimento" />
-
-            <span>
-              Em atendimento
-            </span>
-
-          </label>
-
           <label class="filter-option">
 
             <input type="checkbox" name="statusFilter" value="concluida" />
 
             <span>
               Concluída
-            </span>
-
-          </label>
-
-          <label class="filter-option">
-
-            <input type="checkbox" name="statusFilter" value="cancelada" />
-
-            <span>
-              Cancelada
             </span>
 
           </label>
@@ -383,143 +385,89 @@
 
           </label>
 
-        </div>
+          <label class="filter-option">
 
-      </div>
+            <input type="checkbox" name="statusFilter" value="cancelada" />
 
-      <div class="filter-grid">
+            <span>
+              Cancelada
+            </span>
 
-        <div class="filter-group">
-
-          <label class="filter-group__label" for="category-filter">
-            Categoria
           </label>
-
-          <select id="category-filter" class="filter-select">
-
-            <option value="">
-              Todas as categorias
-            </option>
-
-            <option value="hidraulica">
-              Hidráulica
-            </option>
-
-            <option value="eletrica">
-              Elétrica
-            </option>
-
-            <option value="pintura">
-              Pintura
-            </option>
-
-            <option value="alvenaria">
-              Alvenaria
-            </option>
-
-            <option value="instalacoes">
-              Instalações
-            </option>
-
-            <option value="manutencao-geral">
-              Manutenção geral
-            </option>
-
-          </select>
-
-        </div>
-
-        <div class="filter-group">
-
-          <label class="filter-group__label" for="employee-filter">
-            Responsável
-          </label>
-
-          <select id="employee-filter" class="filter-select">
-
-            <option value="">
-              Todos os responsáveis
-            </option>
-
-            <option value="jose">
-              José
-            </option>
-
-            <option value="equipe-apoio">
-              Equipe de apoio
-            </option>
-
-            <option value="nao-definido">
-              Não definido
-            </option>
-
-          </select>
 
         </div>
 
       </div>
 
-      <div class="filter-grid">
+      <div class="filter-group">
 
-        <div class="filter-group">
+        <label class="filter-group__label" for="category-filter">
+          Categoria
+        </label>
 
-          <label class="filter-group__label" for="period-filter">
-            Período solicitado
-          </label>
+        <select id="category-filter" class="filter-select">
+          <option value="">
+            Todas as categorias
+          </option>
 
-          <select id="period-filter" class="filter-select">
+          <option value="hidraulica">
+            Hidráulica
+          </option>
 
-            <option value="">
-              Todos os períodos
-            </option>
+          <option value="eletrica">
+            Elétrica
+          </option>
 
-            <option value="manha">
-              Manhã
-            </option>
+          <option value="pintura">
+            Pintura
+          </option>
 
-            <option value="tarde">
-              Tarde
-            </option>
+          <option value="alvenaria">
+            Alvenaria
+          </option>
 
-            <option value="noite">
-              Noite
-            </option>
+          <option value="instalacoes">
+            Instalações
+          </option>
 
-          </select>
+          <option value="manutencao-geral">
+            Manutenção geral
+          </option>
 
-        </div>
+          <option value="vistoria">
+            Vistoria técnica
+          </option>
+        </select>
 
-        <div class="filter-group">
+      </div>
 
-          <label class="filter-group__label" for="date-filter">
-            Data de referência
-          </label>
+      <div class="filter-group admin-filter" hidden>
 
-          <select id="date-filter" class="filter-select">
+        <label class="filter-group__label" for="priority-filter">
+          Prioridade
+        </label>
 
-            <option value="">
-              Qualquer data
-            </option>
+        <select id="priority-filter" class="filter-select">
+          <option value="">
+            Todas as prioridades
+          </option>
 
-            <option value="hoje">
-              Hoje
-            </option>
+          <option value="baixa">
+            Baixa
+          </option>
 
-            <option value="semana">
-              Esta semana
-            </option>
+          <option value="normal">
+            Normal
+          </option>
 
-            <option value="mes">
-              Este mês
-            </option>
+          <option value="alta">
+            Alta
+          </option>
 
-            <option value="sem-data">
-              Sem data definida
-            </option>
-
-          </select>
-
-        </div>
+          <option value="urgente">
+            Urgente
+          </option>
+        </select>
 
       </div>
 
@@ -538,70 +486,44 @@
     </section>
 
     <!-- =====================================
-         LISTAGEM
+         CABEÇALHO DA LISTA
     ====================================== -->
 
-    <section class="orders-content">
+    <section class="requests-list-section">
 
-      <div class="orders-content__heading">
+      <div class="requests-list__heading">
 
         <div>
 
-          <p id="orders-content-eyebrow">
-            Todas as situações
+          <p id="list-eyebrow">
+            Seus atendimentos
           </p>
 
-          <h2 id="orders-content-title">
-            Ordens cadastradas
+          <h2 id="list-title">
+            Solicitações recentes
           </h2>
 
         </div>
 
-        <div class="orders-content__controls">
-
-          <span class="orders-content__count" id="orders-count">
-            0 itens
-          </span>
-
-          <div class="orders-carousel-controls" aria-label="Navegação entre ordens">
-
-            <button type="button" class="orders-carousel-button" id="previous-order-button" aria-label="Ordem anterior">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m15 18-6-6 6-6"></path>
-              </svg>
-
-            </button>
-
-            <span class="orders-carousel-position" id="orders-carousel-position" aria-live="polite">
-              0 de 0
-            </span>
-
-            <button type="button" class="orders-carousel-button" id="next-order-button" aria-label="Próxima ordem">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m9 18 6-6-6-6"></path>
-              </svg>
-
-            </button>
-
-          </div>
-
-        </div>
+        <span class="requests-list__count" id="requests-count">
+          0 itens
+        </span>
 
       </div>
 
-      <p class="orders-content__hint">
-        Arraste os cards para o lado ou use as setas para visualizar outras ordens.
-      </p>
+      <!-- ===================================
+           LISTA GERADA PELO JAVASCRIPT
+      ==================================== -->
 
-      <div class="orders-list" id="orders-list" aria-live="polite"></div>
+      <div class="requests-list" id="requests-list" aria-live="polite"></div>
 
-      <!-- Estado vazio -->
+      <!-- ===================================
+           ESTADO VAZIO
+      ==================================== -->
 
       <div class="empty-state" id="empty-state" hidden>
 
-        <span class="empty-state__icon">
+        <div class="empty-state__icon">
 
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 5h16v14H4z"></path>
@@ -609,19 +531,19 @@
             <path d="M8 13h5"></path>
           </svg>
 
-        </span>
+        </div>
 
-        <h3>
-          Nenhuma ordem encontrada
+        <h3 id="empty-state-title">
+          Nenhuma solicitação encontrada
         </h3>
 
-        <p>
-          Não existem ordens correspondentes à pesquisa ou aos filtros selecionados.
+        <p id="empty-state-description">
+          Crie uma nova solicitação ou altere os filtros utilizados.
         </p>
 
-        <button type="button" class="empty-state__button" id="clear-empty-filters-button">
-          Limpar pesquisa e filtros
-        </button>
+        <a href="nova-ordem.html" class="empty-state__button" id="empty-state-button">
+          Criar nova solicitação
+        </a>
 
       </div>
 
@@ -633,361 +555,173 @@
        TEMPLATE DO CARD
   ====================================== -->
 
-  <!-- =====================================
-     TEMPLATE DO CARD COMPACTO
-====================================== -->
+  <template id="request-card-template">
 
-  <template id="order-card-template">
+    <article class="request-card">
 
-    <article class="order-card">
+      <button type="button" class="request-card__main" aria-expanded="false">
 
-      <!-- Lateral com prioridade e data -->
+        <div class="request-card__top">
 
-      <div class="order-card__side">
+          <div class="request-card__identity">
 
-        <span class="order-card__priority">
-          Normal
-        </span>
+            <span class="request-card__code"></span>
 
-        <span class="order-card__date-label">
-          Data
-        </span>
-
-        <strong class="order-card__day">
-          --
-        </strong>
-
-        <span class="order-card__month">
-          ---
-        </span>
-
-        <span class="order-card__year">
-          ----
-        </span>
-
-      </div>
-
-      <div class="order-card__body">
-
-        <!-- Conteúdo sempre visível -->
-
-        <div class="order-card__summary">
-
-          <div class="order-card__content">
-
-            <div class="order-card__top">
-
-              <span class="order-card__code"></span>
-
-              <span class="order-card__status"></span>
-
-            </div>
-
-            <span class="order-card__client"></span>
-
-            <h3 class="order-card__title"></h3>
-
-            <span class="order-card__schedule">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-
-                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-
-                <path d="M7 3v4M17 3v4M3 10h18"></path>
-
-              </svg>
-
-              <span></span>
-
-            </span>
+            <span class="request-card__status"></span>
 
           </div>
 
-          <button type="button" class="order-card__toggle" aria-expanded="false" aria-label="Mostrar informações da ordem">
+          <span class="request-card__date"></span>
+
+        </div>
+
+        <div class="request-card__content">
+
+          <div class="request-card__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11Z"></path>
+            </svg>
+
+          </div>
+
+          <div class="request-card__copy">
+
+            <span class="request-card__client" hidden></span>
+
+            <h3 class="request-card__title"></h3>
+
+            <p class="request-card__service"></p>
+
+            <div class="request-card__details">
+
+              <span class="request-card__address">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
+                  <circle cx="12" cy="9" r="2"></circle>
+                </svg>
+
+                <span></span>
+
+              </span>
+
+              <span class="request-card__schedule">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                  <path d="M7 3v4M17 3v4M3 10h18"></path>
+                </svg>
+
+                <span></span>
+
+              </span>
+
+            </div>
+
+          </div>
+
+          <span class="request-card__arrow">
 
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m6 9 6 6 6-6"></path>
             </svg>
 
-          </button>
+          </span>
 
         </div>
 
-        <!-- Conteúdo inicialmente escondido -->
+      </button>
 
-        <div class="order-card__details" hidden>
+      <div class="request-card__expanded" hidden>
 
-          <p class="order-card__services"></p>
+        <div class="request-card__expanded-grid">
 
-          <div class="order-card__information">
+          <div class="request-card__expanded-item">
 
-            <span class="order-card__address">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-
-                <path d="M12 21s7-5.2 7-12a7 7 0 1 0-14 0c0 6.8 7 12 7 12Z"></path>
-
-                <circle cx="12" cy="9" r="2"></circle>
-
-              </svg>
-
-              <span></span>
-
+            <span class="request-card__expanded-label">
+              Cliente
             </span>
 
-            <span class="order-card__employee">
+            <strong class="request-card__expanded-client">
+              Não informado
+            </strong>
 
-              <svg viewBox="0 0 24 24" aria-hidden="true">
+          </div>
 
-                <circle cx="12" cy="8" r="4"></circle>
+          <div class="request-card__expanded-item">
 
-                <path d="M4 21a8 8 0 0 1 16 0"></path>
-
-              </svg>
-
-              <span></span>
-
+            <span class="request-card__expanded-label">
+              Status
             </span>
 
-          </div>
-
-          <div class="order-card__financial" hidden>
-
-            <div>
-
-              <span>
-                Valor
-              </span>
-
-              <strong class="order-card__value"></strong>
-
-            </div>
-
-            <span class="order-card__payment-status"></span>
+            <strong class="request-card__expanded-status">
+              Não informado
+            </strong>
 
           </div>
 
-          <div class="order-card__actions">
+          <div class="request-card__expanded-item">
 
-            <button type="button" class="order-card__button order-card__button--details">
-              Abrir ordem
-            </button>
+            <span class="request-card__expanded-label">
+              Serviço
+            </span>
 
-            <button type="button" class="order-card__button order-card__button--primary" data-primary-action>
-              Atualizar
-            </button>
-
-            <button type="button" class="order-card__menu" aria-label="Abrir opções da ordem" aria-expanded="false">
-
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="5" cy="12" r="1"></circle>
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="19" cy="12" r="1"></circle>
-              </svg>
-
-            </button>
+            <strong class="request-card__expanded-service">
+              Não informado
+            </strong>
 
           </div>
 
-          <div class="order-card__options" hidden>
+          <div class="request-card__expanded-item">
 
-            <button type="button" data-order-action="aceitar">
-              Aceitar solicitação
-            </button>
+            <span class="request-card__expanded-label">
+              Atendimento
+            </span>
 
-            <button type="button" data-order-action="propor-data">
-              Propor nova data
-            </button>
-
-            <button type="button" data-order-action="atribuir">
-              Definir responsável
-            </button>
-
-            <button type="button" data-order-action="reagendar">
-              Reagendar atendimento
-            </button>
-
-            <button type="button" data-order-action="iniciar">
-              Iniciar atendimento
-            </button>
-
-            <button type="button" data-order-action="concluir">
-              Marcar como concluída
-            </button>
-
-            <button type="button" data-order-action="cancelar">
-              Cancelar ordem
-            </button>
-
-            <button type="button" data-order-action="recusar">
-              Recusar solicitação
-            </button>
+            <strong class="request-card__expanded-schedule">
+              Não informado
+            </strong>
 
           </div>
 
         </div>
+
+        <div class="request-card__expanded-address">
+
+          <span class="request-card__expanded-label">
+            Endereço
+          </span>
+
+          <strong>
+            Não informado
+          </strong>
+
+        </div>
+
+      </div>
+
+      <div class="request-card__admin" hidden>
+
+        <div class="request-card__priority">
+
+          <span>
+            Prioridade
+          </span>
+
+          <strong></strong>
+
+        </div>
+
+        <button type="button" class="request-card__analyze">
+          Analisar solicitação
+        </button>
 
       </div>
 
     </article>
 
   </template>
-
-  <!-- =====================================
-       MODAL DE ATUALIZAÇÃO
-  ====================================== -->
-
-  <div class="modal-backdrop" id="update-modal" hidden>
-
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="update-modal-title">
-
-      <header class="modal-card__header">
-
-        <div>
-
-          <p>
-            Atualização da ordem
-          </p>
-
-          <h2 id="update-modal-title">
-            Alterar atendimento
-          </h2>
-
-        </div>
-
-        <button type="button" class="modal-card__close" id="close-update-modal-button" aria-label="Fechar janela">
-          ×
-        </button>
-
-      </header>
-
-      <form id="update-order-form">
-
-        <input type="hidden" id="update-order-id" />
-
-        <div class="modal-grid">
-
-          <label class="modal-field">
-
-            <span>
-              Status
-            </span>
-
-            <select id="update-status">
-
-              <option value="nova">
-                Nova
-              </option>
-
-              <option value="aguardando-confirmacao">
-                Aguardando confirmação
-              </option>
-
-              <option value="agendada">
-                Agendada
-              </option>
-
-              <option value="em-deslocamento">
-                Em deslocamento
-              </option>
-
-              <option value="em-atendimento">
-                Em atendimento
-              </option>
-
-              <option value="concluida">
-                Concluída
-              </option>
-
-              <option value="cancelada">
-                Cancelada
-              </option>
-
-              <option value="recusada">
-                Recusada
-              </option>
-
-            </select>
-
-          </label>
-
-          <label class="modal-field">
-
-            <span>
-              Responsável
-            </span>
-
-            <select id="update-employee">
-
-              <option value="nao-definido">
-                Não definido
-              </option>
-
-              <option value="jose">
-                José
-              </option>
-
-              <option value="equipe-apoio">
-                Equipe de apoio
-              </option>
-
-            </select>
-
-          </label>
-
-        </div>
-
-        <div class="modal-grid">
-
-          <label class="modal-field">
-
-            <span>
-              Data
-            </span>
-
-            <input type="date" id="update-date" />
-
-          </label>
-
-          <label class="modal-field">
-
-            <span>
-              Horário
-            </span>
-
-            <input type="time" id="update-time" />
-
-          </label>
-
-        </div>
-
-        <label class="modal-field">
-
-          <span>
-            Observação administrativa
-          </span>
-
-          <textarea id="update-note" rows="4" placeholder="Adicione uma observação sobre a atualização"></textarea>
-
-        </label>
-
-        <div class="modal-card__actions">
-
-          <button type="button" class="modal-button modal-button--secondary" id="cancel-update-button">
-            Cancelar
-          </button>
-
-          <button type="submit" class="modal-button modal-button--primary">
-            Salvar alteração
-          </button>
-
-        </div>
-
-      </form>
-
-    </section>
-
-  </div>
 
   <!-- =====================================
        FEEDBACK
@@ -997,8 +731,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <script type="module" src="js/ordens.js?v=1.0.2"></script>
-
+  <script type="module" src="js/ordens.js?v=2.0.3"></script>
 </body>
 
 </html>

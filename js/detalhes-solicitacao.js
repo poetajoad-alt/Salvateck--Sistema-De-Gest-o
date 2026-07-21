@@ -34,6 +34,11 @@ const statusConfig = {
     classe: "status--agendada",
   },
 
+  concluida: {
+    nome: "Concluída",
+    classe: "status--concluida",
+  },
+
   recusada: {
     nome: "Recusada",
     classe: "status--recusada",
@@ -189,6 +194,10 @@ const adminActionsCard = document.getElementById("admin-actions-card");
 
 const acceptRequestButton = document.getElementById("accept-request-button");
 
+const confirmScheduleButton = document.getElementById(
+  "confirm-schedule-button",
+);
+
 const rejectRequestButton = document.getElementById("reject-request-button");
 
 const acceptForm = document.getElementById("accept-form");
@@ -208,7 +217,37 @@ const acceptMessage = document.getElementById("accept-message");
 const rejectReason = document.getElementById("reject-reason");
 
 const rejectMessage = document.getElementById("reject-message");
+/* Ações da OS agendada */
 
+const scheduledActionsCard = document.getElementById("scheduled-actions-card");
+
+const scheduledWhatsAppButton = document.getElementById(
+  "scheduled-whatsapp-button",
+);
+
+const rescheduleRequestButton = document.getElementById(
+  "reschedule-request-button",
+);
+
+const completeRequestButton = document.getElementById(
+  "complete-request-button",
+);
+
+const adminCancelRequestButton = document.getElementById(
+  "admin-cancel-request-button",
+);
+
+const rescheduleForm = document.getElementById("reschedule-form");
+
+actionForms.push(rescheduleForm);
+
+const rescheduleDate = document.getElementById("reschedule-date");
+
+const reschedulePeriod = document.getElementById("reschedule-period");
+
+const rescheduleTime = document.getElementById("reschedule-time");
+
+const rescheduleMessage = document.getElementById("reschedule-message");
 /* Ações do cliente */
 
 const clientActionsCard = document.getElementById("client-actions-card");
@@ -243,8 +282,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
 const requestId = String(urlParams.get("id") || "").trim();
 
-const returnPage =
-  urlParams.get("origem") === "ordens" ? "ordens.html" : "solicitacoes.html";
+const returnPage = "ordens.html";
 
 let currentSession = null;
 
@@ -289,6 +327,14 @@ function normalizeStatus(status) {
     agendada: "agendada",
 
     agendado: "agendada",
+
+    concluida: "concluida",
+
+    concluido: "concluida",
+
+    finalizada: "concluida",
+
+    finalizado: "concluida",
 
     recusada: "recusada",
 
@@ -404,7 +450,103 @@ function getInitials(name) {
 
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
+function normalizeWhatsAppPhone(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
 
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("55")) {
+    return digits;
+  }
+
+  return `55${digits}`;
+}
+
+function buildProposalWhatsAppMessage() {
+  const clientName =
+    String(currentRequest.cliente?.nome || "").trim() || "cliente";
+
+  const proposalDate = formatDate(acceptDate.value);
+
+  const proposalPeriod =
+    periodoConfig[acceptPeriod.value] || acceptPeriod.value;
+
+  const proposalTime = acceptTime.value || "horário a combinar";
+
+  const customMessage = acceptMessage.value.trim();
+
+  return [
+    `Olá, ${clientName}!`,
+    "",
+    customMessage ||
+      "Analisamos sua solicitação e temos uma data disponível para o atendimento.",
+    "",
+    `OS: ${currentRequest.codigo}`,
+    `Serviço: ${currentRequest.titulo}`,
+    `Data disponível: ${proposalDate}`,
+    `Período: ${proposalPeriod}`,
+    `Horário: ${proposalTime}`,
+    "",
+    "Por favor, confirme se essa opção funciona para você.",
+  ].join("\n");
+}
+function buildScheduledWhatsAppMessage() {
+  const clientName =
+    String(currentRequest.cliente?.nome || "").trim() || "cliente";
+
+  const attendance = currentRequest.atendimento || {};
+
+  const confirmedDate = formatDate(attendance.dataConfirmada);
+
+  const confirmedPeriod =
+    periodoConfig[attendance.periodoConfirmado] ||
+    attendance.periodoConfirmado ||
+    "não informado";
+
+  const confirmedTime = attendance.horarioConfirmado || "horário não informado";
+
+  return [
+    `Olá, ${clientName}!`,
+    "",
+    `Estou entrando em contato sobre a ordem de serviço ${currentRequest.codigo}.`,
+    "",
+    `Serviço: ${currentRequest.titulo}`,
+    `Data confirmada: ${confirmedDate}`,
+    `Período: ${confirmedPeriod}`,
+    `Horário: ${confirmedTime}`,
+    "",
+    "Como podemos ajudar?",
+  ].join("\n");
+}
+
+function contactScheduledClient() {
+  openWhatsApp(buildScheduledWhatsAppMessage());
+}
+function openWhatsApp(message, popupWindow = null) {
+  const phone = normalizeWhatsAppPhone(currentRequest.cliente?.telefone);
+
+  if (!phone) {
+    popupWindow?.close();
+
+    showFeedback(
+      "A proposta foi salva, mas o cliente não possui telefone cadastrado.",
+    );
+
+    return;
+  }
+
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+  if (popupWindow && !popupWindow.closed) {
+    popupWindow.location.href = url;
+
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 function showFeedback(message) {
   window.clearTimeout(feedbackTimeout);
 
@@ -735,7 +877,6 @@ function renderTimeline() {
 
   if (currentRequest.status === "nova-solicitacao") {
     items[0]?.classList.add("is-completed");
-
     items[1]?.classList.add("is-active");
 
     return;
@@ -743,7 +884,6 @@ function renderTimeline() {
 
   if (currentRequest.status === "em-analise") {
     items[0]?.classList.add("is-completed");
-
     items[1]?.classList.add("is-active");
 
     return;
@@ -751,15 +891,23 @@ function renderTimeline() {
 
   if (currentRequest.status === "aguardando-confirmacao") {
     items[0]?.classList.add("is-completed");
-
     items[1]?.classList.add("is-completed");
-
     items[2]?.classList.add("is-active");
 
     return;
   }
 
   if (currentRequest.status === "agendada") {
+    items[0]?.classList.add("is-completed");
+    items[1]?.classList.add("is-completed");
+    items[2]?.classList.add("is-completed");
+    items[3]?.classList.add("is-completed");
+    items[4]?.classList.add("is-active");
+
+    return;
+  }
+
+  if (currentRequest.status === "concluida") {
     items.forEach((item) => {
       item.classList.add("is-completed");
     });
@@ -1012,6 +1160,16 @@ function syncPriority() {
 function renderProfile() {
   const isAdmin = currentSession.role === "admin";
 
+  const status = currentRequest.status;
+
+  const isNewOrAnalysis = ["nova-solicitacao", "em-analise"].includes(status);
+
+  const isAwaitingConfirmation = status === "aguardando-confirmacao";
+
+  const isScheduled = status === "agendada";
+
+  const isFinalStatus = ["concluida", "recusada", "cancelada"].includes(status);
+
   body.dataset.profile = currentSession.role;
 
   adminOnlyElements.forEach((element) => {
@@ -1026,16 +1184,20 @@ function renderProfile() {
     element.hidden = isAdmin;
   });
 
-  const finalStatus = ["agendada", "recusada", "cancelada"].includes(
-    currentRequest.status,
-  );
-
   priorityCard.hidden = !isAdmin;
 
-  adminActionsCard.hidden = !isAdmin || finalStatus;
+  adminActionsCard.hidden =
+    !isAdmin || (!isNewOrAnalysis && !isAwaitingConfirmation);
 
-  clientActionsCard.hidden =
-    isAdmin || ["recusada", "cancelada"].includes(currentRequest.status);
+  scheduledActionsCard.hidden = !isAdmin || !isScheduled;
+
+  acceptRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
+
+  confirmScheduleButton.hidden = !isAdmin || !isAwaitingConfirmation;
+
+  rejectRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
+
+  clientActionsCard.hidden = isAdmin || isFinalStatus || status === "agendada";
 
   internalObservationBox.hidden = !isAdmin;
 
@@ -1250,29 +1412,104 @@ function submitAccept(event) {
   }
 
   openModal({
-    title: "Confirmar agendamento",
+    title: "Enviar proposta ao cliente",
 
-    description: "A solicitação será aceita e o atendimento entrará na agenda.",
+    description:
+      "A data e o horário serão salvos como proposta. A OS ainda não entrará oficialmente na agenda.",
 
-    confirmationText: "Confirmar agendamento",
+    confirmationText: "Salvar e abrir WhatsApp",
 
     confirm: async () => {
-      const attendance = {
-        ...currentRequest.atendimento,
+      const whatsappWindow = window.open("", "_blank");
 
-        dataConfirmada: acceptDate.value,
+      const proposal = {
+        data: acceptDate.value,
 
-        periodoConfirmado: acceptPeriod.value,
+        periodo: acceptPeriod.value,
 
-        horarioConfirmado: acceptTime.value,
+        horario: acceptTime.value,
+
+        status: "aguardando",
+
+        enviadaEm: new Date().toISOString(),
       };
 
       const observations = {
         cliente: currentRequest.observacoes.cliente,
 
-        resposta: acceptMessage.value.trim() || "Sua solicitação foi aceita.",
+        resposta:
+          acceptMessage.value.trim() ||
+          "A Salvateck enviou uma proposta de data para o atendimento.",
 
         interna: "",
+      };
+
+      const whatsappMessage = buildProposalWhatsAppMessage();
+
+      try {
+        await saveChanges(
+          {
+            status: "aguardando-confirmacao",
+
+            proposta: proposal,
+
+            observacoes: observations,
+          },
+
+          "Proposta salva. Aguardando confirmação do cliente.",
+        );
+
+        openWhatsApp(whatsappMessage, whatsappWindow);
+      } catch (error) {
+        whatsappWindow?.close();
+
+        throw error;
+      }
+    },
+  });
+}
+/* =========================================
+   CONFIRMAR AGENDAMENTO
+========================================= */
+
+function confirmSchedule() {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.status !== "aguardando-confirmacao"
+  ) {
+    return;
+  }
+
+  const proposal = currentRequest.proposta || {};
+
+  if (!proposal.data || !proposal.periodo || !proposal.horario) {
+    showFeedback("A proposta não possui data e horário completos.");
+
+    return;
+  }
+
+  const proposalDate = formatDate(proposal.data);
+
+  const proposalPeriod = periodoConfig[proposal.periodo] || proposal.periodo;
+
+  openModal({
+    title: "Confirmar Agendamento",
+
+    description:
+      `O cliente confirmou o atendimento para ${proposalDate}, ` +
+      `${proposalPeriod}, às ${proposal.horario}?`,
+
+    confirmationText: "Confirmar Agendamento",
+
+    confirm: async () => {
+      const attendance = {
+        ...currentRequest.atendimento,
+
+        dataConfirmada: proposal.data,
+
+        periodoConfirmado: proposal.periodo,
+
+        horarioConfirmado: proposal.horario,
       };
 
       await saveChanges(
@@ -1281,15 +1518,192 @@ function submitAccept(event) {
 
           atendimento: attendance,
 
-          observacoes: observations,
+          proposta: {
+            ...proposal,
+
+            status: "aceita",
+
+            confirmadaEm: new Date().toISOString(),
+          },
         },
 
-        "Solicitação aceita e atendimento agendado.",
+        "Agendamento confirmado com sucesso.",
       );
     },
   });
 }
+/* =========================================
+   REAGENDAR ORDEM DE SERVIÇO
+========================================= */
 
+function submitReschedule(event) {
+  event.preventDefault();
+
+  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+    return;
+  }
+
+  if (!rescheduleForm.checkValidity()) {
+    rescheduleForm.reportValidity();
+
+    return;
+  }
+
+  openModal({
+    title: "Enviar nova proposta",
+
+    description:
+      "A OS voltará para Aguardando confirmação até o cliente aceitar a nova data.",
+
+    confirmationText: "Salvar e abrir WhatsApp",
+
+    confirm: async () => {
+      const whatsappWindow = window.open("", "_blank");
+
+      const proposal = {
+        data: rescheduleDate.value,
+
+        periodo: reschedulePeriod.value,
+
+        horario: rescheduleTime.value,
+
+        status: "aguardando",
+
+        tipo: "reagendamento",
+
+        enviadaEm: new Date().toISOString(),
+      };
+
+      const clientName =
+        String(currentRequest.cliente?.nome || "").trim() || "cliente";
+
+      const period =
+        periodoConfig[reschedulePeriod.value] || reschedulePeriod.value;
+
+      const customMessage = rescheduleMessage.value.trim();
+
+      const whatsappMessage = [
+        `Olá, ${clientName}!`,
+        "",
+        customMessage || "Precisamos alterar a data do seu atendimento.",
+        "",
+        `OS: ${currentRequest.codigo}`,
+        `Serviço: ${currentRequest.titulo}`,
+        `Nova data disponível: ${formatDate(rescheduleDate.value)}`,
+        `Período: ${period}`,
+        `Horário: ${rescheduleTime.value}`,
+        "",
+        "Por favor, confirme se essa nova opção funciona para você.",
+      ].join("\n");
+
+      try {
+        await saveChanges(
+          {
+            status: "aguardando-confirmacao",
+
+            proposta: proposal,
+
+            observacoes: {
+              cliente: currentRequest.observacoes.cliente,
+
+              resposta:
+                customMessage ||
+                "A Salvateck enviou uma nova proposta de data para o atendimento.",
+
+              interna: "",
+            },
+          },
+
+          "Nova proposta salva. Aguardando confirmação do cliente.",
+        );
+
+        openWhatsApp(whatsappMessage, whatsappWindow);
+      } catch (error) {
+        whatsappWindow?.close();
+
+        throw error;
+      }
+    },
+  });
+}
+/* =========================================
+   CONCLUIR ORDEM DE SERVIÇO
+========================================= */
+
+function completeRequest() {
+  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+    return;
+  }
+
+  openModal({
+    title: "Concluir ordem de serviço",
+
+    description:
+      "Confirme que o atendimento foi realizado. A OS será movida para Concluídas e não poderá mais ser alterada por esta tela.",
+
+    confirmationText: "Concluir OS",
+
+    confirm: async () => {
+      const changes = {
+        status: "concluida",
+
+        concluidaEm: serverTimestamp(),
+
+        concluidaPorUid: currentSession.uid,
+
+        concluidaPorNome:
+          currentSession.nome || currentSession.email || "Administrador",
+      };
+
+      if (currentRequest.tipoAtendimento === "vistoria") {
+        changes["vistoria.status"] = "concluida";
+        changes["vistoria.progresso"] = 100;
+        changes["vistoria.concluidaEm"] = serverTimestamp();
+      }
+
+      await saveChanges(changes, "Ordem de serviço concluída com sucesso.");
+    },
+  });
+}
+/* =========================================
+   CANCELAR ORDEM PELO ADMINISTRADOR
+========================================= */
+
+function cancelRequestByAdmin() {
+  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+    return;
+  }
+
+  openModal({
+    title: "Cancelar ordem de serviço",
+
+    description:
+      "A OS será cancelada e permanecerá registrada no histórico. Nenhum dado será apagado.",
+
+    confirmationText: "Cancelar OS",
+
+    danger: true,
+
+    confirm: async () => {
+      await saveChanges(
+        {
+          status: "cancelada",
+
+          canceladaEm: serverTimestamp(),
+
+          canceladaPorUid: currentSession.uid,
+
+          canceladaPorNome:
+            currentSession.nome || currentSession.email || "Administrador",
+
+          motivoCancelamento: "Ordem de serviço cancelada pelo administrador.",
+        },
+
+        "Ordem de serviço cancelada.",
+      );
+    },
+  });
+}
 /* =========================================
    RECUSAR SOLICITAÇÃO
 ========================================= */
@@ -1424,6 +1838,22 @@ acceptRequestButton.addEventListener("click", () => {
   openActionForm(acceptForm);
 });
 
+confirmScheduleButton.addEventListener("click", confirmSchedule);
+scheduledWhatsAppButton.addEventListener("click", contactScheduledClient);
+
+rescheduleRequestButton.addEventListener("click", () => {
+  rescheduleDate.value = currentRequest.atendimento?.dataConfirmada || "";
+
+  reschedulePeriod.value = currentRequest.atendimento?.periodoConfirmado || "";
+
+  rescheduleTime.value = currentRequest.atendimento?.horarioConfirmado || "";
+
+  openActionForm(rescheduleForm);
+});
+
+completeRequestButton.addEventListener("click", completeRequest);
+
+adminCancelRequestButton.addEventListener("click", cancelRequestByAdmin);
 rejectRequestButton.addEventListener("click", () => {
   openActionForm(rejectForm);
 });
@@ -1435,6 +1865,8 @@ closeActionButtons.forEach((button) => {
 acceptForm.addEventListener("submit", submitAccept);
 
 rejectForm.addEventListener("submit", submitRejection);
+
+rescheduleForm.addEventListener("submit", submitReschedule);
 
 cancelRequestButton.addEventListener("click", cancelRequest);
 
@@ -1499,6 +1931,8 @@ async function initializePage() {
     const minimumDate = getLocalDate();
 
     acceptDate.min = minimumDate;
+
+    rescheduleDate.min = minimumDate;
 
     await loadRequest();
 

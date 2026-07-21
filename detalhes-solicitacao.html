@@ -31,7 +31,7 @@
 
     <header class="details-header">
 
-      <a href="solicitacoes.html" class="header-button" id="back-button" aria-label="Voltar para as solicitações">
+      <a href="ordens.html" class="header-button" id="back-button" aria-label="Voltar para as solicitações">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
         </svg>
@@ -219,7 +219,23 @@
           </div>
 
         </article>
+        <article class="timeline-item" data-timeline-step="conclusao">
 
+          <span class="timeline-item__marker"></span>
+
+          <div>
+
+            <strong>
+              Serviço concluído
+            </strong>
+
+            <p>
+              O atendimento foi finalizado e registrado no histórico.
+            </p>
+
+          </div>
+
+        </article>
       </div>
 
     </section>
@@ -691,8 +707,12 @@
 
       <div class="admin-actions">
 
-        <button type="button" class="action-button action-button--accept" id="accept-request-button">
-          Aceitar e agendar
+        <button type="button" class="action-button action-button--proposal" id="accept-request-button">
+          Aceitar e propor data
+        </button>
+
+        <button type="button" class="action-button action-button--accept" id="confirm-schedule-button" hidden>
+          Confirmar Agendamento
         </button>
 
         <button type="button" class="action-button action-button--reject" id="reject-request-button">
@@ -710,11 +730,11 @@
           <div>
 
             <p>
-              Confirmar atendimento
+              Proposta de atendimento
             </p>
 
             <h3>
-              Aceitar solicitação
+              Propor data ao cliente
             </h3>
 
           </div>
@@ -728,7 +748,7 @@
         <div class="form-group">
 
           <label class="form-label" for="accept-date">
-            Data confirmada
+            Data disponível
           </label>
 
           <input id="accept-date" name="acceptDate" type="date" class="input" required />
@@ -781,12 +801,12 @@
             Mensagem para o cliente
           </label>
 
-          <textarea id="accept-message" name="acceptMessage" class="input textarea" rows="4">Olá! Sua solicitação foi aceita e o atendimento foi confirmado para a data informada.</textarea>
+          <textarea id="accept-message" name="acceptMessage" class="input textarea" rows="4">Olá! Analisamos sua solicitação e temos disponibilidade na data e horário informados. Por favor, confirme se essa opção funciona para você.</textarea>
 
         </div>
 
         <button type="submit" class="submit-action-button">
-          Confirmar agendamento
+          Salvar proposta e abrir WhatsApp
         </button>
 
       </form>
@@ -866,7 +886,153 @@
       </form>
 
     </section>
+    <!-- =====================================
+     AÇÕES DA ORDEM AGENDADA
+====================================== -->
 
+    <section class="details-card admin-only scheduled-actions-card" id="scheduled-actions-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+            <path d="M12 3v4"></path>
+            <path d="M12 17v4"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Atendimento em andamento
+          </p>
+
+          <h2>
+            Ações da ordem de serviço
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="admin-actions-card__description">
+        Utilize estas ações para acompanhar, reagendar ou finalizar o atendimento.
+      </p>
+
+      <div class="scheduled-actions">
+
+        <button type="button" class="action-button action-button--whatsapp" id="scheduled-whatsapp-button">
+          Falar com o cliente
+        </button>
+
+        <button type="button" class="action-button action-button--proposal" id="reschedule-request-button">
+          Reagendar
+        </button>
+
+        <button type="button" class="action-button action-button--accept" id="complete-request-button">
+          Concluir OS
+        </button>
+
+        <button type="button" class="action-button action-button--reject" id="admin-cancel-request-button">
+          Cancelar OS
+        </button>
+
+      </div>
+
+      <!-- Formulário de reagendamento -->
+
+      <form class="action-form" id="reschedule-form" hidden>
+
+        <div class="action-form__header">
+
+          <div>
+
+            <p>
+              Nova proposta
+            </p>
+
+            <h3>
+              Reagendar atendimento
+            </h3>
+
+          </div>
+
+          <button type="button" class="action-form__close" data-close-action aria-label="Fechar formulário">
+            ×
+          </button>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="reschedule-date">
+            Nova data disponível
+          </label>
+
+          <input id="reschedule-date" name="rescheduleDate" type="date" class="input" required />
+
+        </div>
+
+        <div class="form-grid form-grid--2">
+
+          <div class="form-group">
+
+            <label class="form-label" for="reschedule-period">
+              Período
+            </label>
+
+            <select id="reschedule-period" name="reschedulePeriod" class="input" required>
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="manha">
+                Manhã
+              </option>
+
+              <option value="tarde">
+                Tarde
+              </option>
+
+              <option value="noite">
+                Noite
+              </option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="reschedule-time">
+              Horário
+            </label>
+
+            <input id="reschedule-time" name="rescheduleTime" type="time" class="input" required />
+
+          </div>
+
+        </div>
+
+        <div class="form-group">
+
+          <label class="form-label" for="reschedule-message">
+            Mensagem para o cliente
+          </label>
+
+          <textarea id="reschedule-message" name="rescheduleMessage" class="input textarea" rows="4">Olá! Precisamos alterar a data do seu atendimento. Temos uma nova disponibilidade na data e horário informados. Por favor, confirme se essa opção funciona para você.</textarea>
+
+        </div>
+
+        <button type="submit" class="submit-action-button">
+          Salvar nova proposta e abrir WhatsApp
+        </button>
+
+      </form>
+
+    </section>
     <!-- =====================================
          CANCELAMENTO DO CLIENTE
     ====================================== -->
@@ -958,7 +1124,7 @@
     Alteração realizada com sucesso.
   </div>
 
-  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.6"></script>
+  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.1"></script>
 </body>
 
 </html>
