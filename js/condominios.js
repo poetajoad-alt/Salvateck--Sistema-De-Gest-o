@@ -4,7 +4,13 @@
 
 const FIREBASE_VERSION = "12.16.0";
 
-const ABAS_PERMITIDAS = ["todos", "ativos", "atencao", "inativos"];
+const ABAS_PERMITIDAS = [
+  "todos",
+  "ativos",
+  "com-equipamentos",
+  "atencao",
+  "inativos",
+];
 
 let db;
 let collection;
@@ -157,7 +163,10 @@ const abasConfig = {
     titulo: "Condomínios ativos",
     subtitulo: "Cadastros em operação",
   },
-
+  "com-equipamentos": {
+    titulo: "Condomínios com equipamentos",
+    subtitulo: "Cadastros com estruturas e equipamentos",
+  },
   atencao: {
     titulo: "Condomínios com atenção",
     subtitulo: "Pendências identificadas",
@@ -181,6 +190,16 @@ const summaryEquipment = document.getElementById("summary-equipment");
 
 const summaryAttention = document.getElementById("summary-attention");
 
+const summaryFilterButtons = document.querySelectorAll("[data-summary-filter]");
+
+const condominiumsOverviewHint = document.getElementById(
+  "condominiums-overview-hint",
+);
+
+const condominiumsTools = document.querySelector(".condominiums-tools");
+
+const condominiumsContent = document.querySelector(".condominiums-content");
+
 const statusTabButtons = document.querySelectorAll("[data-status-tab]");
 
 const condominiumsSearch = document.getElementById("condominiums-search");
@@ -190,6 +209,7 @@ const openFilterButton = document.getElementById("open-filter-button");
 const closeFilterButton = document.getElementById("close-filter-button");
 
 const filterPanel = document.getElementById("filter-panel");
+const statusFilter = document.getElementById("status-filter");
 
 const activeFilterCount = document.getElementById("active-filter-count");
 
@@ -363,9 +383,12 @@ let ordens = [];
 
 let abaAtual = "todos";
 
+let resumoSelecionado = null;
+
 let abaAtualModal = "general";
 
 let filtrosAplicados = {
+  status: "",
   cidade: "",
   responsavel: "",
   equipamento: "",
@@ -1094,18 +1117,22 @@ function obterSituacaoDocumental(condominio) {
 ========================================= */
 
 function atualizarResumo() {
-  const total = condominios.length;
+  const condominiosVisiveis = condominios.filter(
+    (condominio) => condominio.status !== "inativo",
+  );
 
-  const ativos = condominios.filter(
+  const total = condominiosVisiveis.length;
+
+  const ativos = condominiosVisiveis.filter(
     (condominio) => condominio.status === "ativo",
   ).length;
 
-  const equipamentos = condominios.reduce(
+  const equipamentos = condominiosVisiveis.reduce(
     (totalAtual, condominio) => totalAtual + condominio.equipamentos.length,
     0,
   );
 
-  const comAtencao = condominios.filter(
+  const comAtencao = condominiosVisiveis.filter(
     (condominio) =>
       condominio.status === "atencao" || condominio.pendencias > 0,
   ).length;
@@ -1124,12 +1151,34 @@ function atualizarResumo() {
 ========================================= */
 
 function correspondeAAba(condominio) {
+  const filtroSolicitaInativos = filtrosAplicados.status === "inativo";
+
+  /*
+   * Quando o administrador escolhe Inativo nos filtros,
+   * o filtro assume prioridade sobre os cards do topo.
+   */
+  if (filtroSolicitaInativos) {
+    return true;
+  }
+
+  /*
+   * Condomínios inativos ficam escondidos dos cards
+   * Total, Ativos, Equipamentos e Com atenção.
+   */
+  if (condominio.status === "inativo") {
+    return false;
+  }
+
   if (abaAtual === "todos") {
     return true;
   }
 
   if (abaAtual === "ativos") {
     return condominio.status === "ativo";
+  }
+
+  if (abaAtual === "com-equipamentos") {
+    return condominio.equipamentos.length > 0;
   }
 
   if (abaAtual === "atencao") {
@@ -1171,6 +1220,55 @@ function alterarAba(novaAba) {
   fecharTodosOsCards();
 
   renderizarCondominios();
+}
+
+/* =========================================
+   CARDS DE RESUMO
+========================================= */
+
+function selecionarResumo(novaAba) {
+  if (!abasConfig[novaAba]) {
+    return;
+  }
+
+  const deveRecolher = resumoSelecionado === novaAba;
+
+  resumoSelecionado = deveRecolher ? null : novaAba;
+
+  summaryFilterButtons.forEach((button) => {
+    const estaAtivo = button.dataset.summaryFilter === resumoSelecionado;
+
+    button.classList.toggle("is-active", estaAtivo);
+
+    button.setAttribute("aria-pressed", String(estaAtivo));
+  });
+
+  condominiumsOverviewHint.hidden = Boolean(resumoSelecionado);
+
+  if (!resumoSelecionado) {
+    fecharFiltros();
+
+    renderizarCondominios();
+
+    return;
+  }
+
+  abaAtual = resumoSelecionado;
+
+  atualizarAbas();
+
+  fecharFiltros();
+
+  fecharTodosOsCards();
+
+  renderizarCondominios();
+
+  window.requestAnimationFrame(() => {
+    condominiumsContent.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
 }
 
 /* =========================================
@@ -1246,6 +1344,9 @@ function condominioTemEquipamento(condominio, filtro) {
 }
 
 function correspondeAosFiltros(condominio) {
+  const statusCorresponde =
+    !filtrosAplicados.status || condominio.status === filtrosAplicados.status;
+
   const cidadeCorresponde =
     !filtrosAplicados.cidade ||
     criarSlug(condominio.endereco.cidade) === filtrosAplicados.cidade;
@@ -1270,6 +1371,7 @@ function correspondeAosFiltros(condominio) {
     obterSituacaoDocumental(condominio) === filtrosAplicados.documento;
 
   return (
+    statusCorresponde &&
     cidadeCorresponde &&
     responsavelCorresponde &&
     equipamentoCorresponde &&
@@ -1314,6 +1416,8 @@ function atualizarContagemDeFiltros() {
 }
 
 function sincronizarFormularioComFiltros() {
+  statusFilter.value = filtrosAplicados.status;
+
   cityFilter.value = filtrosAplicados.cidade;
 
   managerFilter.value = filtrosAplicados.responsavel;
@@ -1359,6 +1463,18 @@ function finalizarRemocaoDeFiltro() {
 
 function renderizarFiltrosAtivos() {
   activeFiltersList.innerHTML = "";
+  if (filtrosAplicados.status) {
+    const texto =
+      statusConfig[filtrosAplicados.status]?.nome || filtrosAplicados.status;
+
+    activeFiltersList.appendChild(
+      criarChipDeFiltro(texto, () => {
+        filtrosAplicados.status = "";
+
+        finalizarRemocaoDeFiltro();
+      }),
+    );
+  }
 
   if (filtrosAplicados.cidade) {
     const texto = obterNomeCidadePorSlug(filtrosAplicados.cidade);
@@ -1437,6 +1553,8 @@ function fecharFiltros() {
 
 function aplicarFiltros() {
   filtrosAplicados = {
+    status: statusFilter.value,
+
     cidade: cityFilter.value,
 
     responsavel: managerFilter.value,
@@ -1464,14 +1582,17 @@ function aplicarFiltros() {
 function limparPesquisaEFiltros() {
   condominiumsSearch.value = "";
 
+  statusFilter.value = "";
+
   filtrosAplicados = {
+    status: "",
     cidade: "",
     responsavel: "",
     equipamento: "",
     documento: "",
   };
 
-  abaAtual = "todos";
+  abaAtual = resumoSelecionado || "todos";
 
   sincronizarFormularioComFiltros();
 
@@ -1622,7 +1743,62 @@ function abrirNovaVistoria(condominio) {
 
   window.location.href = `nova-ordem.html?${parametros.toString()}`;
 }
+/* =========================================
+   ATIVAÇÃO VISUAL DO CONDOMÍNIO
+========================================= */
 
+async function alternarStatusDoCondominio(condominio) {
+  const condominioEstaInativo = condominio.status === "inativo";
+
+  const novoStatus = condominioEstaInativo ? "ativo" : "inativo";
+
+  const mensagem = condominioEstaInativo
+    ? `Deseja reativar o condomínio "${condominio.nome}"?`
+    : `Deseja desativar o condomínio "${condominio.nome}" da listagem?\n\nNenhum cliente, ordem, vistoria ou histórico será apagado.`;
+
+  const confirmou = window.confirm(mensagem);
+
+  if (!confirmou) {
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "condominios", condominio.id),
+      {
+        status: novoStatus,
+        atualizadoEm: serverTimestamp(),
+      },
+      {
+        merge: true,
+      },
+    );
+
+    await carregarDadosDeCondominiosDoFirestore();
+
+    popularFiltroDeCidades();
+    popularOpcoesDeClientes();
+
+    atualizarResumo();
+    atualizarAbas();
+    renderizarFiltrosAtivos();
+    renderizarCondominios();
+
+    mostrarFeedback(
+      condominioEstaInativo
+        ? "Condomínio reativado."
+        : "Condomínio desativado da listagem.",
+    );
+  } catch (error) {
+    console.error("[Condomínios] Não foi possível alterar o status:", error);
+
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a alteração."
+        : "Não foi possível alterar o condomínio.",
+    );
+  }
+}
 function preencherCard(condominio) {
   const fragmento = condominiumCardTemplate.content.cloneNode(true);
 
@@ -1668,6 +1844,9 @@ function preencherCard(condominio) {
 
   const openButton = card.querySelector('[data-condominium-action="open"]');
 
+  const statusActionButton = card.querySelector(
+    '[data-condominium-action="status"]',
+  );
   const statusData = statusConfig[condominio.status] || statusConfig.ativo;
 
   const principal = obterClientePrincipal(condominio);
@@ -1683,6 +1862,38 @@ function preencherCard(condominio) {
   status.textContent = statusData.nome;
 
   status.classList.add(statusData.classe);
+  const condominioEstaInativo = condominio.status === "inativo";
+
+  statusActionButton.classList.toggle("is-reactivate", condominioEstaInativo);
+
+  statusActionButton.setAttribute(
+    "aria-label",
+    condominioEstaInativo
+      ? `Reativar condomínio ${condominio.nome}`
+      : `Desativar condomínio ${condominio.nome}`,
+  );
+
+  statusActionButton.setAttribute(
+    "title",
+    condominioEstaInativo ? "Reativar condomínio" : "Desativar condomínio",
+  );
+
+  statusActionButton.innerHTML = condominioEstaInativo
+    ? `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 11a8 8 0 1 0-2.34 5.66"></path>
+      <path d="M20 4v7h-7"></path>
+    </svg>
+  `
+    : `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16"></path>
+      <path d="M9 7V4h6v3"></path>
+      <path d="m7 7 1 13h8l1-13"></path>
+      <path d="M10 11v5"></path>
+      <path d="M14 11v5"></path>
+    </svg>
+  `;
 
   name.textContent = condominio.nome;
 
@@ -1742,11 +1953,30 @@ function preencherCard(condominio) {
   openButton.addEventListener("click", () => {
     abrirModalDeCondominio(condominio);
   });
+  statusActionButton.addEventListener("click", () => {
+    alternarStatusDoCondominio(condominio);
+  });
 
   return fragmento;
 }
 
 function renderizarCondominios() {
+  if (!resumoSelecionado) {
+    condominiumsTools.hidden = true;
+
+    condominiumsContent.hidden = true;
+
+    condominiumsList.innerHTML = "";
+
+    emptyState.hidden = true;
+
+    return;
+  }
+
+  condominiumsTools.hidden = false;
+
+  condominiumsContent.hidden = false;
+
   const lista = obterCondominiosFiltrados();
 
   condominiumsList.innerHTML = "";
@@ -2427,7 +2657,11 @@ function aplicarMascaraCEP(valor) {
 /* =========================================
    EVENTOS DA LISTAGEM
 ========================================= */
-
+summaryFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selecionarResumo(button.dataset.summaryFilter);
+  });
+});
 statusTabButtons.forEach((button) => {
   button.addEventListener("click", () => {
     alterarAba(button.dataset.statusTab);

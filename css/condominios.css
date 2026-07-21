@@ -251,7 +251,13 @@ body.modal-open {
 
 .overview-item {
   position: relative;
+  cursor: pointer;
+  text-align: left;
 
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
   min-width: 0;
   min-height: 70px;
 
@@ -294,7 +300,48 @@ body.modal-open {
 
   color: #0d3861;
 }
+.overview-item.is-active {
+  color: #dd9a17;
+  background-color: #0d3861;
+}
 
+.overview-item.is-active span {
+  color: rgba(249, 249, 249, 0.78);
+}
+
+.overview-item.is-active strong {
+  color: #dd9a17;
+}
+
+.overview-item:active {
+  transform: scale(0.98);
+}
+
+.overview-item:focus-visible {
+  position: relative;
+  z-index: 2;
+
+  outline: 3px solid rgba(221, 154, 23, 0.55);
+  outline-offset: -3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .overview-item:hover:not(.is-active) {
+    background-color: rgba(221, 154, 23, 0.1);
+  }
+}
+
+.condominiums-overview-hint {
+  margin: 11px 0 0;
+
+  text-align: center;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.45;
+
+  color: rgba(249, 249, 249, 0.72);
+}
 /* =========================================
    ABAS DE SITUAÇÃO
 ========================================= */
@@ -606,7 +653,9 @@ body.modal-open {
 .filter-grid + .filter-grid {
   margin-top: 18px;
 }
-
+.filter-group--status {
+  margin-bottom: 18px;
+}
 .filter-group__label {
   display: block;
 
@@ -1003,7 +1052,11 @@ body.modal-open {
 
 .condominium-card__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.15fr;
+  grid-template-columns:
+    1fr
+    1fr
+    1.15fr
+    42px;
   gap: 8px;
 
   margin-top: 13px;
@@ -1040,7 +1093,72 @@ body.modal-open {
 
   border: 1px solid rgba(221, 154, 23, 0.42);
 }
+.condominium-card__status-action {
+  width: 42px;
+  min-height: 42px;
 
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #8b2d2d;
+  background-color: rgba(139, 45, 45, 0.08);
+
+  border: 1px solid rgba(139, 45, 45, 0.2);
+  border-radius: 50%;
+
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.condominium-card__status-action svg {
+  width: 19px;
+  height: 19px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.condominium-card__status-action.is-reactivate {
+  color: #1f6a43;
+  background-color: rgba(31, 106, 67, 0.1);
+
+  border-color: rgba(31, 106, 67, 0.22);
+}
+
+.condominium-card__status-action:active {
+  transform: scale(0.94);
+}
+
+.condominium-card__status-action:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.5);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .condominium-card__status-action:hover {
+    color: #ffffff;
+    background-color: #8b2d2d;
+
+    border-color: #8b2d2d;
+  }
+
+  .condominium-card__status-action.is-reactivate:hover {
+    color: #ffffff;
+    background-color: #1f6a43;
+
+    border-color: #1f6a43;
+  }
+}
 /* =========================================
    ESTADO VAZIO
 ========================================= */
@@ -2276,7 +2394,19 @@ body.modal-open {
   }
 
   .condominium-card__actions {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr))
+      42px;
+  }
+
+  .condominium-card__button--primary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .condominium-card__status-action {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .modal-grid,

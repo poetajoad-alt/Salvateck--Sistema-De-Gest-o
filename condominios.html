@@ -101,9 +101,9 @@
          RESUMO COMPACTO
     ====================================== -->
 
-    <section class="condominiums-overview" aria-label="Resumo dos condomínios">
+    <section class="condominiums-overview" aria-label="Resumo e acesso aos condomínios">
 
-      <div class="overview-item">
+      <button type="button" class="overview-item" data-summary-filter="todos" aria-pressed="false">
 
         <span>
           Total
@@ -113,9 +113,9 @@
           0
         </strong>
 
-      </div>
+      </button>
 
-      <div class="overview-item">
+      <button type="button" class="overview-item" data-summary-filter="ativos" aria-pressed="false">
 
         <span>
           Ativos
@@ -125,9 +125,9 @@
           0
         </strong>
 
-      </div>
+      </button>
 
-      <div class="overview-item">
+      <button type="button" class="overview-item" data-summary-filter="com-equipamentos" aria-pressed="false">
 
         <span>
           Equipamentos
@@ -137,9 +137,9 @@
           0
         </strong>
 
-      </div>
+      </button>
 
-      <div class="overview-item">
+      <button type="button" class="overview-item" data-summary-filter="atencao" aria-pressed="false">
 
         <span>
           Com atenção
@@ -149,15 +149,19 @@
           0
         </strong>
 
-      </div>
+      </button>
 
     </section>
+
+    <p class="condominiums-overview-hint" id="condominiums-overview-hint">
+      Selecione um dos cards acima para visualizar os condomínios.
+    </p>
 
     <!-- =====================================
          ABAS RÁPIDAS
     ====================================== -->
 
-    <section class="status-tabs" aria-label="Filtrar condomínios por situação">
+    <section class="status-tabs" aria-label="Filtrar condomínios por situação" hidden>
 
       <button type="button" class="status-tab is-active" data-status-tab="todos" aria-pressed="true">
         Todos
@@ -245,7 +249,33 @@
         </button>
 
       </div>
+      <div class="filter-group filter-group--status">
 
+        <label class="filter-group__label" for="status-filter">
+          Situação do cadastro
+        </label>
+
+        <select id="status-filter" class="filter-select">
+
+          <option value="">
+            Ativos e com atenção
+          </option>
+
+          <option value="ativo">
+            Ativo
+          </option>
+
+          <option value="atencao">
+            Com atenção
+          </option>
+
+          <option value="inativo">
+            Inativo
+          </option>
+
+        </select>
+
+      </div>
       <div class="filter-grid">
 
         <div class="filter-group">
@@ -542,7 +572,7 @@
           <button type="button" class="condominium-card__button condominium-card__button--primary" data-condominium-action="open">
             Abrir cadastro
           </button>
-
+          <button type="button" class="condominium-card__status-action" data-condominium-action="status" aria-label="Desativar condomínio" title="Desativar condomínio"></button>
         </div>
 
       </div>

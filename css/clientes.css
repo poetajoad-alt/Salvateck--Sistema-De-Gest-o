@@ -1122,11 +1122,8 @@ body.modal-open {
 ========================================= */
 
 .customer-card__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 42px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 42px !important;
   gap: 8px;
-
-  margin-top: 15px;
 }
 
 .customer-card__button,
@@ -3275,7 +3272,74 @@ body.modal-open {
 
   border: 1px solid rgba(221, 154, 23, 0.42);
 }
+.customer-card__status-action {
+  width: 42px;
+  min-height: 41px;
 
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #8b2d2d;
+  background-color: rgba(139, 45, 45, 0.08);
+
+  border: 1px solid rgba(139, 45, 45, 0.2);
+  border-radius: 50%;
+
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.customer-card__status-action svg {
+  width: 19px;
+  height: 19px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.customer-card__status-action.is-reactivate {
+  color: #1f6a43;
+  background-color: rgba(31, 106, 67, 0.1);
+
+  border-color: rgba(31, 106, 67, 0.22);
+}
+
+.customer-card__status-action:active {
+  transform: scale(0.94);
+}
+
+.customer-card__status-action:focus-visible {
+  outline: 3px solid rgba(221, 154, 23, 0.48);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .customer-card__status-action:hover {
+    color: #ffffff;
+    background-color: #8b2d2d;
+
+    border-color: #8b2d2d;
+
+    transform: translateY(-1px);
+  }
+
+  .customer-card__status-action.is-reactivate:hover {
+    color: #ffffff;
+    background-color: #1f6a43;
+
+    border-color: #1f6a43;
+  }
+}
 .customer-card__menu,
 .customer-card__options {
   display: none !important;
@@ -3362,6 +3426,9 @@ body.modal-open {
   }
 
   .customer-card__actions {
-    grid-template-columns: 1fr !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      42px !important;
   }
 }

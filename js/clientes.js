@@ -721,13 +721,22 @@ function mapearClienteDoFirestore(clienteSnapshot) {
   const dados = clienteSnapshot.data();
   const endereco = obterEnderecoDoDocumento(dados);
 
-  const status =
-    dados.statusCadastro || (dados.ativo === false ? "inativo" : "ativo");
+  const statusPermitidos = [
+    "ativo",
+    "inativo",
+    "cadastro-incompleto",
+    "com-pendencia",
+  ];
+
+  const status = statusPermitidos.includes(dados.statusCadastro)
+    ? dados.statusCadastro
+    : "ativo";
 
   return {
     id: clienteSnapshot.id,
     uid: dados.uid || clienteSnapshot.id,
     possuiAcesso: dados.possuiAcesso !== false,
+    acessoAtivo: dados.ativo !== false,
     origemCadastro: dados.origemCadastro || "registro",
 
     nome: dados.nome || "",
@@ -1229,13 +1238,17 @@ function renderizarCondominiosNosDetalhes(cliente) {
 function atualizarResumo() {
   const hoje = obterInicioDoDia();
 
-  const total = clientes.length;
+  const clientesVisiveis = clientes.filter(
+    (cliente) => cliente.status !== "inativo",
+  );
 
-  const ativos = clientes.filter(
+  const total = clientesVisiveis.length;
+
+  const ativos = clientesVisiveis.filter(
     (cliente) => cliente.status === "ativo",
   ).length;
 
-  const novosNoMes = clientes.filter((cliente) => {
+  const novosNoMes = clientesVisiveis.filter((cliente) => {
     const dataCadastro = criarDataLocal(cliente.cadastradoEm);
 
     return (
@@ -1245,7 +1258,7 @@ function atualizarResumo() {
     );
   }).length;
 
-  const comServicos = clientes.filter(
+  const comServicos = clientesVisiveis.filter(
     (cliente) => Number(cliente.quantidadeOrdens) > 0,
   ).length;
 
@@ -1278,6 +1291,24 @@ function clienteEhNovo(cliente) {
 }
 
 function correspondeAAba(cliente) {
+  const filtroSolicitaInativos = filtrosAplicados.status.includes("inativo");
+
+  /*
+   * Quando o administrador escolhe "Inativo" nos filtros,
+   * o filtro explícito assume prioridade sobre os cards de resumo.
+   */
+  if (filtroSolicitaInativos) {
+    return true;
+  }
+
+  /*
+   * Fora do filtro específico, clientes inativos permanecem
+   * escondidos de Total, Ativos, Novos e Com serviços.
+   */
+  if (cliente.status === "inativo") {
+    return false;
+  }
+
   if (abaAtual === "todos") {
     return true;
   }
@@ -1289,20 +1320,17 @@ function correspondeAAba(cliente) {
   if (abaAtual === "novos") {
     return clienteEhNovo(cliente);
   }
+
   if (abaAtual === "com-servicos") {
     return Number(cliente.quantidadeOrdens) > 0;
   }
+
   if (abaAtual === "com-pendencias") {
     return cliente.status === "com-pendencia" || Boolean(cliente.aviso);
   }
 
-  if (abaAtual === "inativos") {
-    return cliente.status === "inativo";
-  }
-
   return true;
 }
-
 function atualizarAbas() {
   customerTabButtons.forEach((button) => {
     const estaAtiva = button.dataset.customerTab === abaAtual;
@@ -1548,6 +1576,25 @@ function aplicarFiltros() {
     ordens: ordersFilter.value,
   };
 
+  const filtroSolicitaInativos = filtrosAplicados.status.includes("inativo");
+
+  if (filtroSolicitaInativos) {
+    resumoSelecionado = "todos";
+    abaAtual = "todos";
+
+    summaryFilterButtons.forEach((button) => {
+      const estaAtivo = button.dataset.summaryFilter === "todos";
+
+      button.classList.toggle("is-active", estaAtivo);
+
+      button.setAttribute("aria-pressed", String(estaAtivo));
+    });
+
+    customersSummaryHint.hidden = true;
+
+    atualizarAbas();
+  }
+
   atualizarContagemDeFiltros();
 
   renderizarClientes();
@@ -1777,7 +1824,62 @@ function criarOrdemParaCliente(cliente) {
 
   window.location.href = `nova-ordem.html?${parametros.toString()}`;
 }
+/* =========================================
+   STATUS VISUAL DO CLIENTE
+========================================= */
 
+async function alternarStatusVisualDoCliente(cliente) {
+  const clienteEstaInativo = cliente.status === "inativo";
+
+  const novoStatus = clienteEstaInativo ? "ativo" : "inativo";
+
+  const mensagemDeConfirmacao = clienteEstaInativo
+    ? `Deseja reativar o cliente "${cliente.nome}" na listagem?`
+    : `Deseja desativar o cliente "${cliente.nome}" da listagem?\n\nO cliente continuará podendo acessar o sistema normalmente.`;
+
+  const confirmou = window.confirm(mensagemDeConfirmacao);
+
+  if (!confirmou) {
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "usuarios", cliente.id),
+      {
+        statusCadastro: novoStatus,
+        aviso: "",
+        atualizadoEm: serverTimestamp(),
+      },
+      {
+        merge: true,
+      },
+    );
+
+    await carregarDadosDeClientesDoFirestore();
+
+    atualizarResumo();
+    atualizarAbas();
+    renderizarClientes();
+
+    mostrarFeedback(
+      clienteEstaInativo
+        ? "Cliente reativado na listagem."
+        : "Cliente desativado da listagem.",
+    );
+  } catch (error) {
+    console.error(
+      "[Clientes] Não foi possível alterar o status visual:",
+      error,
+    );
+
+    mostrarFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a alteração do cliente."
+        : "Não foi possível alterar o status do cliente.",
+    );
+  }
+}
 /* =========================================
    MODAL DE CADASTRO
 ========================================= */
@@ -2235,7 +2337,7 @@ async function salvarCliente(event) {
 
       email,
 
-      ativo: status !== "inativo",
+      ativo: clienteExistente?.acessoAtivo ?? true,
 
       statusCadastro: status,
 
@@ -2706,6 +2808,10 @@ function preencherCard(cliente) {
 
   const detailsButton = card.querySelector(".customer-card__button--details");
 
+  const statusActionButton = card.querySelector(
+    ".customer-card__status-action",
+  );
+
   const orderButton = card.querySelector(".customer-card__quick-order");
 
   const statusData = statusConfig[cliente.status] || statusConfig.ativo;
@@ -2731,6 +2837,38 @@ function preencherCard(cliente) {
   status.textContent = statusData.nome;
 
   status.classList.add(statusData.classe);
+  const clienteEstaInativo = cliente.status === "inativo";
+
+  statusActionButton.classList.toggle("is-reactivate", clienteEstaInativo);
+
+  statusActionButton.setAttribute(
+    "aria-label",
+    clienteEstaInativo
+      ? `Reativar cliente ${cliente.nome}`
+      : `Desativar cliente ${cliente.nome}`,
+  );
+
+  statusActionButton.setAttribute(
+    "title",
+    clienteEstaInativo ? "Reativar cliente" : "Desativar cliente",
+  );
+
+  statusActionButton.innerHTML = clienteEstaInativo
+    ? `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 11a8 8 0 1 0-2.34 5.66"></path>
+      <path d="M20 4v7h-7"></path>
+    </svg>
+  `
+    : `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16"></path>
+      <path d="M9 7V4h6v3"></path>
+      <path d="m7 7 1 13h8l1-13"></path>
+      <path d="M10 11v5"></path>
+      <path d="M14 11v5"></path>
+    </svg>
+  `;
 
   phoneText.textContent = cliente.telefone || "Telefone não informado";
 
@@ -2804,6 +2942,9 @@ function preencherCard(cliente) {
 
   detailsButton.addEventListener("click", () => {
     abrirDetalhesDoCliente(cliente);
+  });
+  statusActionButton.addEventListener("click", () => {
+    alternarStatusVisualDoCliente(cliente);
   });
 
   return fragmento;
