@@ -22,21 +22,21 @@ const profileConfig = {
 
     cards: [
       {
-        title: "Nova Ordem de Serviço",
+        title: "Nova Solicitação",
         description: "Solicite um novo atendimento de manutenção.",
-        target: "nova-ordem.html?perfil=cliente",
+        target: "nova-ordem.html",
         icon: "clipboard",
       },
       {
         title: "Minhas Solicitações",
         description: "Acompanhe pedidos enviados e respostas da equipe.",
-        target: "ordens.html?perfil=cliente",
+        target: "ordens.html",
         icon: "inbox",
       },
       {
         title: "Serviços Agendados",
-        description: "Veja datas e períodos já confirmados.",
-        target: "servicos-agendados.html?perfil=cliente",
+        description: "Veja datas, períodos e horários já confirmados.",
+        target: "ordens.html?filtro=agendadas",
         icon: "calendar",
       },
       {

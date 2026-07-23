@@ -306,7 +306,30 @@ function mostrarFeedback(mensagem) {
     feedbackMessage.hidden = true;
   }, 2800);
 }
+function obterFiltroRapidoInicialDaUrl() {
+  const parametros = new URLSearchParams(window.location.search);
 
+  const filtroRecebido = normalizarTexto(parametros.get("filtro"));
+
+  const filtrosPermitidos = {
+    todos: "todos",
+
+    analise: "analise",
+
+    aguardando: "aguardando",
+
+    agendada: "agendadas",
+    agendadas: "agendadas",
+
+    concluida: "concluidas",
+    concluidas: "concluidas",
+
+    encerrada: "encerradas",
+    encerradas: "encerradas",
+  };
+
+  return filtrosPermitidos[filtroRecebido] || "todos";
+}
 function abrirDetalhes(ordemOuId) {
   const ordemId =
     typeof ordemOuId === "object"
@@ -635,8 +658,45 @@ function aplicarPerfilDaSessao(sessao) {
 /* =========================================
    FILTROS
 ========================================= */
+function configurarTextosDoFiltroRapido() {
+  /*
+    Primeiro restaura os textos normais
+    da página de acordo com o perfil.
+  */
+  configurarTextosDoPerfil();
+
+  if (perfilAtual !== "cliente" || filtroRapidoAtual !== "agendadas") {
+    return;
+  }
+
+  document.title = "Serviços Agendados | Salvateck";
+
+  pageTitle.textContent = "Serviços Agendados";
+
+  profileBadge.textContent = "Área do cliente";
+
+  introTitle.textContent = "Seus próximos atendimentos";
+
+  introDescription.textContent =
+    "Consulte as datas, períodos e horários confirmados pela equipe Salvateck.";
+
+  requestSearch.placeholder = "Pesquisar serviço agendado";
+
+  listEyebrow.textContent = "Agenda do cliente";
+
+  listTitle.textContent = "Atendimentos confirmados";
+
+  emptyStateTitle.textContent = "Nenhum serviço agendado";
+
+  emptyStateDescription.textContent =
+    "Quando uma solicitação tiver a data confirmada, ela aparecerá nesta página.";
+
+  emptyStateButton.textContent = "Criar nova solicitação";
+}
 function atualizarFiltroRapido(statusSelecionado) {
   filtroRapidoAtual = statusSelecionado || "todos";
+
+  configurarTextosDoFiltroRapido();
 
   quickStatusCards.forEach((card) => {
     const isActive = card.dataset.quickStatus === filtroRapidoAtual;
@@ -1093,7 +1153,7 @@ async function inicializarPagina() {
 
     await carregarSolicitacoesDoFirestore();
 
-    renderizarSolicitacoes();
+    atualizarFiltroRapido(obterFiltroRapidoInicialDaUrl());
   } catch (error) {
     console.error("[Ordens] Não foi possível carregar as ordens:", error);
 
