@@ -1,8 +1,15 @@
-/* =========================================
-   CONFIGURAÇÕES GERAIS
-========================================= */
+import "./auth-guard.js";
 
-const PROFILE_STORAGE_KEY = "salvateckPerfilClienteTemporario";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+
+import { auth, db } from "./firebase-config.js";
 
 /* =========================================
    ELEMENTOS DA PÁGINA
@@ -91,12 +98,52 @@ const serviceNotesInput = document.getElementById("service-notes");
 const formControls = profileForm.querySelectorAll("input, select, textarea");
 
 /* =========================================
-   VARIÁVEIS DE CONTROLE
+   ESTADOS BRASILEIROS
 ========================================= */
+
+const brazilianStates = [
+  ["AC", "Acre"],
+  ["AL", "Alagoas"],
+  ["AP", "Amapá"],
+  ["AM", "Amazonas"],
+  ["BA", "Bahia"],
+  ["CE", "Ceará"],
+  ["DF", "Distrito Federal"],
+  ["ES", "Espírito Santo"],
+  ["GO", "Goiás"],
+  ["MA", "Maranhão"],
+  ["MT", "Mato Grosso"],
+  ["MS", "Mato Grosso do Sul"],
+  ["MG", "Minas Gerais"],
+  ["PA", "Pará"],
+  ["PB", "Paraíba"],
+  ["PR", "Paraná"],
+  ["PE", "Pernambuco"],
+  ["PI", "Piauí"],
+  ["RJ", "Rio de Janeiro"],
+  ["RN", "Rio Grande do Norte"],
+  ["RS", "Rio Grande do Sul"],
+  ["RO", "Rondônia"],
+  ["RR", "Roraima"],
+  ["SC", "Santa Catarina"],
+  ["SP", "São Paulo"],
+  ["SE", "Sergipe"],
+  ["TO", "Tocantins"],
+];
+
+/* =========================================
+   CONTROLE
+========================================= */
+
+let currentSession = null;
+
+let profileReference = null;
+
+let profileSnapshot = null;
 
 let editingProfile = false;
 
-let profileSnapshot = null;
+let savingProfile = false;
 
 let feedbackTimeout;
 
@@ -112,21 +159,16 @@ function normalizarTexto(valor) {
   return String(valor || "").trim();
 }
 
-function wait(milliseconds) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, milliseconds);
-  });
-}
-
 function showFeedback(message) {
   window.clearTimeout(feedbackTimeout);
 
   feedbackMessage.textContent = message;
+
   feedbackMessage.hidden = false;
 
   feedbackTimeout = window.setTimeout(() => {
     feedbackMessage.hidden = true;
-  }, 3000);
+  }, 3500);
 }
 
 function formatPhone(value) {
@@ -171,8 +213,91 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
+function populateStateOptions() {
+  const currentValue = stateInput.value;
+
+  stateInput.innerHTML = `
+    <option value="">
+      Selecione
+    </option>
+  `;
+
+  brazilianStates.forEach(([code, name]) => {
+    const option = document.createElement("option");
+
+    option.value = code;
+
+    option.textContent = name;
+
+    stateInput.appendChild(option);
+  });
+
+  stateInput.value = currentValue;
+}
+
 /* =========================================
-   OBTENÇÃO E APLICAÇÃO DOS DADOS
+   NORMALIZAÇÃO DO PERFIL
+========================================= */
+
+function normalizeProfileData(profile = {}) {
+  const address = profile.endereco || {};
+
+  const contactPreferences = profile.preferenciasContato || {};
+
+  const notifications = profile.notificacoes || {};
+
+  const sessionProfile = currentSession?.profile || {};
+
+  const sessionUser = currentSession?.user || {};
+
+  return {
+    fullName: normalizarTexto(
+      profile.nome || sessionProfile.nome || sessionUser.displayName || "",
+    ),
+
+    email: normalizarTexto(
+      profile.email ||
+        sessionProfile.email ||
+        currentSession?.email ||
+        sessionUser.email ||
+        auth.currentUser?.email ||
+        "",
+    ),
+
+    phone: normalizarTexto(profile.telefone || sessionProfile.telefone || ""),
+
+    preferredContact: contactPreferences.canal || "whatsapp",
+
+    preferredPeriod: contactPreferences.periodo || "qualquer",
+
+    statusNotifications: notifications.atualizacoesStatus !== false,
+
+    scheduleNotifications: notifications.lembretesAtendimento !== false,
+
+    postalCode: normalizarTexto(address.cep || ""),
+
+    state: normalizarTexto(address.estado || address.uf || ""),
+
+    street: normalizarTexto(address.rua || address.logradouro || ""),
+
+    addressNumber: normalizarTexto(address.numero || ""),
+
+    addressComplement: normalizarTexto(address.complemento || ""),
+
+    district: normalizarTexto(address.bairro || ""),
+
+    city: normalizarTexto(address.cidade || ""),
+
+    addressReference: normalizarTexto(
+      address.referencia || address.pontoReferencia || "",
+    ),
+
+    serviceNotes: normalizarTexto(profile.observacoesAtendimento || ""),
+  };
+}
+
+/* =========================================
+   LEITURA E APLICAÇÃO DOS CAMPOS
 ========================================= */
 
 function getFormData() {
@@ -181,7 +306,7 @@ function getFormData() {
 
     email: normalizarTexto(emailInput.value),
 
-    phone: normalizarTexto(phoneInput.value),
+    phone: formatPhone(phoneInput.value),
 
     preferredContact: preferredContactInput.value,
 
@@ -191,7 +316,7 @@ function getFormData() {
 
     scheduleNotifications: scheduleNotificationsInput.checked,
 
-    postalCode: normalizarTexto(postalCodeInput.value),
+    postalCode: formatPostalCode(postalCodeInput.value),
 
     state: stateInput.value,
 
@@ -252,43 +377,7 @@ function applyFormData(data) {
 }
 
 /* =========================================
-   ARMAZENAMENTO LOCAL TEMPORÁRIO
-========================================= */
-
-function loadSavedProfile() {
-  try {
-    const savedData = JSON.parse(
-      localStorage.getItem(PROFILE_STORAGE_KEY) || "null",
-    );
-
-    if (savedData) {
-      applyFormData(savedData);
-    }
-  } catch (error) {
-    console.warn(
-      "Não foi possível carregar os dados temporários do perfil.",
-      error,
-    );
-  }
-}
-
-function saveProfileLocally(data) {
-  try {
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(data));
-
-    return true;
-  } catch (error) {
-    console.warn(
-      "Não foi possível salvar os dados temporários do perfil.",
-      error,
-    );
-
-    return false;
-  }
-}
-
-/* =========================================
-   RESUMO E COMPLETUDE DO CADASTRO
+   RESUMO E COMPLETUDE
 ========================================= */
 
 function calculateProfileCompletion() {
@@ -303,9 +392,9 @@ function calculateProfileCompletion() {
     cityInput.value,
   ];
 
-  const completedFields = fields.filter(
-    (value) => normalizarTexto(value).length > 0,
-  ).length;
+  const completedFields = fields.filter((value) => {
+    return normalizarTexto(value).length > 0;
+  }).length;
 
   return Math.round((completedFields / fields.length) * 100);
 }
@@ -348,7 +437,7 @@ function updateProfileSummary() {
 }
 
 /* =========================================
-   CONTROLE DO MODO DE EDIÇÃO
+   CONTROLE DE EDIÇÃO
 ========================================= */
 
 function setEditingMode(active) {
@@ -378,6 +467,10 @@ function setEditingMode(active) {
 }
 
 function startEditingProfile() {
+  if (savingProfile) {
+    return;
+  }
+
   profileSnapshot = getFormData();
 
   clearAllErrors();
@@ -386,6 +479,10 @@ function startEditingProfile() {
 }
 
 function cancelProfileEditing() {
+  if (savingProfile) {
+    return;
+  }
+
   if (profileSnapshot) {
     applyFormData(profileSnapshot);
   }
@@ -398,7 +495,7 @@ function cancelProfileEditing() {
 }
 
 /* =========================================
-   MENSAGENS DE VALIDAÇÃO
+   VALIDAÇÃO VISUAL
 ========================================= */
 
 function getFieldContainer(input) {
@@ -454,10 +551,6 @@ function clearAllErrors() {
     error.textContent = "";
   });
 }
-
-/* =========================================
-   VALIDAÇÃO
-========================================= */
 
 function validateProfileForm() {
   clearAllErrors();
@@ -534,6 +627,10 @@ function validateProfileForm() {
 ========================================= */
 
 async function searchPostalCode() {
+  if (!editingProfile) {
+    return;
+  }
+
   const postalCode = somenteNumeros(postalCodeInput.value);
 
   clearFieldError(postalCodeInput);
@@ -549,6 +646,7 @@ async function searchPostalCode() {
   const originalLabel = searchPostalCodeButton.textContent;
 
   searchPostalCodeButton.disabled = true;
+
   searchPostalCodeButton.textContent = "Buscando...";
 
   try {
@@ -557,13 +655,13 @@ async function searchPostalCode() {
     );
 
     if (!response.ok) {
-      throw new Error("Falha na consulta do CEP.");
+      throw new Error("POSTAL_CODE_REQUEST_FAILED");
     }
 
     const addressData = await response.json();
 
     if (addressData.erro) {
-      throw new Error("CEP não encontrado.");
+      throw new Error("POSTAL_CODE_NOT_FOUND");
     }
 
     streetInput.value = addressData.logradouro || streetInput.value;
@@ -587,7 +685,7 @@ async function searchPostalCode() {
 
     showFeedback("Endereço localizado pelo CEP.");
   } catch (error) {
-    console.warn("Não foi possível consultar o CEP.", error);
+    console.warn("[Meus Dados] Não foi possível consultar o CEP:", error);
 
     showFeedback(
       "Não foi possível localizar o CEP. Preencha o endereço manualmente.",
@@ -600,10 +698,78 @@ async function searchPostalCode() {
 }
 
 /* =========================================
-   SALVAMENTO DO PERFIL
+   FIRESTORE
+========================================= */
+
+function buildProfileUpdate(data) {
+  return {
+    nome: data.fullName,
+
+    telefone: data.phone,
+
+    endereco: {
+      cep: data.postalCode,
+
+      rua: data.street,
+
+      numero: data.addressNumber,
+
+      complemento: data.addressComplement,
+
+      bairro: data.district,
+
+      cidade: data.city,
+
+      estado: data.state,
+
+      referencia: data.addressReference,
+    },
+
+    preferenciasContato: {
+      canal: data.preferredContact,
+
+      periodo: data.preferredPeriod,
+    },
+
+    notificacoes: {
+      atualizacoesStatus: data.statusNotifications,
+
+      lembretesAtendimento: data.scheduleNotifications,
+    },
+
+    observacoesAtendimento: data.serviceNotes,
+
+    atualizadoEm: serverTimestamp(),
+  };
+}
+
+async function loadProfile() {
+  const snapshot = await getDoc(profileReference);
+
+  if (!snapshot.exists()) {
+    throw new Error("PROFILE_NOT_FOUND");
+  }
+
+  const profile = snapshot.data();
+
+  if (profile.role !== "cliente" || profile.ativo !== true) {
+    throw new Error("PROFILE_ACCESS_DENIED");
+  }
+
+  const normalizedData = normalizeProfileData(profile);
+
+  profileSnapshot = normalizedData;
+
+  applyFormData(normalizedData);
+}
+
+/* =========================================
+   SALVAMENTO
 ========================================= */
 
 function setSavingState(active) {
+  savingProfile = active;
+
   saveProfileButton.disabled = active;
 
   cancelEditButton.disabled = active;
@@ -613,10 +779,30 @@ function setSavingState(active) {
   saveButtonLoading.hidden = !active;
 }
 
+function handleSaveError(error) {
+  console.error("[Meus Dados] Não foi possível atualizar o perfil:", error);
+
+  if (error.code === "permission-denied") {
+    showFeedback(
+      "O Firebase bloqueou a atualização. Confira se as regras foram publicadas.",
+    );
+
+    return;
+  }
+
+  if (error.code === "unavailable") {
+    showFeedback("Não foi possível acessar o Firebase. Verifique sua conexão.");
+
+    return;
+  }
+
+  showFeedback("Não foi possível salvar seus dados.");
+}
+
 async function saveProfile(event) {
   event.preventDefault();
 
-  if (!editingProfile) {
+  if (!editingProfile || savingProfile || !profileReference) {
     return;
   }
 
@@ -626,34 +812,72 @@ async function saveProfile(event) {
 
   setSavingState(true);
 
-  await wait(700);
+  try {
+    const profileData = getFormData();
 
-  const profileData = getFormData();
+    const profileUpdate = buildProfileUpdate(profileData);
 
-  const wasSaved = saveProfileLocally(profileData);
+    await updateDoc(profileReference, profileUpdate);
 
-  setSavingState(false);
+    profileSnapshot = profileData;
 
-  if (!wasSaved) {
-    showFeedback("Não foi possível salvar os dados.");
+    currentSession.profile = {
+      ...(currentSession.profile || {}),
 
-    return;
+      nome: profileData.fullName,
+
+      telefone: profileData.phone,
+
+      endereco: {
+        cep: profileData.postalCode,
+
+        rua: profileData.street,
+
+        numero: profileData.addressNumber,
+
+        complemento: profileData.addressComplement,
+
+        bairro: profileData.district,
+
+        cidade: profileData.city,
+
+        estado: profileData.state,
+
+        referencia: profileData.addressReference,
+      },
+
+      preferenciasContato: {
+        canal: profileData.preferredContact,
+
+        periodo: profileData.preferredPeriod,
+      },
+
+      notificacoes: {
+        atualizacoesStatus: profileData.statusNotifications,
+
+        lembretesAtendimento: profileData.scheduleNotifications,
+      },
+
+      observacoesAtendimento: profileData.serviceNotes,
+    };
+
+    applyFormData(profileData);
+
+    setEditingMode(false);
+
+    showFeedback("Dados atualizados com sucesso.");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    setSavingState(false);
   }
-
-  profileSnapshot = profileData;
-
-  applyFormData(profileData);
-
-  setEditingMode(false);
-
-  showFeedback("Dados atualizados com sucesso.");
 }
 
 /* =========================================
    ALTERAÇÃO DE SENHA
 ========================================= */
 
-function requestPasswordReset() {
+async function requestPasswordReset() {
   const email = normalizarTexto(emailInput.value);
 
   if (!email) {
@@ -662,13 +886,54 @@ function requestPasswordReset() {
     return;
   }
 
-  showFeedback(
-    `A alteração de senha será enviada para ${email} após a integração com o Firebase.`,
-  );
+  const originalText = passwordResetButton.textContent;
+
+  passwordResetButton.disabled = true;
+
+  passwordResetButton.textContent = "Enviando...";
+
+  try {
+    auth.languageCode = "pt-BR";
+
+    await sendPasswordResetEmail(auth, email);
+
+    showFeedback(`Enviamos o link de alteração de senha para ${email}.`);
+  } catch (error) {
+    console.error(
+      "[Meus Dados] Não foi possível enviar o link de senha:",
+      error,
+    );
+
+    if (error.code === "auth/invalid-email") {
+      showFeedback("O e-mail cadastrado é inválido.");
+
+      return;
+    }
+
+    if (error.code === "auth/too-many-requests") {
+      showFeedback(
+        "Muitas solicitações foram realizadas. Aguarde alguns minutos.",
+      );
+
+      return;
+    }
+
+    if (error.code === "auth/network-request-failed") {
+      showFeedback("Não foi possível enviar o e-mail. Verifique sua conexão.");
+
+      return;
+    }
+
+    showFeedback("Não foi possível enviar o link de alteração de senha.");
+  } finally {
+    passwordResetButton.disabled = false;
+
+    passwordResetButton.textContent = originalText;
+  }
 }
 
 /* =========================================
-   MÁSCARAS E EVENTOS DOS CAMPOS
+   EVENTOS DOS CAMPOS
 ========================================= */
 
 phoneInput.addEventListener("input", () => {
@@ -737,12 +1002,45 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-loadSavedProfile();
+async function initializePage() {
+  try {
+    populateStateOptions();
 
-phoneInput.value = formatPhone(phoneInput.value);
+    currentSession = await window.salvateckSessionReady;
 
-postalCodeInput.value = formatPostalCode(postalCodeInput.value);
+    if (!currentSession || currentSession.role !== "cliente") {
+      throw new Error("PROFILE_ACCESS_DENIED");
+    }
 
-updateProfileSummary();
+    profileReference = doc(db, "usuarios", currentSession.uid);
 
-setEditingMode(false);
+    /*
+      Remove os dados antigos que eram salvos
+      somente neste navegador.
+    */
+    localStorage.removeItem("salvateckPerfilClienteTemporario");
+
+    applyFormData(normalizeProfileData(currentSession.profile || {}));
+
+    await loadProfile();
+
+    setEditingMode(false);
+  } catch (error) {
+    console.error("[Meus Dados] Não foi possível carregar o perfil:", error);
+
+    if (error.message === "PROFILE_NOT_FOUND") {
+      window.alert("Seu perfil não foi encontrado no sistema.");
+    } else if (
+      error.message === "PROFILE_ACCESS_DENIED" ||
+      error.code === "permission-denied"
+    ) {
+      window.alert("Você não possui permissão para acessar esta página.");
+    } else {
+      window.alert("Não foi possível carregar seus dados.");
+    }
+
+    window.location.replace("principal.html");
+  }
+}
+
+initializePage();

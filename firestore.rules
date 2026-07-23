@@ -58,7 +58,20 @@ service cloud.firestore {
           && request.resource.data.ativo == true
         );
 
-      allow update: if eAdministrador();
+    allow update: if estaAutenticado()
+  && request.auth.uid == userId
+  && request.resource.data
+    .diff(resource.data)
+    .affectedKeys()
+    .hasOnly([
+      "nome",
+      "telefone",
+      "endereco",
+      "preferenciasContato",
+      "notificacoes",
+      "observacoesAtendimento",
+      "atualizadoEm"
+    ]);
 
       allow delete: if eAdministrador();
     }

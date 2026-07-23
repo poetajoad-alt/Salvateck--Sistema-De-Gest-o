@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/meus-dados.css" />
 </head>
 
-<body data-page="meus-dados" data-profile="cliente">
+<body data-page="meus-dados" data-allowed-roles="cliente">
 
   <main class="profile-shell">
 
@@ -32,7 +32,7 @@
 
     <header class="profile-header">
 
-      <a href="principal.html?perfil=cliente" class="header-button" aria-label="Voltar para o painel do cliente">
+      <a href="principal.html" class="header-button" aria-label="Voltar para o painel do cliente">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
@@ -677,7 +677,7 @@
     Dados atualizados com sucesso.
   </div>
 
-  <script src="js/meus-dados.js"></script>
+  <script type="module" src="js/meus-dados.js?v=2.0.0"></script>
 
 </body>
 
