@@ -316,6 +316,8 @@
 }
 
 .form-card {
+  min-width: 0;
+
   padding: clamp(20px, 5vw, 30px);
 
   color: #2b2f33;
@@ -392,6 +394,8 @@
 ========================================= */
 
 .form-group {
+  min-width: 0;
+
   display: grid;
   gap: 8px;
 
@@ -412,7 +416,11 @@
 
 .input {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 52px;
+
+  box-sizing: border-box;
 
   padding: 13px 15px;
 
@@ -433,7 +441,16 @@
     box-shadow 180ms ease,
     background-color 180ms ease;
 }
+input[type="date"].input,
+input[type="time"].input {
+  display: block;
 
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+}
 .input::placeholder {
   color: #949a9f;
 }

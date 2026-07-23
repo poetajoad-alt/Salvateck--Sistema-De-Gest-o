@@ -20,6 +20,7 @@ let query;
 let where;
 let setDoc;
 let serverTimestamp;
+let runTransaction;
 
 async function prepararFirebaseDeCondominios() {
   const [firestoreModule, firebaseConfigModule] = await Promise.all([
@@ -31,8 +32,16 @@ async function prepararFirebaseDeCondominios() {
 
   db = firebaseConfigModule.db;
 
-  ({ collection, doc, getDocs, query, where, setDoc, serverTimestamp } =
-    firestoreModule);
+  ({
+    collection,
+    doc,
+    getDocs,
+    query,
+    where,
+    setDoc,
+    serverTimestamp,
+    runTransaction,
+  } = firestoreModule);
 }
 
 async function aguardarSessaoDaPagina() {
@@ -280,6 +289,7 @@ const condominiumId = document.getElementById("condominium-id");
 const condominiumName = document.getElementById("condominium-name");
 
 const condominiumCode = document.getElementById("condominium-code");
+condominiumCode.readOnly = true;
 
 const condominiumDocument = document.getElementById("condominium-document");
 
@@ -520,21 +530,42 @@ function mostrarFeedback(mensagem) {
   }, 2800);
 }
 
+function extrairNumeroDoCodigoCondominio(codigo) {
+  const correspondencia = String(codigo || "")
+    .trim()
+    .match(/^COND(?:-|\s)?(\d+)$/i);
+
+  if (!correspondencia) {
+    return 0;
+  }
+
+  return Math.max(0, Number(correspondencia[1]) || 0);
+}
+
+function obterMaiorNumeroDeCondominioCadastrado() {
+  return condominios.reduce((maiorNumero, condominio) => {
+    const numeroAtual = extrairNumeroDoCodigoCondominio(condominio.codigo);
+
+    return Math.max(maiorNumero, numeroAtual);
+  }, 0);
+}
+
+function formatarCodigoCondominio(numero) {
+  return `COND-${String(numero).padStart(4, "0")}`;
+}
+
 function gerarIdentificadores() {
-  const numeros = condominios.map((condominio) => {
-    const correspondencia = String(condominio.codigo || "").match(/\d+/);
-
-    return correspondencia ? Number(correspondencia[0]) : 0;
-  });
-
-  const proximoNumero = Math.max(0, ...numeros) + 1;
-
-  const numeroFormatado = String(proximoNumero).padStart(4, "0");
+  const proximoNumero = obterMaiorNumeroDeCondominioCadastrado() + 1;
 
   return {
     id: doc(collection(db, "condominios")).id,
 
-    codigo: `COND-${numeroFormatado}`,
+    /*
+      Este código é apenas uma prévia no modal.
+      O código definitivo será confirmado
+      pela transação no momento do salvamento.
+    */
+    codigo: formatarCodigoCondominio(proximoNumero),
   };
 }
 
@@ -1003,18 +1034,24 @@ function popularOpcoesDeClientes() {
   popularSelectDeClientesVinculaveis();
 }
 
-async function salvarCondominioNoFirestore(condominio, novoCadastro) {
+function montarDadosDoCondominio(condominio, novoCadastro) {
   const historicoPersistido = condominio.historico
     .filter((registro) => !registro.origemFirestore)
     .map(({ origemFirestore, ...registro }) => registro);
 
   const dados = {
     id: condominio.id,
+
     codigo: condominio.codigo,
+
     nome: condominio.nome,
+
     cnpj: condominio.cnpj,
+
     status: condominio.status,
+
     blocos: condominio.blocos,
+
     unidades: condominio.unidades,
 
     endereco: {
@@ -1044,8 +1081,73 @@ async function salvarCondominioNoFirestore(condominio, novoCadastro) {
     dados.criadoEm = serverTimestamp();
   }
 
-  await setDoc(doc(db, "condominios", condominio.id), dados, {
-    merge: true,
+  return dados;
+}
+
+async function salvarCondominioNoFirestore(condominio, novoCadastro) {
+  const condominioReference = doc(db, "condominios", condominio.id);
+
+  /*
+    Uma edição comum não utiliza nem altera
+    o contador de condomínios.
+  */
+  if (!novoCadastro) {
+    const dados = montarDadosDoCondominio(condominio, false);
+
+    await setDoc(condominioReference, dados, {
+      merge: true,
+    });
+
+    return;
+  }
+
+  const contadorReference = doc(db, "contadores", "condominios");
+
+  /*
+    Número mais alto encontrado nos cadastros
+    que já existem. Nenhum deles será alterado.
+  */
+  const maiorNumeroExistente = obterMaiorNumeroDeCondominioCadastrado();
+
+  await runTransaction(db, async (transaction) => {
+    const contadorSnapshot = await transaction.get(contadorReference);
+
+    const numeroDoContador = contadorSnapshot.exists()
+      ? Math.max(0, Number(contadorSnapshot.data().ultimoNumero) || 0)
+      : 0;
+
+    /*
+        Usa sempre o maior valor entre:
+        - contador salvo;
+        - códigos já existentes.
+
+        Assim o contador nunca volta para trás.
+      */
+    const ultimoNumero = Math.max(numeroDoContador, maiorNumeroExistente);
+
+    const proximoNumero = ultimoNumero + 1;
+
+    const codigoDefinitivo = formatarCodigoCondominio(proximoNumero);
+
+    condominio.codigo = codigoDefinitivo;
+
+    const dadosDoNovoCondominio = montarDadosDoCondominio(condominio, true);
+
+    transaction.set(
+      contadorReference,
+      {
+        ultimoNumero: proximoNumero,
+
+        ultimoDocumentoId: condominio.id,
+
+        atualizadoEm: serverTimestamp(),
+      },
+      {
+        merge: true,
+      },
+    );
+
+    transaction.set(condominioReference, dadosDoNovoCondominio);
   });
 }
 /* =========================================
@@ -1385,20 +1487,24 @@ function obterCondominiosFiltrados() {
     .filter(correspondeAPesquisa)
     .filter(correspondeAosFiltros)
     .sort((condominioA, condominioB) => {
-      if (
-        condominioA.status === "atencao" &&
-        condominioB.status !== "atencao"
-      ) {
-        return -1;
+      const numeroA =
+        Number(String(condominioA.codigo || "").match(/\d+/)?.[0]) || 0;
+
+      const numeroB =
+        Number(String(condominioB.codigo || "").match(/\d+/)?.[0]) || 0;
+
+      /*
+    Ordena do maior código para o menor:
+    COND-0026, COND-0025, COND-0024...
+  */
+      if (numeroA !== numeroB) {
+        return numeroB - numeroA;
       }
 
-      if (
-        condominioB.status === "atencao" &&
-        condominioA.status !== "atencao"
-      ) {
-        return 1;
-      }
-
+      /*
+    Caso dois registros tenham o mesmo número
+    ou não possuam código numérico.
+  */
       return condominioA.nome.localeCompare(condominioB.nome, "pt-BR");
     });
 }
@@ -2115,7 +2221,17 @@ function preencherFormulario(condominio) {
 function coletarDadosDoFormulario() {
   condominioRascunho.nome = condominiumName.value.trim();
 
-  condominioRascunho.codigo = condominiumCode.value;
+  /*
+  O código não é coletado do formulário.
+  Um condomínio existente mantém seu código
+  e um novo recebe o código pela transação.
+*/
+  if (condominioEmEdicaoId) {
+    const condominioOriginal = obterCondominioPorId(condominioEmEdicaoId);
+
+    condominioRascunho.codigo =
+      condominioOriginal?.codigo || condominioRascunho.codigo;
+  }
 
   condominioRascunho.cnpj = condominiumDocument.value.trim();
 
