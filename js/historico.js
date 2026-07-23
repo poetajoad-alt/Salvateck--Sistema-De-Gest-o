@@ -1,223 +1,35 @@
-/* =========================================
-   CONFIGURAÇÕES GERAIS
-========================================= */
+import "./auth-guard.js";
 
-const clienteAtualId = "cliente-joao";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-/* =========================================
-   FUNÇÕES PARA DATAS TEMPORÁRIAS
-========================================= */
-
-function obterInicioDoDia(data = new Date()) {
-  const novaData = new Date(data);
-
-  novaData.setHours(0, 0, 0, 0);
-
-  return novaData;
-}
-
-function criarDataComOffset(dias) {
-  const data = obterInicioDoDia();
-
-  data.setDate(data.getDate() + dias);
-
-  const ano = data.getFullYear();
-
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-
-  const dia = String(data.getDate()).padStart(2, "0");
-
-  return `${ano}-${mes}-${dia}`;
-}
+import { db } from "./firebase-config.js";
 
 /* =========================================
-   DADOS TEMPORÁRIOS DO HISTÓRICO
-========================================= */
-
-const historicoAtendimentos = [
-  {
-    id: "OS-0010",
-    clienteId: "cliente-joao",
-
-    titulo: "Troca do reparo da descarga",
-
-    categorias: ["hidraulica"],
-
-    servicos: ["Avaliação da descarga", "Troca do mecanismo interno"],
-
-    data: criarDataComOffset(-12),
-
-    dataEncerramento: criarDataComOffset(-12),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "concluido",
-
-    valor: 185,
-
-    valorLiberado: true,
-  },
-
-  {
-    id: "OS-0011",
-    clienteId: "cliente-joao",
-
-    titulo: "Instalação de ventilador de teto",
-
-    categorias: ["eletrica", "instalacoes"],
-
-    servicos: ["Instalação de ventilador", "Teste da rede elétrica"],
-
-    data: criarDataComOffset(-34),
-
-    dataEncerramento: criarDataComOffset(-34),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "concluido",
-
-    valor: 250,
-
-    valorLiberado: true,
-  },
-
-  {
-    id: "OS-0012",
-    clienteId: "cliente-joao",
-
-    titulo: "Reparo em parede com umidade",
-
-    categorias: ["alvenaria", "pintura"],
-
-    servicos: ["Avaliação da umidade", "Reparo da superfície"],
-
-    data: criarDataComOffset(-57),
-
-    dataEncerramento: criarDataComOffset(-55),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "cancelado",
-
-    valor: null,
-
-    valorLiberado: false,
-  },
-
-  {
-    id: "OS-0013",
-    clienteId: "cliente-joao",
-
-    titulo: "Ajuste da porta do banheiro",
-
-    categorias: ["manutencao-geral"],
-
-    servicos: ["Ajuste da porta", "Regulagem das dobradiças"],
-
-    data: criarDataComOffset(-91),
-
-    dataEncerramento: criarDataComOffset(-91),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "concluido",
-
-    valor: 140,
-
-    valorLiberado: true,
-  },
-
-  {
-    id: "OS-0014",
-    clienteId: "cliente-joao",
-
-    titulo: "Instalação de prateleiras",
-
-    categorias: ["instalacoes"],
-
-    servicos: ["Instalação de três prateleiras"],
-
-    data: criarDataComOffset(-145),
-
-    dataEncerramento: criarDataComOffset(-144),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "recusado",
-
-    valor: null,
-
-    valorLiberado: false,
-  },
-
-  {
-    id: "OS-0015",
-    clienteId: "cliente-joao",
-
-    titulo: "Pintura da sala",
-
-    categorias: ["pintura"],
-
-    servicos: ["Preparação da parede", "Pintura interna"],
-
-    data: criarDataComOffset(-210),
-
-    dataEncerramento: criarDataComOffset(-207),
-
-    endereco: "Rua Exemplo, 150, Casa 2 — Centro, São Paulo/SP",
-
-    status: "concluido",
-
-    valor: 780,
-
-    valorLiberado: true,
-  },
-
-  {
-    id: "OS-0016",
-    clienteId: "cliente-maria",
-
-    titulo: "Troca de interruptor",
-
-    categorias: ["eletrica"],
-
-    servicos: ["Troca de interruptor simples"],
-
-    data: criarDataComOffset(-18),
-
-    dataEncerramento: criarDataComOffset(-18),
-
-    endereco: "Avenida das Flores, 380 — Vila Nova, São Paulo/SP",
-
-    status: "concluido",
-
-    valor: 95,
-
-    valorLiberado: true,
-  },
-];
-
-/* =========================================
-   CONFIGURAÇÕES DOS CAMPOS
+   CONFIGURAÇÕES
 ========================================= */
 
 const statusConfig = {
-  concluido: {
-    nome: "Concluído",
+  concluida: {
+    nome: "Concluída",
     classe: "status--concluido",
-    textoData: "Concluído em",
+    textoData: "Concluída em",
   },
 
-  cancelado: {
-    nome: "Cancelado",
+  cancelada: {
+    nome: "Cancelada",
     classe: "status--cancelado",
-    textoData: "Cancelado em",
+    textoData: "Cancelada em",
   },
 
-  recusado: {
-    nome: "Recusado",
+  recusada: {
+    nome: "Recusada",
     classe: "status--recusado",
-    textoData: "Recusado em",
+    textoData: "Recusada em",
   },
 };
 
@@ -228,11 +40,42 @@ const categoriaConfig = {
   alvenaria: "Alvenaria",
   instalacoes: "Instalações",
   "manutencao-geral": "Manutenção geral",
+  vistoria: "Vistoria técnica",
 };
+
+const statusFinais = ["concluida", "cancelada", "recusada"];
+
+/* =========================================
+   PARÂMETROS DA URL
+========================================= */
+
+const urlParams = new URLSearchParams(window.location.search);
+
+const condominioFiltroId = String(urlParams.get("condominio") || "").trim();
 
 /* =========================================
    ELEMENTOS DA PÁGINA
 ========================================= */
+
+const body = document.body;
+
+const headerBackButton = document.querySelector(
+  ".history-header .header-button",
+);
+
+const headerEyebrow = document.querySelector(".history-header__eyebrow");
+
+const headerTitle = document.querySelector(".history-header h1");
+
+const introBadge = document.querySelector(".history-intro__badge");
+
+const introTitle = document.querySelector(".history-intro h2");
+
+const introDescription = document.querySelector(".history-intro__copy p");
+
+const newRequestButton = document.querySelector(".new-request-button");
+
+const newRequestButtonText = newRequestButton?.querySelector("span");
 
 const summaryCompleted = document.getElementById("summary-completed");
 
@@ -277,8 +120,12 @@ const historyCardTemplate = document.getElementById("history-card-template");
 const feedbackMessage = document.getElementById("feedback-message");
 
 /* =========================================
-   VARIÁVEIS DE CONTROLE
+   CONTROLE
 ========================================= */
+
+let currentSession = null;
+
+let historicoAtendimentos = [];
 
 let filtrosAplicados = {
   status: [],
@@ -300,12 +147,53 @@ function normalizarTexto(valor) {
     .trim();
 }
 
-function criarDataLocal(valor) {
+function normalizarStatus(status) {
+  const statusNormalizado = normalizarTexto(status);
+
+  const mapa = {
+    concluida: "concluida",
+    concluido: "concluida",
+    finalizada: "concluida",
+    finalizado: "concluida",
+
+    cancelada: "cancelada",
+    cancelado: "cancelada",
+
+    recusada: "recusada",
+    recusado: "recusada",
+  };
+
+  return mapa[statusNormalizado] || statusNormalizado;
+}
+
+function converterParaData(valor) {
   if (!valor) {
     return null;
   }
 
-  return new Date(`${valor}T12:00:00`);
+  if (typeof valor === "object" && typeof valor.toDate === "function") {
+    return valor.toDate();
+  }
+
+  if (valor instanceof Date) {
+    return valor;
+  }
+
+  const texto = String(valor).trim();
+
+  if (!texto) {
+    return null;
+  }
+
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(texto)
+    ? new Date(`${texto}T12:00:00`)
+    : new Date(texto);
+
+  if (Number.isNaN(data.getTime())) {
+    return null;
+  }
+
+  return data;
 }
 
 function formatarQuantidade(quantidade) {
@@ -313,7 +201,7 @@ function formatarQuantidade(quantidade) {
 }
 
 function formatarDia(valor) {
-  const data = criarDataLocal(valor);
+  const data = converterParaData(valor);
 
   if (!data) {
     return "--";
@@ -323,7 +211,7 @@ function formatarDia(valor) {
 }
 
 function formatarMesCurto(valor) {
-  const data = criarDataLocal(valor);
+  const data = converterParaData(valor);
 
   if (!data) {
     return "---";
@@ -338,13 +226,13 @@ function formatarMesCurto(valor) {
 }
 
 function formatarAno(valor) {
-  const data = criarDataLocal(valor);
+  const data = converterParaData(valor);
 
   return data ? String(data.getFullYear()) : "----";
 }
 
 function formatarDataCompleta(valor) {
-  const data = criarDataLocal(valor);
+  const data = converterParaData(valor);
 
   if (!data) {
     return "Data não informada";
@@ -368,9 +256,15 @@ function formatarValor(valor) {
   });
 }
 
-function obterNomeCategorias(categorias) {
+function obterTempoDaData(valor) {
+  return converterParaData(valor)?.getTime() || 0;
+}
+
+function obterNomeCategorias(categorias = []) {
   return categorias
-    .map((categoria) => categoriaConfig[categoria] || categoria)
+    .map((categoria) => {
+      return categoriaConfig[categoria] || categoria;
+    })
     .filter(Boolean);
 }
 
@@ -382,59 +276,310 @@ function mostrarFeedback(mensagem) {
 
   feedbackTimeout = window.setTimeout(() => {
     feedbackMessage.hidden = true;
-  }, 2800);
+  }, 3000);
 }
 
-function abrirDetalhes(atendimentoId) {
+function abrirDetalhes(documentId) {
   const parametros = new URLSearchParams({
-    id: atendimentoId,
-    perfil: "cliente",
+    id: documentId,
+    origem: "historico",
   });
+
+  if (condominioFiltroId) {
+    parametros.set("condominio", condominioFiltroId);
+  }
 
   window.location.href = `detalhes-solicitacao.html?${parametros.toString()}`;
 }
 
-function solicitarNovamente(atendimentoId) {
-  const parametros = new URLSearchParams({
-    perfil: "cliente",
-    repetir: atendimentoId,
-  });
+/* =========================================
+   NORMALIZAÇÃO DAS ORDENS
+========================================= */
 
-  window.location.href = `nova-ordem.html?${parametros.toString()}`;
+function obterServicosDaOrdem(ordem) {
+  if (!Array.isArray(ordem.servicos)) {
+    return [String(ordem.servicoPrincipal || "").trim()].filter(Boolean);
+  }
+
+  return ordem.servicos
+    .map((servico) => {
+      if (typeof servico === "string") {
+        return servico.trim();
+      }
+
+      return String(servico?.servico || servico?.nome || "").trim();
+    })
+    .filter(Boolean);
+}
+
+function obterEnderecoDaOrdem(ordem) {
+  const endereco = ordem.endereco;
+
+  if (typeof endereco === "string") {
+    return endereco.trim();
+  }
+
+  const resumo = String(endereco?.resumo || "").trim();
+
+  if (resumo) {
+    return resumo;
+  }
+
+  const primeiraLinha = [
+    endereco?.logradouro || endereco?.rua,
+    endereco?.numero,
+    endereco?.complemento,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const cidadeEstado = [endereco?.cidade, endereco?.uf || endereco?.estado]
+    .filter(Boolean)
+    .join("/");
+
+  const segundaLinha = [endereco?.bairro, cidadeEstado]
+    .filter(Boolean)
+    .join(" — ");
+
+  return (
+    [primeiraLinha, segundaLinha].filter(Boolean).join(" | ") ||
+    "Endereço não informado"
+  );
+}
+
+function obterDataDeEncerramento(ordem, status) {
+  if (status === "concluida") {
+    return (
+      ordem.concluidaEm ||
+      ordem.statusAtualizadoEm ||
+      ordem.atualizadoEm ||
+      ordem.criadoEm ||
+      null
+    );
+  }
+
+  if (status === "cancelada") {
+    return (
+      ordem.canceladaEm ||
+      ordem.statusAtualizadoEm ||
+      ordem.atualizadoEm ||
+      ordem.criadoEm ||
+      null
+    );
+  }
+
+  if (status === "recusada") {
+    return (
+      ordem.recusadaEm ||
+      ordem.statusAtualizadoEm ||
+      ordem.atualizadoEm ||
+      ordem.criadoEm ||
+      null
+    );
+  }
+
+  return (
+    ordem.statusAtualizadoEm || ordem.atualizadoEm || ordem.criadoEm || null
+  );
+}
+
+function normalizarOrdem(documento) {
+  const ordem = documento.data();
+
+  const status = normalizarStatus(ordem.status);
+
+  const categorias =
+    Array.isArray(ordem.categorias) && ordem.categorias.length
+      ? ordem.categorias
+      : [ordem.categoriaPrincipal].filter(Boolean);
+
+  const condominio = ordem.condominio || {};
+
+  const cliente = ordem.cliente || {};
+
+  const valor =
+    ordem.valor ?? ordem.valorTotal ?? ordem.financeiro?.valor ?? null;
+
+  return {
+    documentId: documento.id,
+
+    id: ordem.id || documento.id,
+
+    codigo: ordem.codigo || ordem.id || documento.id,
+
+    clienteId: ordem.clienteUid || cliente.id || "",
+
+    clienteNome: cliente.nome || "Cliente não informado",
+
+    condominio: {
+      id: String(condominio.id || "").trim(),
+
+      nome: String(condominio.nome || "").trim(),
+    },
+
+    titulo: ordem.titulo || ordem.servicoPrincipal || "Ordem de serviço",
+
+    categorias,
+
+    servicos: obterServicosDaOrdem(ordem),
+
+    endereco: obterEnderecoDaOrdem(ordem),
+
+    status,
+
+    data:
+      ordem.atendimento?.dataConfirmada ||
+      ordem.atendimento?.dataPreferida ||
+      ordem.criadoEm ||
+      null,
+
+    dataEncerramento: obterDataDeEncerramento(ordem, status),
+
+    valor,
+
+    valorLiberado: ordem.valorLiberado === true,
+
+    ativo: ordem.ativo !== false,
+
+    arquivado: ordem.arquivado === true,
+
+    documentoFinal: ordem.documentoFinal || null,
+  };
 }
 
 /* =========================================
-   DADOS DO CLIENTE
+   CARREGAMENTO DO FIRESTORE
 ========================================= */
 
-function obterHistoricoDoCliente() {
-  return historicoAtendimentos
-    .filter((atendimento) => atendimento.clienteId === clienteAtualId)
-    .filter((atendimento) =>
-      ["concluido", "cancelado", "recusado"].includes(atendimento.status),
-    )
+async function carregarHistoricoDoFirestore() {
+  if (!currentSession) {
+    return;
+  }
+
+  const ordensReference = collection(db, "ordens");
+
+  const consulta =
+    currentSession.role === "cliente"
+      ? query(ordensReference, where("clienteUid", "==", currentSession.uid))
+      : ordensReference;
+
+  const resultado = await getDocs(consulta);
+
+  historicoAtendimentos = resultado.docs
+    .map(normalizarOrdem)
+    .filter((atendimento) => {
+      return (
+        atendimento.ativo &&
+        !atendimento.arquivado &&
+        statusFinais.includes(atendimento.status)
+      );
+    })
     .sort((a, b) => {
       return (
-        criarDataLocal(b.dataEncerramento || b.data) -
-        criarDataLocal(a.dataEncerramento || a.data)
+        obterTempoDaData(b.dataEncerramento) -
+        obterTempoDaData(a.dataEncerramento)
       );
     });
 }
 
 /* =========================================
-   PREENCHIMENTO DO FILTRO DE ANOS
+   PERFIL E CONTEXTO
+========================================= */
+
+function configurarTextosDoPerfil() {
+  const isAdmin = currentSession.role === "admin";
+
+  body.dataset.profile = currentSession.role;
+
+  document.title = "Histórico | Salvateck";
+
+  headerBackButton.href = "principal.html";
+
+  headerTitle.textContent = "Histórico";
+
+  newRequestButton.href = "nova-ordem.html";
+
+  if (isAdmin) {
+    headerEyebrow.textContent = "Área Administrativa";
+
+    introBadge.textContent = "Gestão de atendimentos";
+
+    introTitle.textContent = "Consulte os serviços encerrados";
+
+    introDescription.textContent =
+      "Acompanhe ordens concluídas, canceladas e recusadas de todos os clientes.";
+
+    newRequestButtonText.textContent = "Nova ordem de serviço";
+
+    historySearch.placeholder = "Pesquisar cliente, serviço ou ordem";
+  } else {
+    headerEyebrow.textContent = "Área do Cliente";
+
+    introBadge.textContent = "Seus atendimentos";
+
+    introTitle.textContent = "Consulte os serviços já encerrados";
+
+    introDescription.textContent =
+      "Veja atendimentos concluídos, solicitações canceladas e os detalhes de cada serviço realizado.";
+
+    newRequestButtonText.textContent = "Nova solicitação";
+
+    historySearch.placeholder = "Pesquisar serviço ou ordem";
+  }
+}
+
+function obterHistoricoDoContexto() {
+  if (!condominioFiltroId) {
+    return [...historicoAtendimentos];
+  }
+
+  return historicoAtendimentos.filter((atendimento) => {
+    return atendimento.condominio.id === condominioFiltroId;
+  });
+}
+
+function configurarContextoDoCondominio() {
+  if (!condominioFiltroId) {
+    return;
+  }
+
+  const atendimentoDoCondominio = historicoAtendimentos.find((atendimento) => {
+    return atendimento.condominio.id === condominioFiltroId;
+  });
+
+  const nomeCondominio =
+    atendimentoDoCondominio?.condominio?.nome || "Condomínio selecionado";
+
+  introBadge.textContent = "Histórico do condomínio";
+
+  introTitle.textContent = nomeCondominio;
+
+  introDescription.textContent =
+    "Consulte as ordens de serviço encerradas vinculadas a este condomínio.";
+
+  if (currentSession.role === "admin") {
+    newRequestButton.href = `nova-ordem.html?condominio=${encodeURIComponent(
+      condominioFiltroId,
+    )}`;
+  }
+}
+
+/* =========================================
+   FILTRO DE ANOS
 ========================================= */
 
 function preencherFiltroDeAnos() {
+  yearFilter.innerHTML = `
+    <option value="">
+      Todos os anos
+    </option>
+  `;
+
   const anos = [
     ...new Set(
-      obterHistoricoDoCliente()
+      obterHistoricoDoContexto()
         .map((atendimento) => {
-          const data = criarDataLocal(
-            atendimento.dataEncerramento || atendimento.data,
-          );
-
-          return data ? data.getFullYear() : null;
+          return converterParaData(atendimento.dataEncerramento)?.getFullYear();
         })
         .filter(Boolean),
     ),
@@ -451,7 +596,7 @@ function preencherFiltroDeAnos() {
 }
 
 /* =========================================
-   PESQUISA
+   PESQUISA E FILTROS
 ========================================= */
 
 function correspondeAPesquisa(atendimento) {
@@ -467,22 +612,21 @@ function correspondeAPesquisa(atendimento) {
 
   const conteudoPesquisavel = normalizarTexto(
     [
-      atendimento.id,
+      atendimento.documentId,
+      atendimento.codigo,
+      atendimento.clienteNome,
+      atendimento.condominio.nome,
       atendimento.titulo,
       atendimento.servicos.join(" "),
       categorias,
       status,
       atendimento.endereco,
-      formatarDataCompleta(atendimento.dataEncerramento || atendimento.data),
+      formatarDataCompleta(atendimento.dataEncerramento),
     ].join(" "),
   );
 
   return conteudoPesquisavel.includes(pesquisa);
 }
-
-/* =========================================
-   FILTROS
-========================================= */
 
 function obterStatusSelecionados() {
   return Array.from(statusFilterInputs)
@@ -499,7 +643,7 @@ function correspondeAosFiltros(atendimento) {
     !filtrosAplicados.categoria ||
     atendimento.categorias.includes(filtrosAplicados.categoria);
 
-  const data = criarDataLocal(atendimento.dataEncerramento || atendimento.data);
+  const data = converterParaData(atendimento.dataEncerramento);
 
   const anoCorresponde =
     !filtrosAplicados.ano ||
@@ -598,12 +742,8 @@ function limparPesquisaEFiltros() {
   mostrarFeedback("Pesquisa e filtros removidos.");
 }
 
-/* =========================================
-   OBTENÇÃO DA LISTA FILTRADA
-========================================= */
-
 function obterHistoricoFiltrado() {
-  return obterHistoricoDoCliente()
+  return obterHistoricoDoContexto()
     .filter(correspondeAPesquisa)
     .filter(correspondeAosFiltros);
 }
@@ -613,23 +753,20 @@ function obterHistoricoFiltrado() {
 ========================================= */
 
 function atualizarResumo() {
-  const historico = obterHistoricoDoCliente();
+  const historico = obterHistoricoDoContexto();
 
   const anoAtual = new Date().getFullYear();
 
-  const concluidos = historico.filter(
-    (atendimento) => atendimento.status === "concluido",
-  ).length;
+  const concluidos = historico.filter((atendimento) => {
+    return atendimento.status === "concluida";
+  }).length;
 
-  const cancelados = historico.filter(
-    (atendimento) =>
-      atendimento.status === "cancelado" || atendimento.status === "recusado",
-  ).length;
+  const cancelados = historico.filter((atendimento) => {
+    return ["cancelada", "recusada"].includes(atendimento.status);
+  }).length;
 
   const registrosDoAno = historico.filter((atendimento) => {
-    const data = criarDataLocal(
-      atendimento.dataEncerramento || atendimento.data,
-    );
+    const data = converterParaData(atendimento.dataEncerramento);
 
     return data && data.getFullYear() === anoAtual;
   }).length;
@@ -676,17 +813,15 @@ function preencherCard(atendimento) {
 
   const requestButton = card.querySelector(".history-card__button--request");
 
-  const dataDoCard = atendimento.dataEncerramento || atendimento.data;
+  const statusData = statusConfig[atendimento.status] || statusConfig.concluida;
 
-  const statusData = statusConfig[atendimento.status] || statusConfig.concluido;
+  day.textContent = formatarDia(atendimento.dataEncerramento);
 
-  day.textContent = formatarDia(dataDoCard);
+  month.textContent = formatarMesCurto(atendimento.dataEncerramento);
 
-  month.textContent = formatarMesCurto(dataDoCard);
+  year.textContent = formatarAno(atendimento.dataEncerramento);
 
-  year.textContent = formatarAno(dataDoCard);
-
-  code.textContent = atendimento.id;
+  code.textContent = atendimento.codigo;
 
   status.textContent = statusData.nome;
 
@@ -694,16 +829,33 @@ function preencherCard(atendimento) {
 
   title.textContent = atendimento.titulo;
 
-  services.textContent = atendimento.servicos.join(" • ");
+  const informacoesComplementares = [];
+
+  if (currentSession.role === "admin") {
+    informacoesComplementares.push(`Cliente: ${atendimento.clienteNome}`);
+  }
+
+  if (atendimento.condominio.nome) {
+    informacoesComplementares.push(
+      `Condomínio: ${atendimento.condominio.nome}`,
+    );
+  }
+
+  if (atendimento.servicos.length) {
+    informacoesComplementares.push(atendimento.servicos.join(" • "));
+  }
+
+  services.textContent =
+    informacoesComplementares.join(" • ") || "Serviço não informado";
 
   address.textContent = atendimento.endereco;
 
   finished.textContent = `${statusData.textoData} ${formatarDataCompleta(
-    dataDoCard,
+    atendimento.dataEncerramento,
   )}`;
 
   const deveMostrarValor =
-    atendimento.status === "concluido" &&
+    atendimento.status === "concluida" &&
     atendimento.valorLiberado &&
     atendimento.valor !== null;
 
@@ -715,21 +867,16 @@ function preencherCard(atendimento) {
 
   detailsButton.setAttribute(
     "aria-label",
-    `Abrir detalhes da ordem ${atendimento.id}`,
-  );
-
-  requestButton.setAttribute(
-    "aria-label",
-    `Solicitar novamente o serviço da ordem ${atendimento.id}`,
+    `Abrir detalhes da ordem ${atendimento.codigo}`,
   );
 
   detailsButton.addEventListener("click", () => {
-    abrirDetalhes(atendimento.id);
+    abrirDetalhes(atendimento.documentId);
   });
 
-  requestButton.addEventListener("click", () => {
-    solicitarNovamente(atendimento.id);
-  });
+  if (requestButton) {
+    requestButton.hidden = true;
+  }
 
   return fragmento;
 }
@@ -785,12 +932,46 @@ document.addEventListener("keydown", (event) => {
    INICIALIZAÇÃO
 ========================================= */
 
-preencherFiltroDeAnos();
+async function inicializarPagina() {
+  try {
+    currentSession = await window.salvateckSessionReady;
 
-sincronizarEstiloDosFiltros();
+    if (!["admin", "cliente"].includes(currentSession.role)) {
+      throw new Error("INVALID_HISTORY_ROLE");
+    }
 
-atualizarContagemDeFiltros();
+    configurarTextosDoPerfil();
 
-atualizarResumo();
+    await carregarHistoricoDoFirestore();
 
-renderizarHistorico();
+    configurarContextoDoCondominio();
+
+    preencherFiltroDeAnos();
+
+    sincronizarEstiloDosFiltros();
+
+    atualizarContagemDeFiltros();
+
+    atualizarResumo();
+
+    renderizarHistorico();
+  } catch (error) {
+    console.error("[Histórico] Não foi possível carregar os registros:", error);
+
+    historicoAtendimentos = [];
+
+    atualizarResumo();
+
+    renderizarHistorico();
+
+    if (error.code === "permission-denied") {
+      mostrarFeedback("O Firebase bloqueou a consulta do histórico.");
+
+      return;
+    }
+
+    mostrarFeedback("Não foi possível carregar o histórico.");
+  }
+}
+
+inicializarPagina();

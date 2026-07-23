@@ -282,7 +282,16 @@ const urlParams = new URLSearchParams(window.location.search);
 
 const requestId = String(urlParams.get("id") || "").trim();
 
-const returnPage = "ordens.html";
+const origem = String(urlParams.get("origem") || "").trim();
+
+const condominioRetornoId = String(urlParams.get("condominio") || "").trim();
+
+const returnPage =
+  origem === "historico"
+    ? condominioRetornoId
+      ? `historico.html?condominio=${encodeURIComponent(condominioRetornoId)}`
+      : "historico.html"
+    : "ordens.html";
 
 let currentSession = null;
 

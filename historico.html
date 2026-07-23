@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="auth-checking">
 
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/historico.css" />
 </head>
 
-<body data-page="historico" data-profile="cliente">
+<body data-page="historico" data-allowed-roles="admin,cliente">
 
   <main class="history-shell">
 
@@ -253,7 +253,7 @@
 
           <label class="filter-option">
 
-            <input type="checkbox" name="statusFilter" value="concluido" />
+            <input type="checkbox" name="statusFilter" value="concluida" />
 
             <span>
               Concluído
@@ -263,7 +263,7 @@
 
           <label class="filter-option">
 
-            <input type="checkbox" name="statusFilter" value="cancelado" />
+            <input type="checkbox" name="statusFilter" value="cancelada" />
 
             <span>
               Cancelado
@@ -273,7 +273,7 @@
 
           <label class="filter-option">
 
-            <input type="checkbox" name="statusFilter" value="recusado" />
+            <input type="checkbox" name="statusFilter" value="recusada" />
 
             <span>
               Recusado
@@ -493,7 +493,7 @@
             Ver detalhes
           </button>
 
-          <button type="button" class="history-card__button history-card__button--request">
+          <button type="button" class="history-card__button history-card__button--request" hidden>
             Solicitar novamente
           </button>
 
@@ -513,7 +513,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <script src="js/historico.js"></script>
+  <script type="module" src="js/historico.js?v=2.0.0"></script>
 
 </body>
 
