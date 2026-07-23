@@ -231,7 +231,10 @@
   color: #1f6a43;
   background-color: #dcefe4;
 }
-
+.details-hero__status.status--concluida {
+  color: #1f6a43;
+  background-color: #dcefe4;
+}
 .details-hero__status.status--recusada,
 .details-hero__status.status--cancelada {
   color: #8b2d2d;
@@ -1345,6 +1348,174 @@
 }
 
 /* =========================================
+   DOCUMENTO FINAL
+========================================= */
+
+.final-document-card[hidden] {
+  display: none !important;
+}
+
+.final-document-card {
+  border-color: rgba(37, 107, 71, 0.3);
+}
+
+.final-document-card .details-card__icon {
+  color: #ffffff;
+  background-color: #256b47;
+
+  box-shadow: 0 8px 18px rgba(37, 107, 71, 0.2);
+}
+
+.final-document-notice {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+
+  margin-bottom: 18px;
+  padding: 15px 16px;
+
+  background-color: rgba(37, 107, 71, 0.08);
+
+  border: 1px solid rgba(37, 107, 71, 0.16);
+  border-radius: 15px;
+}
+
+.final-document-notice__icon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  color: #ffffff;
+  background-color: #256b47;
+
+  border-radius: 13px;
+}
+
+.final-document-notice__icon svg {
+  width: 21px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.final-document-notice strong,
+.final-document-notice p {
+  display: block;
+}
+
+.final-document-notice strong {
+  font-size: 0.76rem;
+  font-weight: 800;
+
+  color: #1f6a43;
+}
+
+.final-document-notice p {
+  margin: 5px 0 0;
+
+  font-size: 0.67rem;
+  font-weight: 500;
+  line-height: 1.5;
+
+  color: #626a71;
+}
+
+.final-document-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.final-document-grid article {
+  min-width: 0;
+
+  padding: 15px;
+
+  background-color: rgba(13, 56, 97, 0.045);
+
+  border: 1px solid rgba(13, 56, 97, 0.09);
+  border-radius: 14px;
+}
+
+.final-document-grid span,
+.final-document-grid strong {
+  display: block;
+}
+
+.final-document-grid span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.4;
+
+  color: #747c82;
+}
+
+.final-document-grid strong {
+  margin-top: 6px;
+
+  font-size: 0.73rem;
+  font-weight: 800;
+  line-height: 1.45;
+
+  color: #0d3861;
+
+  overflow-wrap: anywhere;
+}
+
+.final-document-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+.final-document-button {
+  min-height: 49px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 15px;
+
+  cursor: pointer;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+
+  border-radius: var(--radius-pill);
+}
+
+.final-document-button--view {
+  color: #0d3861;
+  background-color: transparent;
+
+  border: 1px solid rgba(13, 56, 97, 0.24);
+}
+
+.final-document-button--download {
+  color: #f9f9f9;
+  background-color: #256b47;
+
+  border: 1px solid #256b47;
+
+  box-shadow: 0 8px 18px rgba(37, 107, 71, 0.18);
+}
+
+.final-document-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* =========================================
    HOVER APENAS COM MOUSE
 ========================================= */
 
@@ -1358,7 +1529,8 @@
   .submit-action-button,
   .modal-button,
   .action-form__close,
-  .request-photo {
+  .request-photo,
+  .final-document-button {
     transition:
       transform 180ms ease,
       color 180ms ease,
@@ -1366,7 +1538,16 @@
       border-color 180ms ease,
       box-shadow 180ms ease;
   }
+  .final-document-button--view:hover {
+    color: #dd9a17;
+    background-color: #0d3861;
 
+    border-color: #0d3861;
+  }
+
+  .final-document-button--download:hover {
+    background-color: #1d583a;
+  }
   .header-button:hover,
   .client-information__button:hover,
   .submit-action-button:hover,
@@ -1451,7 +1632,10 @@
   .profile-mode__button {
     flex: 1;
   }
-
+  .final-document-grid,
+  .final-document-actions {
+    grid-template-columns: 1fr;
+  }
   .confirmed-schedule-grid {
     grid-template-columns: 1fr;
   }

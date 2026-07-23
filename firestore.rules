@@ -68,8 +68,11 @@ service cloud.firestore {
     ===================================== */
 
     match /ordens/{ordemId} {
-      allow read: if eAdministrador()
-        || (
+      allow update: if (
+    eAdministrador()
+    && !("documentoFinal" in resource.data)
+  )
+  || (
           estaAutenticado()
           && resource.data.clienteUid == request.auth.uid
         );
@@ -239,8 +242,8 @@ service cloud.firestore {
             == "A solicitação foi cancelada pelo cliente."
         );
 
-      allow delete: if eAdministrador();
-    }
+      allow delete: if eAdministrador()
+  && !("documentoFinal" in resource.data);
 
     /* =====================================
        DADOS PRIVADOS DAS ORDENS
@@ -317,8 +320,11 @@ service cloud.firestore {
        ACESSO ADMINISTRATIVO GERAL
     ===================================== */
 
-    match /{document=**} {
-      allow read, write: if eAdministrador();
-    }
-  }
+   match /{document=**} {
+  allow read: if eAdministrador();
+
+  allow create: if eAdministrador();
+
+  allow update, delete: if eAdministrador()
+    && !("documentoFinal" in resource.data);
 }

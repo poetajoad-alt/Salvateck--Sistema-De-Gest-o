@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/detalhes-solicitacao.css?v=1.0.1" />
+  <link rel="stylesheet" href="css/detalhes-solicitacao.css?v=1.0.2" />
 </head>
 
 <body data-page="detalhes-solicitacao" data-allowed-roles="admin,cliente">
@@ -594,6 +594,153 @@
     </section>
 
     <!-- =====================================
+     DOCUMENTO FINAL DA ORDEM
+====================================== -->
+
+    <section class="details-card final-document-card" id="final-document-card" hidden>
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 3h9l3 3v15H6z"></path>
+            <path d="M14 3v4h4"></path>
+            <path d="M9 12h6"></path>
+            <path d="M9 16h6"></path>
+            <path d="m9 8 1.5 1.5L13 7"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Registro do atendimento
+          </p>
+
+          <h2>
+            Documento final da ordem
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="final-document-notice">
+
+        <span class="final-document-notice__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <strong id="final-document-status-title">
+            Atendimento concluído
+          </strong>
+
+          <p id="final-document-status-message">
+            Os dados abaixo representam o registro final desta ordem de serviço.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div class="final-document-grid">
+
+        <article>
+
+          <span>
+            Ordem de serviço
+          </span>
+
+          <strong id="final-document-code">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Serviço principal
+          </span>
+
+          <strong id="final-document-service">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Cliente
+          </span>
+
+          <strong id="final-document-client">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Condomínio
+          </span>
+
+          <strong id="final-document-condominium">
+            Não vinculado
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Concluída em
+          </span>
+
+          <strong id="final-document-date">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Responsável pela conclusão
+          </span>
+
+          <strong id="final-document-responsible">
+            --
+          </strong>
+
+        </article>
+
+      </div>
+
+      <div class="final-document-actions">
+
+        <button type="button" class="final-document-button final-document-button--view" id="view-final-document-button">
+          Visualizar documento
+        </button>
+
+        <button type="button" class="final-document-button final-document-button--download" id="download-final-document-button">
+          Baixar PDF
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
          PRIORIDADE ADMINISTRATIVA
     ====================================== -->
 
@@ -1124,7 +1271,9 @@
     Alteração realizada com sucesso.
   </div>
 
-  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+
+  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.4"></script>
 </body>
 
 </html>

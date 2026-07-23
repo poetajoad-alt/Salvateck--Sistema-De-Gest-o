@@ -273,7 +273,41 @@ const closeActionButtons = document.querySelectorAll("[data-close-action]");
 /* Feedback */
 
 const feedbackMessage = document.getElementById("feedback-message");
+/* Documento final */
 
+const finalDocumentCard = document.getElementById("final-document-card");
+
+const finalDocumentStatusTitle = document.getElementById(
+  "final-document-status-title",
+);
+
+const finalDocumentStatusMessage = document.getElementById(
+  "final-document-status-message",
+);
+
+const finalDocumentCode = document.getElementById("final-document-code");
+
+const finalDocumentService = document.getElementById("final-document-service");
+
+const finalDocumentClient = document.getElementById("final-document-client");
+
+const finalDocumentCondominium = document.getElementById(
+  "final-document-condominium",
+);
+
+const finalDocumentDate = document.getElementById("final-document-date");
+
+const finalDocumentResponsible = document.getElementById(
+  "final-document-responsible",
+);
+
+const viewFinalDocumentButton = document.getElementById(
+  "view-final-document-button",
+);
+
+const downloadFinalDocumentButton = document.getElementById(
+  "download-final-document-button",
+);
 /* =========================================
    CONTROLE
 ========================================= */
@@ -306,6 +340,9 @@ let modalCallback = null;
 let feedbackTimeout;
 
 let savingChanges = false;
+let generatingFinalPdf = false;
+
+let finalPdfLogoPromise = null;
 
 /* =========================================
    AUXILIARES
@@ -681,6 +718,12 @@ function normalizeOrder(snapshot) {
       email: order.cliente?.email || "",
     },
 
+    condominio: {
+      id: String(order.condominio?.id || "").trim(),
+
+      nome: String(order.condominio?.nome || "").trim(),
+    },
+
     perfilCriador: order.perfilCriador || "cliente",
 
     tipoAtendimento:
@@ -712,6 +755,14 @@ function normalizeOrder(snapshot) {
     criadoEm: order.criadoEm || null,
 
     atualizadoEm: order.atualizadoEm || order.criadoEm || null,
+
+    concluidaEm: order.concluidaEm || null,
+
+    concluidaPorUid: String(order.concluidaPorUid || "").trim(),
+
+    concluidaPorNome: String(order.concluidaPorNome || "").trim(),
+
+    documentoFinal: order.documentoFinal || null,
 
     endereco: normalizeOrderAddress(order),
 
@@ -1145,6 +1196,838 @@ function renderObservations() {
   internalObservation.textContent =
     observations.interna || "Nenhuma observação interna registrada.";
 }
+/* =========================================
+   DOCUMENTO FINAL
+========================================= */
+
+function renderFinalDocument() {
+  const isCompleted = currentRequest.status === "concluida";
+
+  finalDocumentCard.hidden = !isCompleted;
+
+  if (!isCompleted) {
+    return;
+  }
+
+  const documentData = currentRequest.documentoFinal;
+
+  const hasFinalDocument = Boolean(documentData);
+
+  if (!hasFinalDocument) {
+    finalDocumentStatusTitle.textContent =
+      "Documento final ainda não registrado";
+
+    finalDocumentStatusMessage.textContent =
+      "Esta ordem foi concluída antes da implantação do documento final.";
+
+    finalDocumentCode.textContent = currentRequest.codigo;
+
+    finalDocumentService.textContent = currentRequest.titulo;
+
+    finalDocumentClient.textContent = currentRequest.cliente.nome;
+
+    finalDocumentCondominium.textContent =
+      currentRequest.condominio?.nome || "Não vinculado";
+
+    finalDocumentDate.textContent = formatDateTime(currentRequest.concluidaEm);
+
+    finalDocumentResponsible.textContent =
+      currentRequest.concluidaPorNome || "Não informado";
+
+    viewFinalDocumentButton.disabled = true;
+
+    downloadFinalDocumentButton.disabled = true;
+
+    return;
+  }
+
+  const client = documentData.cliente || {};
+
+  const condominium = documentData.condominio || {};
+
+  const completedBy = documentData.concluidaPor || {};
+
+  finalDocumentStatusTitle.textContent = "Documento final registrado";
+
+  finalDocumentStatusMessage.textContent =
+    "As informações deste atendimento foram congeladas no momento da conclusão.";
+
+  finalDocumentCode.textContent = documentData.codigo || currentRequest.codigo;
+
+  finalDocumentService.textContent =
+    documentData.titulo || currentRequest.titulo;
+
+  finalDocumentClient.textContent = client.nome || currentRequest.cliente.nome;
+
+  finalDocumentCondominium.textContent = condominium.nome || "Não vinculado";
+
+  finalDocumentDate.textContent = formatDateTime(
+    documentData.concluidaEm || currentRequest.concluidaEm,
+  );
+
+  finalDocumentResponsible.textContent =
+    completedBy.nome || currentRequest.concluidaPorNome || "Administrador";
+
+  viewFinalDocumentButton.disabled = generatingFinalPdf;
+
+  downloadFinalDocumentButton.disabled = generatingFinalPdf;
+}
+
+/* =========================================
+   PDF DO DOCUMENTO FINAL
+========================================= */
+
+const PDF_COLORS = {
+  navy: [13, 56, 97],
+  gold: [221, 154, 23],
+  green: [37, 107, 71],
+  dark: [43, 47, 51],
+  gray: [98, 106, 113],
+  lightGray: [243, 246, 248],
+  border: [217, 224, 228],
+  white: [249, 249, 249],
+};
+
+function sanitizePdfText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[–—]/g, "-")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/•/g, "-")
+    .trim();
+}
+
+function getFinalPdfData() {
+  const documentData = currentRequest?.documentoFinal;
+
+  if (!documentData) {
+    throw new Error("FINAL_DOCUMENT_NOT_FOUND");
+  }
+
+  return documentData;
+}
+
+function getFinalPdfServices(documentData) {
+  const services = Array.isArray(documentData.servicos)
+    ? documentData.servicos
+    : [];
+
+  return services
+    .map((service) => {
+      if (typeof service === "string") {
+        return sanitizePdfText(service);
+      }
+
+      return sanitizePdfText(service?.servico || service?.nome || "");
+    })
+    .filter(Boolean);
+}
+
+function getFinalPdfCategories(documentData) {
+  const categories = Array.isArray(documentData.categorias)
+    ? documentData.categorias
+    : [];
+
+  return categories
+    .map((category) => {
+      return categoriaConfig[category] || category;
+    })
+    .map(sanitizePdfText)
+    .filter(Boolean);
+}
+
+function getFinalPdfAddress(documentData) {
+  const address = documentData.endereco || {};
+
+  if (typeof address === "string") {
+    return sanitizePdfText(address) || "Não informado";
+  }
+
+  const summary = sanitizePdfText(address.resumo);
+
+  if (summary) {
+    return summary;
+  }
+
+  const firstLine = [
+    address.logradouro || address.rua,
+    address.numero,
+    address.complemento,
+  ]
+    .map(sanitizePdfText)
+    .filter(Boolean)
+    .join(", ");
+
+  const cityAndState = [address.cidade, address.uf || address.estado]
+    .map(sanitizePdfText)
+    .filter(Boolean)
+    .join("/");
+
+  const secondLine = [address.bairro, cityAndState]
+    .map(sanitizePdfText)
+    .filter(Boolean)
+    .join(" - ");
+
+  return [firstLine, secondLine].filter(Boolean).join(" | ") || "Não informado";
+}
+
+function getFinalPdfSchedule(documentData) {
+  const attendance = documentData.atendimento || {};
+
+  const date = attendance.dataConfirmada
+    ? formatDate(attendance.dataConfirmada)
+    : "Não informada";
+
+  const period =
+    periodoConfig[attendance.periodoConfirmado] ||
+    sanitizePdfText(attendance.periodoConfirmado) ||
+    "Não informado";
+
+  const time = sanitizePdfText(attendance.horarioConfirmado) || "Não informado";
+
+  return `${date} - ${period} - ${time}`;
+}
+
+function getFinalPdfType(documentData) {
+  return documentData.tipoAtendimento === "vistoria"
+    ? "Vistoria técnica"
+    : "Serviço de manutenção";
+}
+
+function getFinalPdfFileName(documentData) {
+  const safeCode = sanitizePdfText(documentData.codigo || "ordem-de-servico")
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .replace(/-+/g, "-");
+
+  return `Salvateck-${safeCode}-conclusao.pdf`;
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      resolve(String(reader.result || ""));
+    });
+
+    reader.addEventListener("error", () => {
+      reject(new Error("LOGO_CONVERSION_FAILED"));
+    });
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadFinalPdfLogo() {
+  if (!finalPdfLogoPromise) {
+    finalPdfLogoPromise = fetch("assets/logo.salvateck.png", {
+      cache: "force-cache",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("LOGO_LOAD_FAILED");
+        }
+
+        return response.blob();
+      })
+      .then(blobToDataUrl)
+      .catch((error) => {
+        console.warn(
+          "[PDF] A logo não pôde ser carregada. O PDF será gerado sem ela.",
+          error,
+        );
+
+        return "";
+      });
+  }
+
+  return finalPdfLogoPromise;
+}
+
+function addPdfContinuationHeader(pdf, documentData) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  pdf.setFillColor(...PDF_COLORS.navy);
+
+  pdf.rect(0, 0, pageWidth, 18, "F");
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9);
+
+  pdf.setTextColor(...PDF_COLORS.white);
+
+  pdf.text(
+    `Relatório de Conclusão - ${sanitizePdfText(documentData.codigo)}`,
+    16,
+    11.5,
+  );
+}
+
+function ensurePdfSpace(pdf, currentY, requiredHeight, documentData) {
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  const contentLimit = pageHeight - 20;
+
+  if (currentY + requiredHeight <= contentLimit) {
+    return currentY;
+  }
+
+  pdf.addPage();
+
+  addPdfContinuationHeader(pdf, documentData);
+
+  return 26;
+}
+
+function addPdfMainHeader(pdf, documentData, logoDataUrl) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  pdf.setFillColor(...PDF_COLORS.navy);
+
+  pdf.rect(0, 0, pageWidth, 44, "F");
+
+  if (logoDataUrl) {
+    try {
+      pdf.setFillColor(...PDF_COLORS.white);
+
+      pdf.roundedRect(16, 9, 25, 25, 4, 4, "F");
+
+      pdf.addImage(logoDataUrl, "PNG", 18.5, 11.5, 20, 20);
+    } catch (error) {
+      console.warn("[PDF] Não foi possível inserir a logo.", error);
+    }
+  }
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(8);
+
+  pdf.setTextColor(...PDF_COLORS.gold);
+
+  pdf.text("SALVATECK", 47, 12.5);
+
+  pdf.setFontSize(16);
+
+  pdf.setTextColor(...PDF_COLORS.white);
+
+  pdf.text("Relatório de Conclusão", 47, 21);
+
+  pdf.setFontSize(10);
+
+  pdf.text(
+    `Ordem de serviço ${sanitizePdfText(documentData.codigo)}`,
+    47,
+    28.5,
+  );
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(8);
+
+  pdf.setTextColor(220, 228, 234);
+
+  pdf.text(`Documento emitido em ${formatDateTime(new Date())}`, 47, 35.5);
+
+  return 52;
+}
+
+function addPdfSectionTitle(pdf, currentY, title, documentData) {
+  const y = ensurePdfSpace(pdf, currentY, 13, documentData);
+
+  pdf.setFillColor(236, 241, 244);
+
+  pdf.roundedRect(16, y, 178, 9, 2, 2, "F");
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(8);
+
+  pdf.setTextColor(...PDF_COLORS.navy);
+
+  pdf.text(sanitizePdfText(title).toUpperCase(), 20, y + 6);
+
+  return y + 14;
+}
+
+function getPdfInfoBoxHeight(pdf, value, width) {
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9.5);
+
+  const lines = pdf.splitTextToSize(
+    sanitizePdfText(value) || "Não informado",
+    width - 8,
+  );
+
+  return Math.max(20, 12 + lines.length * 4.5);
+}
+
+function drawPdfInfoBox(pdf, { x, y, width, height, label, value }) {
+  pdf.setFillColor(...PDF_COLORS.lightGray);
+
+  pdf.setDrawColor(...PDF_COLORS.border);
+
+  pdf.roundedRect(x, y, width, height, 3, 3, "FD");
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(7.5);
+
+  pdf.setTextColor(...PDF_COLORS.gray);
+
+  pdf.text(sanitizePdfText(label), x + 4, y + 6);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9.5);
+
+  pdf.setTextColor(...PDF_COLORS.navy);
+
+  const lines = pdf.splitTextToSize(
+    sanitizePdfText(value) || "Não informado",
+    width - 8,
+  );
+
+  pdf.text(lines, x + 4, y + 12);
+}
+
+function addPdfInfoPair(pdf, currentY, leftField, rightField, documentData) {
+  const gap = 4;
+
+  const columnWidth = (178 - gap) / 2;
+
+  const leftHeight = getPdfInfoBoxHeight(pdf, leftField.value, columnWidth);
+
+  const rightHeight = getPdfInfoBoxHeight(pdf, rightField.value, columnWidth);
+
+  const height = Math.max(leftHeight, rightHeight);
+
+  const y = ensurePdfSpace(pdf, currentY, height + 4, documentData);
+
+  drawPdfInfoBox(pdf, {
+    x: 16,
+    y,
+    width: columnWidth,
+    height,
+    label: leftField.label,
+    value: leftField.value,
+  });
+
+  drawPdfInfoBox(pdf, {
+    x: 16 + columnWidth + gap,
+    y,
+    width: columnWidth,
+    height,
+    label: rightField.label,
+    value: rightField.value,
+  });
+
+  return y + height + 4;
+}
+
+function addPdfTextBlock(pdf, currentY, label, text, documentData) {
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  const contentLimit = pageHeight - 20;
+
+  const width = 178;
+
+  const lineHeight = 4.4;
+
+  const safeText = sanitizePdfText(text) || "Não informado";
+
+  let remainingLines = pdf.splitTextToSize(safeText, width - 10);
+
+  let y = currentY;
+
+  let part = 1;
+
+  while (remainingLines.length) {
+    y = ensurePdfSpace(pdf, y, 20, documentData);
+
+    const availableHeight = contentLimit - y;
+
+    const maximumLines = Math.max(
+      1,
+      Math.floor((availableHeight - 13) / lineHeight),
+    );
+
+    const currentLines = remainingLines.splice(0, maximumLines);
+
+    const boxHeight = Math.max(19, 12 + currentLines.length * lineHeight);
+
+    pdf.setFillColor(...PDF_COLORS.lightGray);
+
+    pdf.setDrawColor(...PDF_COLORS.border);
+
+    pdf.roundedRect(16, y, width, boxHeight, 3, 3, "FD");
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(7.5);
+
+    pdf.setTextColor(...PDF_COLORS.gray);
+
+    const finalLabel = part === 1 ? label : `${label} - continuação`;
+
+    pdf.text(sanitizePdfText(finalLabel), 20, y + 6);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(9);
+
+    pdf.setTextColor(...PDF_COLORS.dark);
+
+    pdf.text(currentLines, 20, y + 12);
+
+    y += boxHeight + 4;
+
+    if (remainingLines.length) {
+      pdf.addPage();
+
+      addPdfContinuationHeader(pdf, documentData);
+
+      y = 26;
+
+      part += 1;
+    }
+  }
+
+  return y;
+}
+
+function addPdfConclusionNotice(pdf, currentY, documentData) {
+  const y = ensurePdfSpace(pdf, currentY, 26, documentData);
+
+  pdf.setFillColor(231, 242, 235);
+
+  pdf.setDrawColor(179, 211, 190);
+
+  pdf.roundedRect(16, y, 178, 22, 3, 3, "FD");
+
+  pdf.setFillColor(...PDF_COLORS.green);
+
+  pdf.circle(26, y + 11, 5, "F");
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(8);
+
+  pdf.setTextColor(...PDF_COLORS.green);
+
+  pdf.text("REGISTRO FINAL", 36, y + 8);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(8);
+
+  pdf.setTextColor(...PDF_COLORS.dark);
+
+  const noticeLines = pdf.splitTextToSize(
+    "Este documento foi gerado a partir dos dados congelados no momento da conclusão da ordem de serviço.",
+    150,
+  );
+
+  pdf.text(noticeLines, 36, y + 13);
+
+  return y + 27;
+}
+
+function addPdfFooters(pdf, documentData) {
+  const totalPages = pdf.getNumberOfPages();
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+    pdf.setPage(pageNumber);
+
+    pdf.setDrawColor(...PDF_COLORS.border);
+
+    pdf.line(16, pageHeight - 14, pageWidth - 16, pageHeight - 14);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(7);
+
+    pdf.setTextColor(...PDF_COLORS.gray);
+
+    pdf.text("Documento gerado pelo sistema Salvateck", 16, pageHeight - 9);
+
+    pdf.text(
+      `${sanitizePdfText(
+        documentData.codigo,
+      )} | Página ${pageNumber} de ${totalPages}`,
+      pageWidth - 16,
+      pageHeight - 9,
+      {
+        align: "right",
+      },
+    );
+  }
+}
+
+async function createFinalDocumentPdf() {
+  const JsPdfClass = window.jspdf?.jsPDF;
+
+  if (!JsPdfClass) {
+    throw new Error("JSPDF_NOT_LOADED");
+  }
+
+  const documentData = getFinalPdfData();
+
+  const logoDataUrl = await loadFinalPdfLogo();
+
+  const pdf = new JsPdfClass({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const client = documentData.cliente || {};
+
+  const condominium = documentData.condominio || {};
+
+  const completedBy = documentData.concluidaPor || {};
+
+  const categories = getFinalPdfCategories(documentData);
+
+  const services = getFinalPdfServices(documentData);
+
+  const clientObservation =
+    documentData.observacoes?.cliente || "Nenhuma observação informada.";
+
+  const companyResponse =
+    documentData.observacoes?.resposta ||
+    "Nenhuma orientação adicional registrada.";
+
+  let y = addPdfMainHeader(pdf, documentData, logoDataUrl);
+
+  y = addPdfSectionTitle(pdf, y, "Identificação", documentData);
+
+  y = addPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Cliente",
+      value: client.nome || "Não informado",
+    },
+    {
+      label: "Condomínio",
+      value: condominium.nome || "Não vinculado",
+    },
+    documentData,
+  );
+
+  y = addPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Ordem de serviço",
+      value: documentData.codigo || "Não informada",
+    },
+    {
+      label: "Criada em",
+      value: formatDateTime(documentData.criadaEm),
+    },
+    documentData,
+  );
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Endereço do atendimento",
+    getFinalPdfAddress(documentData),
+    documentData,
+  );
+
+  y = addPdfSectionTitle(pdf, y, "Serviço realizado", documentData);
+
+  y = addPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Serviço principal",
+      value: documentData.titulo || "Não informado",
+    },
+    {
+      label: "Tipo de atendimento",
+      value: getFinalPdfType(documentData),
+    },
+    documentData,
+  );
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Categorias",
+    categories.length ? categories.join(", ") : "Não informadas",
+    documentData,
+  );
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Serviços realizados",
+    services.length
+      ? services
+          .map((service, index) => {
+            return `${index + 1}. ${service}`;
+          })
+          .join("\n")
+      : "Nenhum serviço informado.",
+    documentData,
+  );
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Agendamento confirmado",
+    getFinalPdfSchedule(documentData),
+    documentData,
+  );
+
+  y = addPdfSectionTitle(pdf, y, "Registro do atendimento", documentData);
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Observação inicial do cliente",
+    clientObservation,
+    documentData,
+  );
+
+  y = addPdfTextBlock(
+    pdf,
+    y,
+    "Resposta ou orientação da Salvateck",
+    companyResponse,
+    documentData,
+  );
+
+  y = addPdfSectionTitle(pdf, y, "Conclusão", documentData);
+
+  y = addPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Concluída em",
+      value: formatDateTime(documentData.concluidaEm),
+    },
+    {
+      label: "Responsável pela conclusão",
+      value: completedBy.nome || "Administrador",
+    },
+    documentData,
+  );
+
+  addPdfConclusionNotice(pdf, y, documentData);
+
+  addPdfFooters(pdf, documentData);
+
+  return pdf;
+}
+
+function setFinalPdfBusy(isBusy) {
+  generatingFinalPdf = isBusy;
+
+  const hasDocument = Boolean(currentRequest?.documentoFinal);
+
+  viewFinalDocumentButton.disabled = isBusy || !hasDocument;
+
+  downloadFinalDocumentButton.disabled = isBusy || !hasDocument;
+
+  viewFinalDocumentButton.textContent = isBusy
+    ? "Gerando PDF..."
+    : "Visualizar documento";
+
+  downloadFinalDocumentButton.textContent = isBusy
+    ? "Gerando PDF..."
+    : "Baixar PDF";
+}
+
+function handleFinalPdfError(error) {
+  console.error("[PDF] Não foi possível gerar o documento:", error);
+
+  if (error.message === "FINAL_DOCUMENT_NOT_FOUND") {
+    showFeedback("Esta ordem ainda não possui documento final.");
+
+    return;
+  }
+
+  if (error.message === "JSPDF_NOT_LOADED") {
+    showFeedback("A biblioteca de PDF não foi carregada. Atualize a página.");
+
+    return;
+  }
+
+  showFeedback("Não foi possível gerar o PDF desta ordem.");
+}
+
+async function viewFinalDocumentPdf() {
+  if (generatingFinalPdf) {
+    return;
+  }
+
+  const previewWindow = window.open("", "_blank");
+
+  if (!previewWindow) {
+    showFeedback(
+      "O navegador bloqueou a nova aba. Permita pop-ups para visualizar o PDF.",
+    );
+
+    return;
+  }
+
+  previewWindow.document.title = "Gerando documento...";
+
+  setFinalPdfBusy(true);
+
+  try {
+    const pdf = await createFinalDocumentPdf();
+
+    const pdfBlob = pdf.output("blob");
+
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    previewWindow.location.replace(pdfUrl);
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(pdfUrl);
+    }, 120000);
+  } catch (error) {
+    previewWindow.close();
+
+    handleFinalPdfError(error);
+  } finally {
+    setFinalPdfBusy(false);
+  }
+}
+
+async function downloadFinalDocumentPdf() {
+  if (generatingFinalPdf) {
+    return;
+  }
+
+  setFinalPdfBusy(true);
+
+  try {
+    const documentData = getFinalPdfData();
+
+    const pdf = await createFinalDocumentPdf();
+
+    pdf.save(getFinalPdfFileName(documentData));
+
+    showFeedback("PDF baixado com sucesso.");
+  } catch (error) {
+    handleFinalPdfError(error);
+  } finally {
+    setFinalPdfBusy(false);
+  }
+}
 
 /* =========================================
    PRIORIDADE
@@ -1193,7 +2076,11 @@ function renderProfile() {
     element.hidden = isAdmin;
   });
 
-  priorityCard.hidden = !isAdmin;
+  priorityCard.hidden = !isAdmin || isFinalStatus;
+
+  priorityInputs.forEach((input) => {
+    input.disabled = !isAdmin || isFinalStatus;
+  });
 
   adminActionsCard.hidden =
     !isAdmin || (!isNewOrAnalysis && !isAwaitingConfirmation);
@@ -1233,6 +2120,8 @@ function renderAll() {
   renderPhotos();
 
   renderObservations();
+
+  renderFinalDocument();
 
   syncPriority();
 
@@ -1325,7 +2214,15 @@ async function saveChanges(changes, successMessage, privateChanges = null) {
 ========================================= */
 
 async function changePriority(value) {
-  if (currentSession.role !== "admin" || !prioridadeConfig[value]) {
+  const isFinalStatus = ["concluida", "recusada", "cancelada"].includes(
+    currentRequest.status,
+  );
+
+  if (
+    currentSession.role !== "admin" ||
+    !prioridadeConfig[value] ||
+    isFinalStatus
+  ) {
     return;
   }
 
@@ -1635,6 +2532,69 @@ function submitReschedule(event) {
     },
   });
 }
+function buildFinalDocument(responsibleName) {
+  return {
+    versao: 1,
+
+    ordemId: currentRequest.documentId,
+
+    codigo: currentRequest.codigo,
+
+    numero: currentRequest.numero,
+
+    titulo: currentRequest.titulo,
+
+    tipoAtendimento: currentRequest.tipoAtendimento,
+
+    status: "concluida",
+
+    cliente: {
+      id: currentRequest.clienteId,
+
+      nome: currentRequest.cliente.nome,
+
+      telefone: currentRequest.cliente.telefone,
+
+      email: currentRequest.cliente.email,
+    },
+
+    condominio: {
+      id: currentRequest.condominio?.id || "",
+
+      nome: currentRequest.condominio?.nome || "",
+    },
+
+    categorias: [...currentRequest.categorias],
+
+    servicos: [...currentRequest.servicos],
+
+    endereco: {
+      ...currentRequest.endereco,
+    },
+
+    atendimento: {
+      ...currentRequest.atendimento,
+    },
+
+    observacoes: {
+      cliente: currentRequest.observacoes.cliente,
+
+      resposta: currentRequest.observacoes.resposta,
+    },
+
+    prioridade: currentRequest.prioridade,
+
+    criadaEm: currentRequest.criadoEm,
+
+    concluidaEm: serverTimestamp(),
+
+    concluidaPor: {
+      uid: currentSession.uid,
+
+      nome: responsibleName,
+    },
+  };
+}
 /* =========================================
    CONCLUIR ORDEM DE SERVIÇO
 ========================================= */
@@ -1653,6 +2613,12 @@ function completeRequest() {
     confirmationText: "Concluir OS",
 
     confirm: async () => {
+      const responsibleName =
+        currentSession.nome ||
+        currentSession.profile?.nome ||
+        currentSession.email ||
+        "Administrador";
+
       const changes = {
         status: "concluida",
 
@@ -1660,8 +2626,9 @@ function completeRequest() {
 
         concluidaPorUid: currentSession.uid,
 
-        concluidaPorNome:
-          currentSession.nome || currentSession.email || "Administrador",
+        concluidaPorNome: responsibleName,
+
+        documentoFinal: buildFinalDocument(responsibleName),
       };
 
       if (currentRequest.tipoAtendimento === "vistoria") {
@@ -1834,7 +2801,9 @@ function openClientRegistration() {
 /* =========================================
    EVENTOS
 ========================================= */
+viewFinalDocumentButton.addEventListener("click", viewFinalDocumentPdf);
 
+downloadFinalDocumentButton.addEventListener("click", downloadFinalDocumentPdf);
 priorityInputs.forEach((input) => {
   input.addEventListener("change", () => {
     changePriority(input.value);
