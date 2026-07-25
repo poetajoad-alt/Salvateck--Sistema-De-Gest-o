@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/ordens.css?v=2.0.1" />
+  <link rel="stylesheet" href="css/ordens.css?v=2.0.2" />
 </head>
 
 <body data-page="ordens" data-allowed-roles="admin,cliente">
@@ -117,6 +117,33 @@
           </span>
 
           <strong id="summary-total">
+            0
+          </strong>
+
+        </div>
+
+      </button>
+
+      <!-- Emergências abertas: somente administrador -->
+      <button type="button" class="summary-card status-filter-card emergency-summary-card admin-filter" data-quick-status="emergencias" aria-pressed="false" hidden>
+
+        <div class="summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 2.8 19h18.4L12 3Z"></path>
+            <path d="M12 9v4"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+
+        </div>
+
+        <div class="summary-card__copy">
+
+          <span>
+            Emergências abertas
+          </span>
+
+          <strong id="summary-emergencies">
             0
           </strong>
 
@@ -461,11 +488,11 @@
           </option>
 
           <option value="alta">
-            Alta
+            Urgente
           </option>
 
           <option value="urgente">
-            Urgente
+            Emergência
           </option>
         </select>
 
@@ -569,9 +596,16 @@
 
             <span class="request-card__status"></span>
 
+            <span class="request-card__emergency" hidden>
+              Emergência
+            </span>
+
           </div>
 
-          <span class="request-card__date"></span>
+
+        </div>
+
+        <span class="request-card__date"></span>
 
         </div>
 
@@ -731,7 +765,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <script type="module" src="js/ordens.js?v=2.0.5"></script>
+  <script type="module" src="js/ordens.js?v=2.0.6"></script>
 </body>
 
 </html>

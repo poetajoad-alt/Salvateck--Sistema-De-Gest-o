@@ -58,20 +58,27 @@ service cloud.firestore {
           && request.resource.data.ativo == true
         );
 
-    allow update: if estaAutenticado()
-  && request.auth.uid == userId
-  && request.resource.data
-    .diff(resource.data)
-    .affectedKeys()
-    .hasOnly([
-      "nome",
-      "telefone",
-      "endereco",
-      "preferenciasContato",
-      "notificacoes",
-      "observacoesAtendimento",
-      "atualizadoEm"
-    ]);
+      allow update: if eAdministrador()
+        || (
+          estaAutenticado()
+          && request.auth.uid == userId
+
+          && resource.data.role == "cliente"
+          && resource.data.ativo == true
+
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "nome",
+              "telefone",
+              "endereco",
+              "preferenciasContato",
+              "notificacoes",
+              "observacoesAtendimento",
+              "atualizadoEm"
+            ])
+        );
 
       allow delete: if eAdministrador();
     }
@@ -81,11 +88,8 @@ service cloud.firestore {
     ===================================== */
 
     match /ordens/{ordemId} {
-      allow update: if (
-    eAdministrador()
-    && !("documentoFinal" in resource.data)
-  )
-  || (
+      allow read: if eAdministrador()
+        || (
           estaAutenticado()
           && resource.data.clienteUid == request.auth.uid
         );
@@ -115,9 +119,10 @@ service cloud.firestore {
             "categorias",
             "servicos",
             "atendimento",
-            "observacoes",
-            "status",
-            "ativo",
+"observacoes",
+"prioridade",
+"status",
+"ativo",
             "arquivado",
             "quantidadeFotos",
             "vistoria",
@@ -135,10 +140,15 @@ service cloud.firestore {
 
           && request.resource.data.cliente is map
           && request.resource.data.cliente.id == request.auth.uid
+&& request.resource.data.perfilCriador == "cliente"
+&& request.resource.data.status == "nova-solicitacao"
 
-          && request.resource.data.perfilCriador == "cliente"
-          && request.resource.data.status == "nova-solicitacao"
-          && request.resource.data.ativo == true
+&& request.resource.data.prioridade in [
+  "normal",
+  "urgente"
+]
+
+&& request.resource.data.ativo == true
           && request.resource.data.arquivado == false
 
           && request.resource.data.quantidadeFotos is int
@@ -203,7 +213,10 @@ service cloud.firestore {
             == ordemId
         );
 
-      allow update: if eAdministrador()
+      allow update: if (
+          eAdministrador()
+          && !("documentoFinal" in resource.data)
+        )
         || (
           estaAutenticado()
 
@@ -256,7 +269,8 @@ service cloud.firestore {
         );
 
       allow delete: if eAdministrador()
-  && !("documentoFinal" in resource.data);
+        && !("documentoFinal" in resource.data);
+    }
 
     /* =====================================
        DADOS PRIVADOS DAS ORDENS
@@ -333,11 +347,13 @@ service cloud.firestore {
        ACESSO ADMINISTRATIVO GERAL
     ===================================== */
 
-   match /{document=**} {
-  allow read: if eAdministrador();
+    match /{document=**} {
+      allow read: if eAdministrador();
 
-  allow create: if eAdministrador();
+      allow create: if eAdministrador();
 
-  allow update, delete: if eAdministrador()
-    && !("documentoFinal" in resource.data);
+      allow update, delete: if eAdministrador()
+        && !("documentoFinal" in resource.data);
+    }
+  }
 }

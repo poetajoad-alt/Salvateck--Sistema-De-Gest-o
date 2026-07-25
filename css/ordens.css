@@ -1462,3 +1462,111 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* =========================================
+   CARD RESUMO DE EMERGÊNCIAS
+========================================= */
+
+.emergency-summary-card {
+  border-color: rgba(180, 35, 24, 0.32);
+}
+
+.emergency-summary-card .summary-card__icon {
+  color: #ffffff;
+  background-color: #b42318;
+
+  box-shadow: 0 7px 16px rgba(180, 35, 24, 0.22);
+}
+
+.emergency-summary-card .summary-card__copy span {
+  color: #8f2118;
+}
+
+.emergency-summary-card .summary-card__copy strong {
+  color: #b42318;
+}
+
+.emergency-summary-card.is-active {
+  color: #ffffff;
+  background-color: #b42318;
+
+  border-color: #b42318;
+
+  box-shadow:
+    0 0 0 2px rgba(180, 35, 24, 0.15),
+    0 12px 24px rgba(180, 35, 24, 0.25);
+}
+
+.emergency-summary-card.is-active .summary-card__icon {
+  color: #b42318;
+  background-color: #ffffff;
+}
+
+.emergency-summary-card.is-active .summary-card__copy span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.emergency-summary-card.is-active .summary-card__copy strong {
+  color: #ffffff;
+}
+
+/* =========================================
+   SELO E CARD DE EMERGÊNCIA
+========================================= */
+
+.request-card__emergency {
+  min-height: 25px;
+
+  display: inline-flex;
+  align-items: center;
+
+  padding: 5px 9px;
+
+  font-size: 0.56rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+
+  color: #ffffff;
+  background-color: #b42318;
+
+  border-radius: var(--radius-pill);
+
+  box-shadow: 0 5px 12px rgba(180, 35, 24, 0.2);
+}
+
+.request-card__emergency[hidden] {
+  display: none !important;
+}
+
+.request-card.is-emergency {
+  border-color: rgba(180, 35, 24, 0.52);
+
+  box-shadow:
+    0 0 0 2px rgba(180, 35, 24, 0.08),
+    0 14px 28px rgba(180, 35, 24, 0.15);
+}
+
+.request-card.is-emergency .request-card__main {
+  background: linear-gradient(
+    135deg,
+    rgba(180, 35, 24, 0.055),
+    rgba(180, 35, 24, 0.01)
+  );
+}
+
+.request-card.is-emergency .request-card__icon {
+  color: #ffffff;
+  background-color: #b42318;
+
+  box-shadow: 0 7px 16px rgba(180, 35, 24, 0.2);
+}
+
+.request-card.is-emergency .request-card__admin {
+  background-color: rgba(180, 35, 24, 0.06);
+
+  border-top-color: rgba(180, 35, 24, 0.14);
+}
+
+.request-card.is-emergency .request-card__priority strong {
+  color: #b42318;
+}

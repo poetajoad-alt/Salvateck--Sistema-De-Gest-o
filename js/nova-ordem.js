@@ -277,7 +277,33 @@ const successOrderCode = document.getElementById("success-order-code");
 const successOrderTitle = document.getElementById("success-order-title");
 
 const whatsappOrderButton = document.getElementById("whatsapp-order-button");
+const successOrderDescription = document.getElementById(
+  "success-order-description",
+);
 
+/* Emergência */
+
+const openEmergencyButton = document.getElementById("open-emergency-button");
+
+const emergencyModal = document.getElementById("emergency-modal");
+
+const emergencyModalDescription = document.getElementById(
+  "emergency-modal-description",
+);
+
+const emergencyDescription = document.getElementById("emergency-description");
+
+const emergencyDescriptionError = document.getElementById(
+  "emergency-description-error",
+);
+
+const confirmEmergencyButton = document.getElementById(
+  "confirm-emergency-button",
+);
+
+const closeEmergencyModalButtons = document.querySelectorAll(
+  "[data-close-emergency-modal]",
+);
 /* =========================================
    VARIÁVEIS DE CONTROLE
 ========================================= */
@@ -429,7 +455,45 @@ function sanitizePhoneNumber(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function buildEmergencyWhatsAppMessage(savedOrder) {
+  const clientName =
+    savedOrder?.cliente?.nome ||
+    nomeCliente.value.trim() ||
+    "Cliente não informado";
+
+  const clientPhone =
+    savedOrder?.cliente?.telefone ||
+    telefoneCliente.value.trim() ||
+    "Telefone não informado";
+
+  const serviceTitle = savedOrder?.titulo || "Serviço não informado";
+
+  const addressSummary =
+    savedOrder?.endereco || getAddressSummary() || "Endereço não informado";
+
+  const description =
+    String(savedOrder?.descricao || emergencyDescription?.value || "").trim() ||
+    "Descrição não informada";
+
+  return [
+    "🚨 EMERGÊNCIA SALVATECK",
+    "",
+    `OS: ${savedOrder.codigo}`,
+    `Cliente: ${clientName}`,
+    `Telefone: ${clientPhone}`,
+    `Serviço: ${serviceTitle}`,
+    `Endereço: ${addressSummary}`,
+    "",
+    "Descrição:",
+    description,
+  ].join("\n");
+}
+
 function buildWhatsAppMessage(savedOrder) {
+  if (savedOrder?.prioridade === "urgente") {
+    return buildEmergencyWhatsAppMessage(savedOrder);
+  }
+
   const clientName = nomeCliente.value.trim() || "Cliente não informado";
 
   const clientPhone = telefoneCliente.value.trim() || "Telefone não informado";
@@ -475,13 +539,55 @@ function openOrderOnWhatsApp() {
 
   window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 }
+function openEmergencyOnWhatsApp(savedOrder, openedWindow = null) {
+  const whatsappNumber = sanitizePhoneNumber(SALVATECK_WHATSAPP);
+
+  if (whatsappNumber.length < 12) {
+    openedWindow?.close();
+
+    showFeedback("Configure corretamente o WhatsApp da Salvateck.", "error");
+
+    return;
+  }
+
+  const message = encodeURIComponent(buildEmergencyWhatsAppMessage(savedOrder));
+
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+
+  /*
+    A janela é aberta no clique antes da gravação.
+    Isso evita que o celular bloqueie o WhatsApp
+    depois da operação assíncrona do Firebase.
+  */
+  if (openedWindow && !openedWindow.closed) {
+    openedWindow.location.href = whatsappUrl;
+
+    return;
+  }
+
+  window.location.href = whatsappUrl;
+}
 
 function showOrderSuccess(savedOrder) {
   lastSavedOrder = savedOrder;
 
+  const isEmergency = savedOrder?.prioridade === "urgente";
+
   successOrderCode.textContent = savedOrder.codigo;
 
   successOrderTitle.textContent = savedOrder.titulo || "Serviço solicitado";
+
+  if (successOrderDescription) {
+    successOrderDescription.textContent = isEmergency
+      ? "A emergência foi registrada. O WhatsApp da Salvateck será aberto com as informações do atendimento."
+      : "Envie a ordem pelo WhatsApp para conversar com a Salvateck sobre o orçamento e o agendamento.";
+  }
+
+  if (whatsappOrderButton) {
+    whatsappOrderButton.textContent = isEmergency
+      ? "Abrir emergência no WhatsApp"
+      : "Enviar OS pelo WhatsApp";
+  }
 
   form.hidden = true;
 
@@ -501,7 +607,10 @@ function formatOrderCode(number) {
   return `OS-${String(number).padStart(4, "0")}`;
 }
 
-async function saveOrderInFirestore() {
+async function saveOrderInFirestore({
+  isEmergency = false,
+  emergencyDescription = "",
+} = {}) {
   const counterReference = doc(db, "contadores", "ordens");
 
   const orderReference = doc(collection(db, "ordens"));
@@ -536,6 +645,10 @@ async function saveOrderInFirestore() {
       numero: nextNumber,
 
       codigo: code,
+
+      isEmergency,
+
+      emergencyDescription,
     });
 
     transaction.update(counterReference, {
@@ -572,6 +685,14 @@ async function saveOrderInFirestore() {
       titulo: orderData.titulo,
 
       status: orderData.status,
+
+      prioridade: orderData.prioridade,
+
+      descricao: orderData.observacoes.cliente,
+
+      cliente: orderData.cliente,
+
+      endereco: orderData.endereco?.resumo || "",
     };
   });
 }
@@ -1786,12 +1907,207 @@ function validateForm() {
 
   return true;
 }
+/* =========================================
+   EMERGÊNCIA
+========================================= */
 
+function validateEmergencyData() {
+  categoryError.hidden = true;
+  serviceError.hidden = true;
+
+  if (!isClientDataComplete()) {
+    showFeedback("Informe o nome e o telefone do cliente.", "error");
+
+    scrollToElement(nomeCliente.closest(".form-card"));
+
+    return false;
+  }
+
+  if (!isAddressComplete()) {
+    showFeedback("Informe o endereço do atendimento.", "error");
+
+    scrollToElement(document.querySelector('[data-section="endereco"]'));
+
+    return false;
+  }
+
+  if (getSelectedCategories().length === 0) {
+    showCategoryValidation();
+
+    showFeedback("Selecione a categoria da emergência.", "error");
+
+    return false;
+  }
+
+  if (selectedServiceKeys.size === 0) {
+    showServiceValidation();
+
+    showFeedback("Selecione o serviço relacionado à emergência.", "error");
+
+    return false;
+  }
+
+  return true;
+}
+
+function openEmergencyModal() {
+  if (!validateEmergencyData()) {
+    return;
+  }
+
+  emergencyDescriptionError.hidden = true;
+
+  if (currentProfile === "admin") {
+    emergencyModalDescription.textContent =
+      "A ordem será registrada como Emergência e ficará com prioridade máxima na gestão das ordens.";
+
+    confirmEmergencyButton.textContent = "Criar OS de emergência";
+  } else {
+    emergencyModalDescription.textContent =
+      "A ordem será registrada como Emergência e o WhatsApp da Salvateck será aberto com todas as informações.";
+
+    confirmEmergencyButton.textContent = "Registrar e abrir WhatsApp";
+  }
+
+  emergencyModal.hidden = false;
+
+  emergencyModal.setAttribute("aria-hidden", "false");
+
+  body.classList.add("emergency-modal-open");
+
+  window.setTimeout(() => {
+    emergencyDescription.focus();
+  }, 100);
+}
+
+function closeEmergencyModal() {
+  emergencyModal.hidden = true;
+
+  emergencyModal.setAttribute("aria-hidden", "true");
+
+  body.classList.remove("emergency-modal-open");
+
+  emergencyDescriptionError.hidden = true;
+
+  confirmEmergencyButton.disabled = false;
+
+  emergencyDescription.value = "";
+
+  openEmergencyButton?.focus();
+}
+
+async function handleEmergencyConfirmation() {
+  const description = emergencyDescription.value.trim();
+
+  emergencyDescriptionError.hidden = true;
+
+  if (description.length < 10) {
+    emergencyDescriptionError.hidden = false;
+
+    emergencyDescription.focus();
+
+    return;
+  }
+
+  /*
+    Abre uma janela vazia diretamente no clique.
+    Depois da gravação, essa mesma janela recebe
+    o link do WhatsApp.
+  */
+  const whatsappWindow =
+    currentProfile === "cliente" ? window.open("", "_blank") : null;
+
+  const originalButtonText = confirmEmergencyButton.textContent;
+
+  confirmEmergencyButton.disabled = true;
+
+  confirmEmergencyButton.textContent =
+    currentProfile === "admin"
+      ? "Criando emergência..."
+      : "Registrando emergência...";
+
+  try {
+    const savedOrder = await saveOrderInFirestore({
+      isEmergency: true,
+
+      emergencyDescription: description,
+    });
+
+    console.log("[Nova Ordem] Emergência registrada:", savedOrder);
+
+    closeEmergencyModal();
+
+    showFeedback(`${savedOrder.codigo} registrada como emergência!`);
+
+    if (currentProfile === "cliente") {
+      showOrderSuccess(savedOrder);
+
+      openEmergencyOnWhatsApp(savedOrder, whatsappWindow);
+
+      return;
+    }
+
+    whatsappWindow?.close();
+
+    window.setTimeout(() => {
+      window.location.href = "ordens.html";
+    }, 1300);
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível registrar a emergência:",
+      error,
+    );
+
+    whatsappWindow?.close();
+
+    confirmEmergencyButton.disabled = false;
+
+    confirmEmergencyButton.textContent = originalButtonText;
+
+    if (error.message === "ORDER_COUNTER_NOT_FOUND") {
+      showFeedback("O contador das ordens não foi encontrado.", "error");
+
+      return;
+    }
+
+    if (error.message === "INVALID_ORDER_COUNTER") {
+      showFeedback("O contador das ordens possui um valor inválido.", "error");
+
+      return;
+    }
+
+    if (error.code === "permission-denied") {
+      showFeedback(
+        "O Firebase bloqueou a criação da emergência. Publique as regras atualizadas.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.code === "unavailable") {
+      showFeedback(
+        "Não foi possível acessar o Firebase. Verifique sua conexão.",
+        "error",
+      );
+
+      return;
+    }
+
+    showFeedback("Não foi possível registrar a emergência.", "error");
+  }
+}
 /* =========================================
    OBJETO DA ORDEM DE SERVIÇO
 ========================================= */
 
-function buildOrderData({ id, numero, codigo }) {
+function buildOrderData({
+  id,
+  numero,
+  codigo,
+  isEmergency = false,
+  emergencyDescription = "",
+}) {
   const selectedCategories = getSelectedCategories();
 
   const selectedServices = Array.from(selectedServiceKeys).map((key) => ({
@@ -1806,8 +2122,11 @@ function buildOrderData({ id, numero, codigo }) {
     ? selectedServices.find((service) => service.categoria === "vistoria")
     : selectedServices[0];
 
-  const initialStatus =
-    currentProfile === "admin"
+  const finalEmergencyDescription = String(emergencyDescription || "").trim();
+
+  const initialStatus = isEmergency
+    ? "nova-solicitacao"
+    : currentProfile === "admin"
       ? document.getElementById("statusInicial")?.value || "nova-solicitacao"
       : "nova-solicitacao";
 
@@ -1884,12 +2203,18 @@ function buildOrderData({ id, numero, codigo }) {
     servicos: selectedServices,
 
     atendimento: {
-      dataPreferida: currentProfile === "admin" ? dataPreferida.value : "",
+      dataPreferida:
+        currentProfile === "admin" && !isEmergency ? dataPreferida.value : "",
 
-      periodo: currentProfile === "admin" ? getSelectedPeriod() || "" : "",
+      periodo:
+        currentProfile === "admin" && !isEmergency
+          ? getSelectedPeriod() || ""
+          : "",
 
       horarioPreferido:
-        currentProfile === "admin" ? horarioPreferido.value : "",
+        currentProfile === "admin" && !isEmergency
+          ? horarioPreferido.value
+          : "",
 
       dataConfirmada: "",
 
@@ -1899,7 +2224,9 @@ function buildOrderData({ id, numero, codigo }) {
     },
 
     observacoes: {
-      cliente: observacaoCliente.value.trim(),
+      cliente: isEmergency
+        ? finalEmergencyDescription
+        : observacaoCliente.value.trim(),
 
       resposta:
         currentProfile === "admin"
@@ -1908,6 +2235,8 @@ function buildOrderData({ id, numero, codigo }) {
 
       interna: "",
     },
+
+    prioridade: isEmergency ? "urgente" : "normal",
 
     status: initialStatus,
 
@@ -2121,7 +2450,23 @@ observacaoCliente.addEventListener("input", () => {
 });
 
 form.addEventListener("submit", handleSubmit);
+if (openEmergencyButton) {
+  openEmergencyButton.addEventListener("click", openEmergencyModal);
+}
 
+closeEmergencyModalButtons.forEach((button) => {
+  button.addEventListener("click", closeEmergencyModal);
+});
+
+if (confirmEmergencyButton) {
+  confirmEmergencyButton.addEventListener("click", handleEmergencyConfirmation);
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && emergencyModal && !emergencyModal.hidden) {
+    closeEmergencyModal();
+  }
+});
 if (whatsappOrderButton) {
   whatsappOrderButton.addEventListener("click", openOrderOnWhatsApp);
 } else {

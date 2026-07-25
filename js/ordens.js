@@ -128,13 +128,21 @@ const prioridadeConfig = {
     classe: "priority--normal",
   },
 
+  /*
+    O valor interno continua sendo "alta",
+    mas para o Seu José será exibido como Urgente.
+  */
   alta: {
-    nome: "Alta",
+    nome: "Urgente",
     classe: "priority--alta",
   },
 
+  /*
+    O valor interno "urgente" representa
+    agora o atendimento de Emergência.
+  */
   urgente: {
-    nome: "Urgente",
+    nome: "Emergência",
     classe: "priority--urgente",
   },
 };
@@ -145,7 +153,19 @@ const periodoConfig = {
   noite: "Noite",
   horario: "Horário específico",
 };
+const statusAbertos = new Set([
+  "nova-solicitacao",
+  "em-analise",
+  "aguardando-confirmacao",
+  "agendada",
+]);
 
+function eEmergenciaAberta(solicitacao) {
+  return (
+    solicitacao.prioridade === "urgente" &&
+    statusAbertos.has(solicitacao.status)
+  );
+}
 /* =========================================
    ELEMENTOS DA PÁGINA
 ========================================= */
@@ -174,7 +194,7 @@ const summaryConfirmed = document.getElementById("summary-confirmed");
 const summaryCompleted = document.getElementById("summary-completed");
 
 const summaryClosed = document.getElementById("summary-closed");
-
+const summaryEmergencies = document.getElementById("summary-emergencies");
 const quickStatusCards = document.querySelectorAll("[data-quick-status]");
 
 const requestSearch = document.getElementById("request-search");
@@ -318,6 +338,9 @@ function obterFiltroRapidoInicialDaUrl() {
 
     aguardando: "aguardando",
 
+    emergencia: "emergencias",
+    emergencias: "emergencias",
+
     agendada: "agendadas",
     agendadas: "agendadas",
 
@@ -421,8 +444,13 @@ function normalizarPrioridadeDaOrdem(prioridade) {
     alta: "alta",
     high: "alta",
 
+    /*
+      Internamente, estes valores representam
+      Emergência.
+    */
     urgente: "urgente",
-
+    emergencia: "urgente",
+    emergency: "urgente",
     critica: "urgente",
     critical: "urgente",
   };
@@ -824,6 +852,8 @@ function correspondeAPesquisa(solicitacao) {
 
   const status = statusConfig[solicitacao.status]?.nome || "";
 
+  const prioridade = prioridadeConfig[solicitacao.prioridade]?.nome || "";
+
   const conteudoPesquisavel = normalizarTexto(
     [
       solicitacao.id,
@@ -832,6 +862,7 @@ function correspondeAPesquisa(solicitacao) {
       solicitacao.servicos.join(" "),
       categorias,
       status,
+      prioridade,
       solicitacao.endereco,
     ].join(" "),
   );
@@ -839,6 +870,14 @@ function correspondeAPesquisa(solicitacao) {
   return conteudoPesquisavel.includes(pesquisa);
 }
 function correspondeAoFiltroRapido(solicitacao) {
+  /*
+    Emergências é um filtro especial:
+    considera prioridade e status aberto.
+  */
+  if (filtroRapidoAtual === "emergencias") {
+    return perfilAtual === "admin" && eEmergenciaAberta(solicitacao);
+  }
+
   const status = solicitacao.status;
 
   const gruposDeStatus = {
@@ -882,6 +921,23 @@ function obterSolicitacoesFiltradas() {
     .filter(correspondeAPesquisa)
     .filter(correspondeAosFiltros)
     .sort((a, b) => {
+      /*
+        Somente na administração, emergências abertas
+        aparecem antes das outras ordens.
+      */
+      if (perfilAtual === "admin") {
+        const emergenciaA = eEmergenciaAberta(a) ? 1 : 0;
+        const emergenciaB = eEmergenciaAberta(b) ? 1 : 0;
+
+        if (emergenciaA !== emergenciaB) {
+          return emergenciaB - emergenciaA;
+        }
+      }
+
+      /*
+        Dentro de cada grupo, mantém as ordens
+        mais recentes primeiro.
+      */
       return obterTempoDaData(b.criadoEm) - obterTempoDaData(a.criadoEm);
     });
 }
@@ -913,8 +969,12 @@ function atualizarResumo() {
     ["recusada", "cancelada"].includes(solicitacao.status),
   ).length;
 
-  summaryTotal.textContent = String(ordensDoPerfil.length);
+  const emergenciasAbertas =
+    perfilAtual === "admin"
+      ? ordensDoPerfil.filter(eEmergenciaAberta).length
+      : 0;
 
+  summaryTotal.textContent = String(ordensDoPerfil.length);
   summaryPending.textContent = String(paraAnalisar);
 
   summaryAwaiting.textContent = String(aguardando);
@@ -924,6 +984,9 @@ function atualizarResumo() {
   summaryCompleted.textContent = String(concluidas);
 
   summaryClosed.textContent = String(encerradas);
+  if (summaryEmergencies) {
+    summaryEmergencies.textContent = String(emergenciasAbertas);
+  }
 }
 
 /* =========================================
@@ -938,7 +1001,11 @@ function preencherCard(solicitacao) {
   const mainButton = card.querySelector(".request-card__main");
 
   const code = card.querySelector(".request-card__code");
+
   const status = card.querySelector(".request-card__status");
+
+  const emergencyBadge = card.querySelector(".request-card__emergency");
+
   const date = card.querySelector(".request-card__date");
 
   const iconSvg = card.querySelector(".request-card__icon svg");
@@ -978,6 +1045,15 @@ function preencherCard(solicitacao) {
 
   const priorityData =
     prioridadeConfig[solicitacao.prioridade] || prioridadeConfig.normal;
+
+  const isOpenEmergency =
+    perfilAtual === "admin" && eEmergenciaAberta(solicitacao);
+
+  card.classList.toggle("is-emergency", isOpenEmergency);
+
+  if (emergencyBadge) {
+    emergencyBadge.hidden = !isOpenEmergency;
+  }
 
   code.textContent = solicitacao.codigo || solicitacao.id;
 
