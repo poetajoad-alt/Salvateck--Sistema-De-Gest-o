@@ -3238,8 +3238,36 @@ body.modal-open {
 }
 
 .customer-card__actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    42px !important;
+
+  align-items: center;
   gap: 8px;
+
+  margin-top: 14px;
+  padding-top: 14px;
+
+  border-top: 1px solid rgba(13, 56, 97, 0.09);
+}
+
+.customer-card__actions > .customer-card__button {
+  width: 100%;
+  min-width: 0;
+}
+
+.customer-card__actions > .customer-card__status-action {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+
+  padding: 0;
+
+  justify-self: end;
+  align-self: center;
 }
 
 .customer-card__button {
