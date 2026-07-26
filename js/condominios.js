@@ -445,6 +445,31 @@ function obterClientePorId(clienteId) {
   return clientes.find((cliente) => cliente.id === clienteId) || null;
 }
 
+function normalizarListaDeIds(lista = []) {
+  if (!Array.isArray(lista)) {
+    return [];
+  }
+
+  return [
+    ...new Set(lista.map((id) => String(id || "").trim()).filter(Boolean)),
+  ].sort();
+}
+
+function obterClientesIdsDosVinculos(condominio = {}) {
+  const vinculos = Array.isArray(condominio.clientesVinculados)
+    ? condominio.clientesVinculados
+    : [];
+
+  return normalizarListaDeIds(vinculos.map((vinculo) => vinculo.clienteId));
+}
+
+function listasDeIdsSaoIguais(listaA, listaB) {
+  return (
+    JSON.stringify(normalizarListaDeIds(listaA)) ===
+    JSON.stringify(normalizarListaDeIds(listaB))
+  );
+}
+
 function obterIniciais(nome) {
   const partes = String(nome || "")
     .trim()
@@ -699,6 +724,8 @@ function mapearCondominioDoFirestore(condominioSnapshot) {
         }))
       : [],
 
+    clientesIds: normalizarListaDeIds(dados.clientesIds),
+
     equipamentos: Array.isArray(dados.equipamentos) ? dados.equipamentos : [],
 
     documentos: Array.isArray(dados.documentos)
@@ -909,6 +936,43 @@ async function carregarDadosDeCondominiosDoFirestore() {
   );
 }
 
+async function sincronizarClientesIdsDosCondominios() {
+  const condominiosParaAtualizar = condominios.filter((condominio) => {
+    const clientesIdsEsperados = obterClientesIdsDosVinculos(condominio);
+
+    return !listasDeIdsSaoIguais(condominio.clientesIds, clientesIdsEsperados);
+  });
+
+  if (condominiosParaAtualizar.length === 0) {
+    console.info("[Condomínios] Índices de clientes já estão atualizados.");
+
+    return;
+  }
+
+  await Promise.all(
+    condominiosParaAtualizar.map(async (condominio) => {
+      const clientesIds = obterClientesIdsDosVinculos(condominio);
+
+      await setDoc(
+        doc(db, "condominios", condominio.id),
+        {
+          clientesIds,
+          atualizadoEm: serverTimestamp(),
+        },
+        {
+          merge: true,
+        },
+      );
+
+      condominio.clientesIds = clientesIds;
+    }),
+  );
+
+  console.info(
+    `[Condomínios] ${condominiosParaAtualizar.length} índice(s) de clientes atualizado(s).`,
+  );
+}
+
 function criarOpcao(valor, texto) {
   const option = document.createElement("option");
 
@@ -1063,6 +1127,8 @@ function montarDadosDoCondominio(condominio, novoCadastro) {
     clientesVinculados: condominio.clientesVinculados.map((vinculo) => ({
       ...vinculo,
     })),
+
+    clientesIds: obterClientesIdsDosVinculos(condominio),
 
     equipamentos: [...condominio.equipamentos],
 
@@ -2160,6 +2226,8 @@ function criarCondominioVazio() {
 
     clientesVinculados: [],
 
+    clientesIds: [],
+
     equipamentos: [],
 
     documentos: [],
@@ -2406,6 +2474,15 @@ async function salvarCondominio(event) {
        recarregamos os dados para atualizar a tela. */
 
     await carregarDadosDeCondominiosDoFirestore();
+
+    try {
+      await sincronizarClientesIdsDosCondominios();
+    } catch (error) {
+      console.error(
+        "[Condomínios] Não foi possível atualizar os índices de clientes:",
+        error,
+      );
+    }
   } catch (error) {
     console.error(
       "[Condomínios] O condomínio foi salvo, mas a listagem não pôde ser recarregada:",

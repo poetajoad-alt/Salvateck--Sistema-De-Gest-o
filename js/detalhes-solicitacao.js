@@ -122,6 +122,18 @@ const clientEmail = document.getElementById("client-email");
 
 const openClientButton = document.getElementById("open-client-button");
 
+/* Condomínio */
+
+const condominiumCard = document.getElementById("condominium-card");
+
+const condominiumCode = document.getElementById("condominium-code");
+
+const condominiumName = document.getElementById("condominium-name");
+
+const condominiumDescription = document.getElementById(
+  "condominium-description",
+);
+
 /* Serviços */
 
 const categoryTags = document.getElementById("category-tags");
@@ -721,6 +733,8 @@ function normalizeOrder(snapshot) {
     condominio: {
       id: String(order.condominio?.id || "").trim(),
 
+      codigo: String(order.condominio?.codigo || "").trim(),
+
       nome: String(order.condominio?.nome || "").trim(),
     },
 
@@ -1000,6 +1014,46 @@ function renderClient() {
   clientEmail.href = client.email ? `mailto:${client.email}` : "#";
 }
 
+function getCondominiumLabel(condominium = {}) {
+  return (
+    [
+      String(condominium.codigo || "").trim(),
+      String(condominium.nome || "").trim(),
+    ]
+      .filter(Boolean)
+      .join(" — ") || "Não vinculado"
+  );
+}
+
+function renderCondominium() {
+  const condominium = currentRequest.condominio || {};
+
+  const hasCondominium = Boolean(
+    condominium.id || condominium.codigo || condominium.nome,
+  );
+
+  condominiumCard.hidden = !hasCondominium;
+
+  if (!hasCondominium) {
+    condominiumCode.textContent = "";
+    condominiumName.textContent = "";
+    condominiumDescription.textContent = "";
+
+    return;
+  }
+
+  condominiumCode.hidden = !condominium.codigo;
+
+  condominiumCode.textContent = condominium.codigo || "";
+
+  condominiumName.textContent = condominium.nome || "Condomínio vinculado";
+
+  condominiumDescription.textContent =
+    currentRequest.tipoAtendimento === "vistoria"
+      ? "Condomínio vinculado a esta vistoria técnica."
+      : "Condomínio vinculado a esta ordem de serviço.";
+}
+
 /* =========================================
    SERVIÇOS
 ========================================= */
@@ -1226,8 +1280,9 @@ function renderFinalDocument() {
 
     finalDocumentClient.textContent = currentRequest.cliente.nome;
 
-    finalDocumentCondominium.textContent =
-      currentRequest.condominio?.nome || "Não vinculado";
+    finalDocumentCondominium.textContent = getCondominiumLabel(
+      currentRequest.condominio,
+    );
 
     finalDocumentDate.textContent = formatDateTime(currentRequest.concluidaEm);
 
@@ -1259,7 +1314,7 @@ function renderFinalDocument() {
 
   finalDocumentClient.textContent = client.nome || currentRequest.cliente.nome;
 
-  finalDocumentCondominium.textContent = condominium.nome || "Não vinculado";
+  finalDocumentCondominium.textContent = getCondominiumLabel(condominium);
 
   finalDocumentDate.textContent = formatDateTime(
     documentData.concluidaEm || currentRequest.concluidaEm,
@@ -1817,7 +1872,7 @@ async function createFinalDocumentPdf() {
     },
     {
       label: "Condomínio",
-      value: condominium.nome || "Não vinculado",
+      value: getCondominiumLabel(condominium),
     },
     documentData,
   );
@@ -2110,6 +2165,8 @@ function renderAll() {
   renderTimeline();
 
   renderClient();
+
+  renderCondominium();
 
   renderServices();
 
@@ -2560,6 +2617,8 @@ function buildFinalDocument(responsibleName) {
 
     condominio: {
       id: currentRequest.condominio?.id || "",
+
+      codigo: currentRequest.condominio?.codigo || "",
 
       nome: currentRequest.condominio?.nome || "",
     },

@@ -21,7 +21,7 @@
 
   <!-- CSS global e CSS da página -->
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.4" />
+  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.5" />
 </head>
 
 <body data-page="nova-ordem" data-allowed-roles="admin,cliente">
@@ -118,7 +118,7 @@
             </p>
 
             <h2 class="form-card__title">
-              Dados do cliente
+              Cliente e Condomínio
             </h2>
 
           </div>
@@ -214,6 +214,44 @@
           Os dados foram preenchidos com as informações da conta conectada. Alterações feitas aqui valem somente para esta solicitação.
         </p>
 
+        <div class="condominium-field" id="condominium-field">
+
+          <div class="condominium-field__header">
+
+            <div>
+
+              <span class="condominium-field__eyebrow">
+                Local vinculado
+              </span>
+
+              <strong>
+                Condomínio do atendimento
+              </strong>
+
+            </div>
+
+            <span class="condominium-field__optional">
+              Opcional
+            </span>
+
+          </div>
+
+          <label class="form-label" for="condominioAtendimento">
+            Selecione o condomínio
+          </label>
+
+          <select id="condominioAtendimento" name="condominioAtendimento" class="input condominium-field__select" disabled>
+            <option value="">
+              Carregando condomínios...
+            </option>
+          </select>
+
+          <p class="condominium-field__help" id="condominioAtendimentoAjuda">
+            Serão exibidos os condomínios vinculados ao cliente.
+          </p>
+
+        </div>
+
       </section>
 
       <!-- Endereço -->
@@ -253,11 +291,11 @@
 
             <span class="choice-card__copy">
 
-              <strong>
+              <strong id="registered-address-choice-title">
                 Usar endereço cadastrado
               </strong>
 
-              <small>
+              <small id="registered-address-choice-description">
                 Mais rápido e sem precisar digitar novamente.
               </small>
 
@@ -946,6 +984,18 @@
 
             <strong id="summary-client">
               Cliente não informado
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item">
+
+            <span>
+              Condomínio
+            </span>
+
+            <strong id="summary-condominium">
+              Sem condomínio selecionado
             </strong>
 
           </div>

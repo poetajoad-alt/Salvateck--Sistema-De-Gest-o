@@ -335,6 +335,22 @@ service cloud.firestore {
         );
     }
 
+       /* =====================================
+       CONDOMÍNIOS
+    ===================================== */
+
+    match /condominios/{condominioId} {
+      allow read: if eAdministrador()
+        || (
+          estaAutenticado()
+          && "clientesIds" in resource.data
+          && resource.data.clientesIds is list
+          && request.auth.uid in resource.data.clientesIds
+        );
+
+      allow create, update, delete: if eAdministrador();
+    }
+
     /* =====================================
        FINANCEIRO
     ===================================== */

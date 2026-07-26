@@ -526,6 +526,14 @@ function normalizarOrdemParaSolicitacao(documento) {
 
     clienteNome: ordem.cliente?.nome || "Cliente não informado",
 
+    condominio: {
+      id: String(ordem.condominio?.id || "").trim(),
+
+      codigo: String(ordem.condominio?.codigo || "").trim(),
+
+      nome: String(ordem.condominio?.nome || "").trim(),
+    },
+
     titulo:
       ordem.titulo ||
       ordem.servicoPrincipal ||
@@ -1029,6 +1037,12 @@ function preencherCard(solicitacao) {
 
   const expandedClient = card.querySelector(".request-card__expanded-client");
 
+  const expandedCondominiumBox = card.querySelector(
+    ".request-card__expanded-condominium",
+  );
+
+  const expandedCondominium = expandedCondominiumBox?.querySelector("strong");
+
   const expandedStatus = card.querySelector(".request-card__expanded-status");
 
   const expandedService = card.querySelector(".request-card__expanded-service");
@@ -1038,7 +1052,7 @@ function preencherCard(solicitacao) {
   );
 
   const expandedAddress = card.querySelector(
-    ".request-card__expanded-address strong",
+    ".request-card__expanded-address:not(.request-card__expanded-condominium) strong",
   );
   const statusData =
     statusConfig[solicitacao.status] || statusConfig["nova-solicitacao"];
@@ -1088,6 +1102,22 @@ function preencherCard(solicitacao) {
 
   expandedClient.textContent =
     solicitacao.clienteNome || "Cliente não informado";
+
+  const condominiumText = [
+    solicitacao.condominio?.codigo,
+    solicitacao.condominio?.nome,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
+  if (expandedCondominiumBox) {
+    expandedCondominiumBox.hidden = !condominiumText;
+  }
+
+  if (expandedCondominium) {
+    expandedCondominium.textContent =
+      condominiumText || "Sem condomínio vinculado";
+  }
 
   expandedStatus.textContent = statusData.nome;
 

@@ -2183,3 +2183,102 @@ body.emergency-modal-open {
     grid-template-columns: 1fr;
   }
 }
+/* =========================================
+   SELEÇÃO DE CONDOMÍNIO
+========================================= */
+
+.condominium-field {
+  margin-top: 22px;
+  padding: 17px;
+
+  background-color: rgba(13, 56, 97, 0.045);
+
+  border: 1px solid rgba(13, 56, 97, 0.12);
+  border-radius: var(--radius-medium);
+}
+
+.condominium-field__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+
+  margin-bottom: 17px;
+}
+
+.condominium-field__header > div {
+  min-width: 0;
+}
+
+.condominium-field__eyebrow {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  color: #907632;
+}
+
+.condominium-field__header strong {
+  display: block;
+
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+
+  color: #0d3861;
+}
+
+.condominium-field__optional {
+  flex: 0 0 auto;
+
+  padding: 5px 9px;
+
+  font-size: 0.56rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  color: #5f6972;
+  background-color: #ffffff;
+
+  border: 1px solid rgba(43, 47, 51, 0.12);
+  border-radius: var(--radius-pill);
+}
+
+.condominium-field__select {
+  margin-top: 8px;
+
+  cursor: pointer;
+}
+
+.condominium-field__select:disabled {
+  cursor: wait;
+
+  color: #70787f;
+  background-color: #eef0f2;
+}
+
+.condominium-field__help {
+  margin: 9px 0 0;
+
+  font-size: 0.64rem;
+  font-weight: 500;
+  line-height: 1.5;
+
+  color: #70787f;
+}
+
+@media (max-width: 440px) {
+  .condominium-field__header {
+    align-items: flex-start;
+  }
+
+  .condominium-field__optional {
+    font-size: 0.52rem;
+  }
+}

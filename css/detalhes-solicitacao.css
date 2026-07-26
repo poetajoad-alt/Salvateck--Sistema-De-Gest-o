@@ -1706,3 +1706,70 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* =========================================
+   CONDOMÍNIO DA ORDEM
+========================================= */
+
+.condominium-card[hidden] {
+  display: none !important;
+}
+
+.condominium-card {
+  border-color: rgba(221, 154, 23, 0.32);
+}
+
+.condominium-card .details-card__icon {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  box-shadow: 0 8px 18px rgba(13, 56, 97, 0.18);
+}
+
+.condominium-information {
+  display: grid;
+  gap: 7px;
+
+  padding: 17px;
+
+  background-color: rgba(13, 56, 97, 0.055);
+
+  border-left: 4px solid #dd9a17;
+  border-radius: 15px;
+}
+
+.condominium-information__code {
+  width: fit-content;
+
+  padding: 5px 9px;
+
+  font-size: 0.59rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.2);
+
+  border-radius: var(--radius-pill);
+}
+
+.condominium-information__code[hidden] {
+  display: none !important;
+}
+
+.condominium-information strong {
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.4;
+
+  color: #0d3861;
+}
+
+.condominium-information p {
+  margin: 0;
+
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.5;
+
+  color: #626a71;
+}

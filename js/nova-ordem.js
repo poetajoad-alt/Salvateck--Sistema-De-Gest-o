@@ -156,6 +156,12 @@ const resumoEmailCliente = document.getElementById("resumoEmailCliente");
 
 const clientAvatar = document.querySelector(".client-summary__avatar");
 
+/* Condomínio */
+
+const condominiumSelect = document.getElementById("condominioAtendimento");
+
+const condominiumHelp = document.getElementById("condominioAtendimentoAjuda");
+
 /* Endereço */
 
 const addressRadios = document.querySelectorAll('input[name="tipoEndereco"]');
@@ -163,6 +169,14 @@ const addressRadios = document.querySelectorAll('input[name="tipoEndereco"]');
 const registeredAddress = document.getElementById("registered-address");
 
 const registeredAddressTitle = registeredAddress?.querySelector("strong");
+
+const registeredAddressChoiceTitle = document.getElementById(
+  "registered-address-choice-title",
+);
+
+const registeredAddressChoiceDescription = document.getElementById(
+  "registered-address-choice-description",
+);
 
 const registeredAddressLine1 = document.getElementById(
   "registered-address-line-1",
@@ -256,6 +270,8 @@ const progressBar = document.getElementById("progress-bar");
 
 const summaryClient = document.getElementById("summary-client");
 
+const summaryCondominium = document.getElementById("summary-condominium");
+
 const summaryAddress = document.getElementById("summary-address");
 
 const summaryCategories = document.getElementById("summary-categories");
@@ -320,7 +336,11 @@ let currentSession = null;
 
 let selectedClientUid = "";
 
+let selectedClientProfile = null;
+
 let selectedCondominium = null;
+
+let availableCondominiums = [];
 
 let hasRegisteredAddress = false;
 
@@ -786,9 +806,227 @@ function getCondominiumAddress(condominium = {}) {
     estado: String(address.estado || address.uf || "").trim(),
   };
 }
+function mapCondominiumSnapshot(snapshot) {
+  const data = snapshot.data();
 
+  return {
+    id: snapshot.id,
+
+    codigo: String(data.codigo || "").trim(),
+
+    nome: String(data.nome || "Condomínio sem nome").trim(),
+
+    status: String(data.status || "ativo").trim(),
+
+    endereco: data.endereco || {},
+
+    clientesIds: Array.isArray(data.clientesIds) ? data.clientesIds : [],
+
+    clientesVinculados: Array.isArray(data.clientesVinculados)
+      ? data.clientesVinculados
+      : [],
+  };
+}
+
+function createCondominiumOption(value, text) {
+  const option = document.createElement("option");
+
+  option.value = value;
+  option.textContent = text;
+
+  return option;
+}
+
+function restoreClientAddress() {
+  selectedCondominium = null;
+
+  if (condominiumSelect) {
+    condominiumSelect.value = "";
+  }
+
+  if (registeredAddressChoiceTitle) {
+    registeredAddressChoiceTitle.textContent = "Usar endereço cadastrado";
+  }
+
+  if (registeredAddressChoiceDescription) {
+    registeredAddressChoiceDescription.textContent =
+      "Mais rápido e sem precisar digitar novamente.";
+  }
+
+  if (registeredAddressTitle) {
+    registeredAddressTitle.textContent = "Endereço principal";
+  }
+
+  applyRegisteredAddress(selectedClientProfile || {});
+}
+
+function resetCondominiumSelector(message) {
+  availableCondominiums = [];
+  selectedCondominium = null;
+
+  condominiumSelect.innerHTML = "";
+
+  condominiumSelect.appendChild(
+    createCondominiumOption("", "Selecione um cliente primeiro"),
+  );
+
+  condominiumSelect.disabled = true;
+
+  condominiumHelp.textContent =
+    message || "Selecione um cliente para carregar os condomínios vinculados.";
+
+  restoreClientAddress();
+}
+
+function populateCondominiumSelect() {
+  condominiumSelect.innerHTML = "";
+
+  condominiumSelect.appendChild(
+    createCondominiumOption("", "Sem condomínio — usar endereço do cliente"),
+  );
+
+  availableCondominiums.forEach((condominium) => {
+    const identification = [condominium.codigo, condominium.nome]
+      .filter(Boolean)
+      .join(" — ");
+
+    condominiumSelect.appendChild(
+      createCondominiumOption(condominium.id, identification),
+    );
+  });
+
+  condominiumSelect.disabled = false;
+}
+
+async function loadCondominiumsForClient(clientUid, { preferredId = "" } = {}) {
+  const finalClientUid = String(clientUid || "").trim();
+
+  if (!finalClientUid) {
+    resetCondominiumSelector(
+      "Selecione um cliente para carregar os condomínios vinculados.",
+    );
+
+    return;
+  }
+
+  condominiumSelect.innerHTML = "";
+
+  condominiumSelect.appendChild(
+    createCondominiumOption("", "Carregando condomínios..."),
+  );
+
+  condominiumSelect.disabled = true;
+
+  condominiumHelp.textContent =
+    "Consultando condomínios vinculados ao cliente.";
+
+  try {
+    const linkedCondominiumsQuery = query(
+      collection(db, "condominios"),
+      where("clientesIds", "array-contains", finalClientUid),
+    );
+
+    const snapshot = await getDocs(linkedCondominiumsQuery);
+
+    availableCondominiums = snapshot.docs
+      .map(mapCondominiumSnapshot)
+      .filter((condominium) => condominium.status !== "inativo")
+      .sort((condominiumA, condominiumB) =>
+        condominiumA.nome.localeCompare(condominiumB.nome, "pt-BR"),
+      );
+
+    populateCondominiumSelect();
+
+    const preferredCondominium = availableCondominiums.find(
+      (condominium) => condominium.id === preferredId,
+    );
+
+    const automaticCondominium =
+      preferredCondominium ||
+      (availableCondominiums.length === 1 ? availableCondominiums[0] : null);
+
+    if (automaticCondominium) {
+      condominiumSelect.value = automaticCondominium.id;
+
+      applySelectedCondominium(automaticCondominium);
+
+      condominiumHelp.textContent = preferredCondominium
+        ? "Condomínio carregado para esta ordem."
+        : "Único condomínio vinculado selecionado automaticamente.";
+
+      return;
+    }
+
+    restoreClientAddress();
+
+    if (availableCondominiums.length === 0) {
+      condominiumHelp.textContent =
+        "Nenhum condomínio ativo está vinculado a este cliente.";
+
+      return;
+    }
+
+    condominiumHelp.textContent = `${availableCondominiums.length} condomínios vinculados. Selecione o local do atendimento.`;
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível carregar os condomínios:",
+      error,
+    );
+
+    resetCondominiumSelector(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou a consulta dos condomínios."
+        : "Não foi possível carregar os condomínios vinculados.",
+    );
+
+    showFeedback("Não foi possível carregar os condomínios.", "error");
+  }
+}
+
+function handleCondominiumChange() {
+  const condominiumId = condominiumSelect.value;
+
+  if (!condominiumId) {
+    restoreClientAddress();
+
+    condominiumHelp.textContent =
+      availableCondominiums.length > 0
+        ? "Será utilizado o endereço cadastrado do cliente."
+        : "Nenhum condomínio selecionado.";
+
+    return;
+  }
+
+  const condominium = availableCondominiums.find(
+    (item) => item.id === condominiumId,
+  );
+
+  if (!condominium) {
+    restoreClientAddress();
+
+    return;
+  }
+
+  applySelectedCondominium(condominium);
+
+  condominiumHelp.textContent =
+    "O endereço do condomínio será utilizado no atendimento.";
+}
 function applySelectedCondominium(condominium) {
   selectedCondominium = condominium;
+
+  if (condominiumSelect) {
+    condominiumSelect.value = condominium.id || "";
+  }
+
+  if (registeredAddressChoiceTitle) {
+    registeredAddressChoiceTitle.textContent = "Usar endereço do condomínio";
+  }
+
+  if (registeredAddressChoiceDescription) {
+    registeredAddressChoiceDescription.textContent =
+      "O endereço será preenchido com os dados do condomínio selecionado.";
+  }
 
   const address = getCondominiumAddress(condominium);
 
@@ -872,6 +1110,12 @@ async function loadLinkedClientFromCondominium(condominium) {
 
   selectedClientUid = clientSnapshot.id;
 
+  selectedClientProfile = {
+    ...client,
+
+    uid: clientSnapshot.id,
+  };
+
   buscarCliente.value = String(client.nome || "").trim();
 
   nomeCliente.value = String(client.nome || "").trim();
@@ -904,38 +1148,38 @@ async function loadCondominiumFromURL() {
     return;
   }
 
-  const data = condominiumSnapshot.data();
+  const condominium = mapCondominiumSnapshot(condominiumSnapshot);
 
-  selectedCondominium = {
-    id: condominiumSnapshot.id,
+  const clientLoaded = await loadLinkedClientFromCondominium(condominium);
 
-    codigo: String(data.codigo || "").trim(),
+  if (clientLoaded) {
+    await loadCondominiumsForClient(selectedClientUid, {
+      preferredId: condominium.id,
+    });
+  } else {
+    availableCondominiums = [condominium];
 
-    nome: String(data.nome || "Condomínio sem nome").trim(),
+    populateCondominiumSelect();
 
-    endereco: data.endereco || {},
+    condominiumSelect.value = condominium.id;
 
-    clientesVinculados: Array.isArray(data.clientesVinculados)
-      ? data.clientesVinculados
-      : [],
-  };
+    applySelectedCondominium(condominium);
 
-  applySelectedCondominium(selectedCondominium);
-
-  const clientLoaded =
-    await loadLinkedClientFromCondominium(selectedCondominium);
+    condominiumHelp.textContent =
+      "Condomínio carregado. Selecione ou preencha o cliente da ordem.";
+  }
 
   console.log("[Nova Ordem] Condomínio carregado:", {
-    id: selectedCondominium.id,
-    codigo: selectedCondominium.codigo,
-    nome: selectedCondominium.nome,
+    id: condominium.id,
+    codigo: condominium.codigo,
+    nome: condominium.nome,
     clienteCarregado: clientLoaded,
   });
 
   showFeedback(
     clientLoaded
-      ? `${selectedCondominium.nome} e responsável carregados.`
-      : `${selectedCondominium.nome} carregado. Selecione o cliente da ordem.`,
+      ? `${condominium.nome} e responsável carregados.`
+      : `${condominium.nome} carregado. Selecione o cliente da ordem.`,
   );
 }
 function applyRegisteredAddress(profile = {}) {
@@ -999,6 +1243,14 @@ function applyAuthenticatedSession(session) {
   changeProfile(session.role);
 
   if (session.role === "cliente") {
+    selectedClientUid = session.uid;
+
+    selectedClientProfile = {
+      ...profile,
+
+      uid: session.uid,
+    };
+
     const clientName = String(
       profile.nome || session.user?.displayName || "",
     ).trim();
@@ -1016,6 +1268,8 @@ function applyAuthenticatedSession(session) {
     applyRegisteredAddress(profile);
   } else {
     selectedClientUid = "";
+
+    selectedClientProfile = null;
 
     nomeCliente.value = "";
     telefoneCliente.value = "";
@@ -1197,21 +1451,15 @@ async function handleClientSearch() {
 
     emailCliente.value = String(client.email || "").trim();
 
-    if (selectedCondominium) {
-      applySelectedCondominium(selectedCondominium);
-    } else {
-      applyRegisteredAddress(client);
-    }
-
-    /*
-  Define o UID depois de preencher os campos,
-  evitando que algum evento de input limpe o vínculo.
-*/
     selectedClientUid = String(client.uid || "").trim();
 
     if (!selectedClientUid) {
       throw new Error("CLIENT_UID_NOT_FOUND");
     }
+
+    selectedClientProfile = client;
+
+    await loadCondominiumsForClient(selectedClientUid);
 
     updateClientSummary();
     updateSummary();
@@ -1251,11 +1499,11 @@ function handleQuickClientCreation() {
   telefoneCliente.value = "";
   emailCliente.value = "";
 
-  if (selectedCondominium) {
-    applySelectedCondominium(selectedCondominium);
-  } else {
-    applyRegisteredAddress({});
-  }
+  selectedClientProfile = {};
+
+  resetCondominiumSelector(
+    "Cliente sem cadastro não possui condomínios vinculados.",
+  );
 
   setClientFieldsEditable(true);
 
@@ -1785,6 +2033,14 @@ function getScheduleSummary() {
 function updateSummary() {
   updateClientSummary();
 
+  if (summaryCondominium) {
+    summaryCondominium.textContent = selectedCondominium
+      ? [selectedCondominium.codigo, selectedCondominium.nome]
+          .filter(Boolean)
+          .join(" — ")
+      : "Sem condomínio selecionado";
+  }
+
   summaryAddress.textContent = getAddressSummary();
 
   const categoryNames = getSelectedCategoryNames();
@@ -2193,6 +2449,8 @@ function buildOrderData({
     condominio: {
       id: selectedCondominium?.id || "",
 
+      codigo: selectedCondominium?.codigo || "",
+
       nome: selectedCondominium?.nome || "",
     },
 
@@ -2401,6 +2659,10 @@ btnBuscarCliente.addEventListener("click", handleClientSearch);
 
 btnNovoClienteRapido.addEventListener("click", handleQuickClientCreation);
 
+if (condominiumSelect) {
+  condominiumSelect.addEventListener("change", handleCondominiumChange);
+}
+
 [nomeCliente, telefoneCliente, emailCliente].forEach((field) => {
   field.addEventListener("input", () => {
     updateClientSummary();
@@ -2493,7 +2755,17 @@ async function initializePage() {
 
     applyAuthenticatedSession(session);
 
-    await loadCondominiumFromURL();
+    const condominiumIdFromURL = String(
+      orderUrlParams.get("condominio") || "",
+    ).trim();
+
+    if (currentProfile === "admin" && condominiumIdFromURL) {
+      await loadCondominiumFromURL();
+    } else {
+      await loadCondominiumsForClient(
+        currentProfile === "cliente" ? currentSession.uid : selectedClientUid,
+      );
+    }
 
     preselectCategoryFromURL();
 
