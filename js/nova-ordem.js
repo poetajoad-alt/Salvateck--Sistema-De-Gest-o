@@ -228,9 +228,11 @@ const categoryError = document.getElementById("category-error");
 
 const servicesSection = document.getElementById("services-section");
 
-const servicePlaceholder = document.getElementById("service-placeholder");
+const serviceDescription = document.getElementById("descricaoServico");
 
-const selectedServicesContainer = document.getElementById("selected-services");
+const serviceDescriptionCounter = document.getElementById(
+  "service-description-counter",
+);
 
 const serviceError = document.getElementById("service-error");
 
@@ -253,10 +255,6 @@ const fotosProblema = document.getElementById("fotosProblema");
 const photoPreview = document.getElementById("photo-preview");
 
 /* Observações */
-
-const observacaoCliente = document.getElementById("observacaoCliente");
-
-const observationCounter = document.getElementById("observation-counter");
 
 /* Progresso */
 
@@ -320,6 +318,28 @@ const confirmEmergencyButton = document.getElementById(
 const closeEmergencyModalButtons = document.querySelectorAll(
   "[data-close-emergency-modal]",
 );
+
+/* Seleção de vistoria */
+
+const inspectionLinkModal = document.getElementById("inspection-link-modal");
+
+const inspectionLinkList = document.getElementById("inspection-link-list");
+
+const inspectionLinkLoading = document.getElementById(
+  "inspection-link-loading",
+);
+
+const inspectionLinkEmpty = document.getElementById("inspection-link-empty");
+
+const inspectionLinkError = document.getElementById("inspection-link-error");
+
+const confirmInspectionLinkButton = document.getElementById(
+  "confirm-inspection-link-button",
+);
+
+const closeInspectionLinkModalButtons = document.querySelectorAll(
+  "[data-close-inspection-link-modal]",
+);
 /* =========================================
    VARIÁVEIS DE CONTROLE
 ========================================= */
@@ -342,13 +362,17 @@ let selectedCondominium = null;
 
 let availableCondominiums = [];
 
+let availableLinkedClients = [];
+
 let hasRegisteredAddress = false;
 
 let clientEditing = false;
 
 let selectedFiles = [];
 
-const selectedServiceKeys = new Set();
+let availableUnlinkedInspections = [];
+
+let selectedInspectionForOrder = null;
 
 const maxPhotos = 6;
 
@@ -637,6 +661,10 @@ async function saveOrderInFirestore({
 
   const privateOrderReference = doc(db, "ordensPrivadas", orderReference.id);
 
+  const inspectionReference = selectedInspectionForOrder?.id
+    ? doc(db, "vistorias", selectedInspectionForOrder.id)
+    : null;
+
   const internalObservation =
     currentProfile === "admin"
       ? String(document.getElementById("observacaoInterna")?.value || "").trim()
@@ -644,6 +672,20 @@ async function saveOrderInFirestore({
 
   return runTransaction(db, async (transaction) => {
     const counterSnapshot = await transaction.get(counterReference);
+
+    let inspectionSnapshot = null;
+
+    if (inspectionReference) {
+      inspectionSnapshot = await transaction.get(inspectionReference);
+
+      if (!inspectionSnapshot.exists()) {
+        throw new Error("INSPECTION_NOT_FOUND");
+      }
+
+      if (inspectionSnapshot.data().ordemVinculada === true) {
+        throw new Error("INSPECTION_ALREADY_LINKED");
+      }
+    }
 
     if (!counterSnapshot.exists()) {
       throw new Error("ORDER_COUNTER_NOT_FOUND");
@@ -680,6 +722,30 @@ async function saveOrderInFirestore({
     });
 
     transaction.set(orderReference, orderData);
+
+    if (inspectionReference) {
+      transaction.update(inspectionReference, {
+        ordemVinculada: true,
+
+        ordemId: orderReference.id,
+
+        codigoOS: code,
+
+        atualizadoEm: serverTimestamp(),
+
+        conversaoOS: {
+          convertida: true,
+
+          ordemId: orderReference.id,
+
+          codigoOS: code,
+
+          convertidaEm: serverTimestamp(),
+
+          convertidaPorUid: currentSession?.uid || "",
+        },
+      });
+    }
 
     if (internalObservation) {
       transaction.set(privateOrderReference, {
@@ -816,6 +882,8 @@ function mapCondominiumSnapshot(snapshot) {
 
     nome: String(data.nome || "Condomínio sem nome").trim(),
 
+    cnpj: String(data.cnpj || "").trim(),
+
     status: String(data.status || "ativo").trim(),
 
     endereco: data.endereco || {},
@@ -882,7 +950,7 @@ function populateCondominiumSelect() {
   condominiumSelect.innerHTML = "";
 
   condominiumSelect.appendChild(
-    createCondominiumOption("", "Sem condomínio — usar endereço do cliente"),
+    createCondominiumOption("", "Selecione o condomínio"),
   );
 
   availableCondominiums.forEach((condominium) => {
@@ -895,7 +963,310 @@ function populateCondominiumSelect() {
     );
   });
 
-  condominiumSelect.disabled = false;
+  condominiumSelect.disabled = availableCondominiums.length === 0;
+}
+
+function getLinkedClientIds(condominium = selectedCondominium) {
+  const directIds = Array.isArray(condominium?.clientesIds)
+    ? condominium.clientesIds
+    : [];
+
+  const relationshipIds = Array.isArray(condominium?.clientesVinculados)
+    ? condominium.clientesVinculados.map((link) =>
+        String(link?.clienteId || "").trim(),
+      )
+    : [];
+
+  return Array.from(
+    new Set(
+      [...directIds, ...relationshipIds]
+        .map((clientId) => String(clientId || "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function clearAdminClientSelection({ disableSearch = true } = {}) {
+  if (currentProfile !== "admin") {
+    return;
+  }
+
+  selectedClientUid = "";
+  selectedClientProfile = null;
+  availableLinkedClients = [];
+
+  nomeCliente.value = "";
+  telefoneCliente.value = "";
+  emailCliente.value = "";
+
+  buscarCliente.innerHTML = "";
+
+  buscarCliente.appendChild(
+    createCondominiumOption(
+      "",
+      disableSearch
+        ? "Selecione o condomínio primeiro"
+        : "Carregando responsáveis...",
+    ),
+  );
+
+  buscarCliente.disabled = disableSearch;
+
+  if (btnBuscarCliente) {
+    btnBuscarCliente.disabled = true;
+  }
+
+  if (selectedCondominium) {
+    applySelectedCondominium(selectedCondominium);
+  } else {
+    applyRegisteredAddress({});
+  }
+
+  updateClientSummary();
+  updateSummary();
+  updateProgress();
+}
+
+function applyLinkedClient(client) {
+  if (!client?.uid) {
+    return;
+  }
+
+  selectedClientUid = String(client.uid).trim();
+
+  selectedClientProfile = client;
+
+  nomeCliente.value = String(client.nome || "").trim();
+
+  telefoneCliente.value = String(client.telefone || "").trim();
+
+  emailCliente.value = String(client.email || "").trim();
+
+  buscarCliente.value = selectedClientUid;
+
+  applySelectedCondominium(selectedCondominium);
+
+  updateClientSummary();
+  updateSummary();
+  updateProgress();
+
+  console.log("[Nova Ordem] Responsável selecionado:", {
+    uid: selectedClientUid,
+    nome: client.nome,
+    condominioId: selectedCondominium?.id || "",
+  });
+}
+
+async function loadLinkedClientsForCondominium(condominium) {
+  const linkedClientIds = getLinkedClientIds(condominium);
+
+  availableLinkedClients = [];
+
+  buscarCliente.innerHTML = "";
+
+  buscarCliente.appendChild(
+    createCondominiumOption("", "Carregando responsáveis..."),
+  );
+
+  buscarCliente.disabled = true;
+
+  if (linkedClientIds.length === 0) {
+    buscarCliente.innerHTML = "";
+
+    buscarCliente.appendChild(
+      createCondominiumOption("", "Nenhum responsável vinculado"),
+    );
+
+    condominiumHelp.textContent =
+      "Este condomínio não possui clientes vinculados.";
+
+    clearAdminClientSelection({
+      disableSearch: true,
+    });
+
+    return;
+  }
+
+  try {
+    const clientSnapshots = await Promise.all(
+      linkedClientIds.map((clientId) => getDoc(doc(db, "usuarios", clientId))),
+    );
+
+    availableLinkedClients = clientSnapshots
+      .filter((snapshot) => snapshot.exists())
+      .map((snapshot) => ({
+        ...snapshot.data(),
+
+        uid: snapshot.id,
+      }))
+      .filter((client) => client.role === "cliente" && client.ativo === true)
+      .sort((clientA, clientB) =>
+        String(clientA.nome || "").localeCompare(
+          String(clientB.nome || ""),
+          "pt-BR",
+        ),
+      );
+
+    buscarCliente.innerHTML = "";
+
+    if (availableLinkedClients.length === 0) {
+      buscarCliente.appendChild(
+        createCondominiumOption("", "Nenhum responsável ativo encontrado"),
+      );
+
+      buscarCliente.disabled = true;
+
+      condominiumHelp.textContent =
+        "Os vínculos existem, mas nenhum cliente ativo foi encontrado.";
+
+      return;
+    }
+
+    if (availableLinkedClients.length > 1) {
+      buscarCliente.appendChild(
+        createCondominiumOption("", "Selecione o responsável"),
+      );
+    }
+
+    availableLinkedClients.forEach((client) => {
+      const identification = [client.nome, client.telefone]
+        .filter(Boolean)
+        .join(" — ");
+
+      buscarCliente.appendChild(
+        createCondominiumOption(
+          client.uid,
+          identification || "Responsável sem nome informado",
+        ),
+      );
+    });
+
+    buscarCliente.disabled = false;
+
+    if (availableLinkedClients.length === 1) {
+      const onlyClient = availableLinkedClients[0];
+
+      applyLinkedClient(onlyClient);
+
+      condominiumHelp.textContent = `${onlyClient.nome || "Responsável"} foi selecionado automaticamente.`;
+
+      return;
+    }
+
+    condominiumHelp.textContent =
+      `${availableLinkedClients.length} responsáveis vinculados. ` +
+      "Selecione quem solicitou o atendimento.";
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível carregar os responsáveis:",
+      error,
+    );
+
+    buscarCliente.innerHTML = "";
+
+    buscarCliente.appendChild(
+      createCondominiumOption("", "Erro ao carregar responsáveis"),
+    );
+
+    buscarCliente.disabled = true;
+
+    condominiumHelp.textContent =
+      "Não foi possível consultar os clientes vinculados.";
+
+    showFeedback("Não foi possível carregar os responsáveis.", "error");
+  }
+}
+
+function handleLinkedClientChange() {
+  const clientUid = String(buscarCliente.value || "").trim();
+
+  if (!clientUid) {
+    selectedClientUid = "";
+    selectedClientProfile = null;
+
+    nomeCliente.value = "";
+    telefoneCliente.value = "";
+    emailCliente.value = "";
+
+    applySelectedCondominium(selectedCondominium);
+
+    updateClientSummary();
+    updateSummary();
+    updateProgress();
+
+    return;
+  }
+
+  const client = availableLinkedClients.find((item) => item.uid === clientUid);
+
+  if (!client) {
+    showFeedback("O responsável selecionado não foi encontrado.", "error");
+
+    return;
+  }
+
+  applyLinkedClient(client);
+
+  showFeedback(`${client.nome || "Responsável"} selecionado para a ordem.`);
+}
+
+async function loadAllCondominiumsForAdmin() {
+  selectedCondominium = null;
+  availableCondominiums = [];
+
+  clearAdminClientSelection({
+    disableSearch: true,
+  });
+
+  condominiumSelect.innerHTML = "";
+
+  condominiumSelect.appendChild(
+    createCondominiumOption("", "Carregando condomínios..."),
+  );
+
+  condominiumSelect.disabled = true;
+
+  condominiumHelp.textContent = "Consultando os condomínios cadastrados.";
+
+  try {
+    const snapshot = await getDocs(collection(db, "condominios"));
+
+    availableCondominiums = snapshot.docs
+      .map(mapCondominiumSnapshot)
+      .filter((condominium) => condominium.status !== "inativo")
+      .sort((condominiumA, condominiumB) =>
+        condominiumA.nome.localeCompare(condominiumB.nome, "pt-BR"),
+      );
+
+    populateCondominiumSelect();
+
+    if (availableCondominiums.length === 0) {
+      condominiumHelp.textContent = "Nenhum condomínio ativo foi encontrado.";
+
+      return;
+    }
+
+    condominiumHelp.textContent =
+      `${availableCondominiums.length} condomínios disponíveis. ` +
+      "Selecione o condomínio da ordem de serviço.";
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível carregar os condomínios:",
+      error,
+    );
+
+    condominiumSelect.innerHTML = "";
+
+    condominiumSelect.appendChild(
+      createCondominiumOption("", "Não foi possível carregar os condomínios"),
+    );
+
+    condominiumSelect.disabled = true;
+
+    condominiumHelp.textContent = "Não foi possível consultar os condomínios.";
+
+    showFeedback("Não foi possível carregar os condomínios.", "error");
+  }
 }
 
 async function loadCondominiumsForClient(clientUid, { preferredId = "" } = {}) {
@@ -983,16 +1354,24 @@ async function loadCondominiumsForClient(clientUid, { preferredId = "" } = {}) {
   }
 }
 
-function handleCondominiumChange() {
+async function handleCondominiumChange() {
   const condominiumId = condominiumSelect.value;
 
   if (!condominiumId) {
-    restoreClientAddress();
+    selectedCondominium = null;
 
-    condominiumHelp.textContent =
-      availableCondominiums.length > 0
-        ? "Será utilizado o endereço cadastrado do cliente."
-        : "Nenhum condomínio selecionado.";
+    if (currentProfile === "admin") {
+      clearAdminClientSelection({
+        disableSearch: true,
+      });
+    } else {
+      applyRegisteredAddress(selectedClientProfile || {});
+    }
+
+    condominiumHelp.textContent = "Selecione o condomínio da ordem de serviço.";
+
+    updateSummary();
+    updateProgress();
 
     return;
   }
@@ -1002,15 +1381,38 @@ function handleCondominiumChange() {
   );
 
   if (!condominium) {
-    restoreClientAddress();
+    selectedCondominium = null;
+
+    condominiumHelp.textContent =
+      "O condomínio selecionado não foi encontrado.";
 
     return;
   }
 
+  if (currentProfile === "admin") {
+    selectedCondominium = null;
+
+    clearAdminClientSelection({
+      disableSearch: false,
+    });
+  }
+
   applySelectedCondominium(condominium);
+
+  if (currentProfile === "admin") {
+    await loadLinkedClientsForCondominium(condominium);
+
+    updateSummary();
+    updateProgress();
+
+    return;
+  }
 
   condominiumHelp.textContent =
     "O endereço do condomínio será utilizado no atendimento.";
+
+  updateSummary();
+  updateProgress();
 }
 function applySelectedCondominium(condominium) {
   selectedCondominium = condominium;
@@ -1378,15 +1780,39 @@ function changeProfile(profile) {
 ========================================= */
 
 async function handleClientSearch() {
+  if (!selectedCondominium?.id) {
+    showFeedback(
+      "Selecione o condomínio antes de pesquisar o responsável.",
+      "error",
+    );
+
+    condominiumSelect.focus();
+
+    return;
+  }
+
+  const linkedClientIds = getLinkedClientIds();
+
+  if (linkedClientIds.length === 0) {
+    showFeedback("Este condomínio não possui clientes vinculados.", "error");
+
+    return;
+  }
+
   const searchValue = buscarCliente.value.trim();
 
   if (!searchValue) {
-    showFeedback("Digite o nome, telefone ou e-mail do cliente.", "error");
+    showFeedback("Digite o nome, telefone ou e-mail do responsável.", "error");
 
     buscarCliente.focus();
 
     return;
   }
+
+  clearAdminClientSelection({
+    disableSearch: false,
+    preserveSearch: true,
+  });
 
   btnBuscarCliente.disabled = true;
   btnBuscarCliente.textContent = "Buscando...";
@@ -1400,6 +1826,7 @@ async function handleClientSearch() {
     const snapshot = await getDocs(clientsQuery);
 
     const normalizedSearch = normalizeText(searchValue);
+
     const searchPhone = searchValue.replace(/\D/g, "");
 
     const matches = snapshot.docs
@@ -1408,6 +1835,9 @@ async function handleClientSearch() {
 
         uid: documentSnapshot.id,
       }))
+      .filter((client) =>
+        linkedClientIds.includes(String(client.uid || "").trim()),
+      )
       .filter((client) => {
         if (client.ativo !== true) {
           return false;
@@ -1415,6 +1845,7 @@ async function handleClientSearch() {
 
         const name = normalizeText(client.nome);
         const email = normalizeText(client.email);
+
         const phone = String(client.telefone || "").replace(/\D/g, "");
 
         return (
@@ -1425,18 +1856,14 @@ async function handleClientSearch() {
       });
 
     if (matches.length === 0) {
-      selectedClientUid = "";
-
-      showFeedback("Nenhum cliente cadastrado foi encontrado.", "error");
+      showFeedback("Nenhum responsável vinculado foi encontrado.", "error");
 
       return;
     }
 
     if (matches.length > 1) {
-      selectedClientUid = "";
-
       showFeedback(
-        "Mais de um cliente foi encontrado. Digite o nome completo, telefone ou e-mail.",
+        "Mais de um responsável foi encontrado. Digite o nome completo, telefone ou e-mail.",
         "error",
       );
 
@@ -1444,12 +1871,6 @@ async function handleClientSearch() {
     }
 
     const client = matches[0];
-
-    nomeCliente.value = String(client.nome || "").trim();
-
-    telefoneCliente.value = String(client.telefone || "").trim();
-
-    emailCliente.value = String(client.email || "").trim();
 
     selectedClientUid = String(client.uid || "").trim();
 
@@ -1459,23 +1880,30 @@ async function handleClientSearch() {
 
     selectedClientProfile = client;
 
-    await loadCondominiumsForClient(selectedClientUid);
+    nomeCliente.value = String(client.nome || "").trim();
+
+    telefoneCliente.value = String(client.telefone || "").trim();
+
+    emailCliente.value = String(client.email || "").trim();
+
+    applySelectedCondominium(selectedCondominium);
 
     updateClientSummary();
     updateSummary();
     updateProgress();
 
-    console.log("[Nova Ordem] Cliente vinculado:", {
+    console.log("[Nova Ordem] Responsável vinculado à ordem:", {
       uid: selectedClientUid,
       nome: client.nome,
-      telefone: client.telefone,
+      condominioId: selectedCondominium.id,
     });
 
-    showFeedback(`Cliente ${client.nome || ""} vinculado à ordem.`);
+    showFeedback(`${client.nome || "Responsável"} vinculado à ordem.`);
   } catch (error) {
-    console.error("[Nova Ordem] Não foi possível buscar o cliente:", error);
+    console.error("[Nova Ordem] Não foi possível buscar o responsável:", error);
 
     selectedClientUid = "";
+    selectedClientProfile = null;
 
     if (error.code === "permission-denied") {
       showFeedback("O Firebase bloqueou a consulta dos clientes.", "error");
@@ -1483,9 +1911,13 @@ async function handleClientSearch() {
       return;
     }
 
-    showFeedback("Não foi possível buscar o cliente.", "error");
+    showFeedback("Não foi possível buscar o responsável.", "error");
   } finally {
-    btnBuscarCliente.disabled = false;
+    const searchAvailable = Boolean(
+      selectedCondominium && getLinkedClientIds().length > 0,
+    );
+
+    btnBuscarCliente.disabled = !searchAvailable;
     btnBuscarCliente.textContent = "Buscar";
   }
 }
@@ -1635,7 +2067,7 @@ function isAddressComplete() {
 }
 
 /* =========================================
-   CATEGORIAS E MINI SERVIÇOS
+   TIPO E DESCRIÇÃO DO ATENDIMENTO
 ========================================= */
 
 function syncCategoryStyles() {
@@ -1646,135 +2078,23 @@ function syncCategoryStyles() {
   });
 }
 
-function removeUnselectedCategoryServices(selectedCategories) {
-  Array.from(selectedServiceKeys).forEach((key) => {
-    const category = getCategoryFromServiceKey(key);
-
-    if (!selectedCategories.includes(category)) {
-      selectedServiceKeys.delete(key);
-    }
-  });
+function getServiceDescription() {
+  return String(serviceDescription?.value || "").trim();
 }
 
-function createServiceOption(category, service) {
-  const key = createServiceKey(category, service);
+function updateServiceDescriptionCounter() {
+  const currentLength = serviceDescription?.value.length || 0;
 
-  const label = document.createElement("label");
-
-  label.className = "service-option";
-
-  const input = document.createElement("input");
-
-  input.type = "checkbox";
-  input.name = "servicos";
-  input.value = service;
-
-  input.dataset.category = category;
-  input.dataset.serviceKey = key;
-
-  input.id = `service-${createSlug(category)}-${createSlug(service)}`;
-
-  input.checked = selectedServiceKeys.has(key);
-
-  const span = document.createElement("span");
-
-  span.textContent = service;
-
-  label.classList.toggle("is-selected", input.checked);
-
-  input.addEventListener("change", () => {
-    if (input.checked && category === "vistoria") {
-      Array.from(selectedServiceKeys).forEach((selectedKey) => {
-        if (getCategoryFromServiceKey(selectedKey) === "vistoria") {
-          selectedServiceKeys.delete(selectedKey);
-        }
-      });
-
-      selectedServicesContainer
-        .querySelectorAll('input[name="servicos"][data-category="vistoria"]')
-        .forEach((otherInput) => {
-          if (otherInput !== input) {
-            otherInput.checked = false;
-
-            otherInput
-              .closest(".service-option")
-              ?.classList.remove("is-selected");
-          }
-        });
-    }
-
-    if (input.checked) {
-      selectedServiceKeys.add(key);
-    } else {
-      selectedServiceKeys.delete(key);
-    }
-
-    label.classList.toggle("is-selected", input.checked);
-
-    serviceError.hidden = true;
-
-    updateSummary();
-    updateProgress();
-  });
-
-  label.append(input, span);
-
-  return label;
+  if (serviceDescriptionCounter) {
+    serviceDescriptionCounter.textContent = `${currentLength}/1200`;
+  }
 }
 
 function renderServices() {
-  const selectedCategories = getSelectedCategories();
-
-  removeUnselectedCategoryServices(selectedCategories);
-
-  selectedServicesContainer.innerHTML = "";
-
-  if (selectedCategories.length === 0) {
-    servicePlaceholder.hidden = false;
-    selectedServicesContainer.hidden = true;
-
-    updateSummary();
-    updateProgress();
-
-    return;
-  }
-
-  servicePlaceholder.hidden = true;
-  selectedServicesContainer.hidden = false;
-
-  selectedCategories.forEach((category) => {
-    const categoryData = catalogoServicos[category];
-
-    if (!categoryData) {
-      return;
-    }
-
-    const group = document.createElement("section");
-
-    group.className = "service-group";
-
-    const title = document.createElement("h3");
-
-    title.className = "service-group__title";
-
-    title.textContent = categoryData.nome;
-
-    const options = document.createElement("div");
-
-    options.className = "service-options";
-
-    categoryData.servicos.forEach((service) => {
-      options.appendChild(createServiceOption(category, service));
-    });
-
-    group.append(title, options);
-
-    selectedServicesContainer.appendChild(group);
-  });
-
   updateSummary();
   updateProgress();
 }
+
 function preselectCategoryFromURL() {
   const requestedType = normalizeText(orderUrlParams.get("tipo"));
 
@@ -1794,8 +2114,6 @@ function preselectCategoryFromURL() {
     input.checked = input === inspectionInput;
   });
 
-  selectedServiceKeys.clear();
-
   syncCategoryStyles();
   renderServices();
 
@@ -1803,40 +2121,373 @@ function preselectCategoryFromURL() {
     scrollToElement(servicesSection);
   }, 150);
 }
-function handleCategoryChange(event) {
+
+function formatInspectionModalDate(value) {
+  if (!value) {
+    return "Data não informada";
+  }
+
+  const date =
+    typeof value.toDate === "function"
+      ? value.toDate()
+      : value instanceof Date
+        ? value
+        : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Data não informada";
+  }
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+function getInspectionAdjustments(inspection) {
+  return Array.isArray(inspection?.checklist)
+    ? inspection.checklist.filter(
+        (item) => item?.resultado === "precisa-ajuste",
+      )
+    : [];
+}
+
+function createInspectionLinkOption(inspection) {
+  const option = document.createElement("label");
+
+  option.className = "inspection-link-option";
+
+  const input = document.createElement("input");
+
+  input.type = "radio";
+
+  input.name = "vistoriaSelecionada";
+
+  input.value = inspection.id;
+
+  const content = document.createElement("span");
+
+  content.className = "inspection-link-option__content";
+
+  const top = document.createElement("span");
+
+  top.className = "inspection-link-option__top";
+
+  const code = document.createElement("strong");
+
+  code.textContent = inspection.codigo || "VST sem código";
+
+  const status = document.createElement("small");
+
+  status.textContent = "Sem OS vinculada";
+
+  top.append(code, status);
+
+  const condominium = document.createElement("strong");
+
+  condominium.className = "inspection-link-option__condominium";
+
+  condominium.textContent =
+    inspection.condominio?.nome || "Condomínio não informado";
+
+  const client = document.createElement("span");
+
+  client.className = "inspection-link-option__client";
+
+  client.textContent = inspection.cliente?.nome || "Responsável não informado";
+
+  const adjustments = getInspectionAdjustments(inspection);
+
+  const meta = document.createElement("span");
+
+  meta.className = "inspection-link-option__meta";
+
+  meta.textContent = [
+    formatInspectionModalDate(inspection.validadaEm || inspection.criadoEm),
+    adjustments.length === 1
+      ? "1 ajuste identificado"
+      : `${adjustments.length} ajustes identificados`,
+  ].join(" · ");
+
+  content.append(top, condominium, client, meta);
+
+  option.append(input, content);
+
+  input.addEventListener("change", () => {
+    inspectionLinkError.hidden = true;
+
+    confirmInspectionLinkButton.disabled = false;
+  });
+
+  return option;
+}
+
+function renderInspectionLinkOptions() {
+  inspectionLinkList.innerHTML = "";
+
+  if (availableUnlinkedInspections.length === 0) {
+    inspectionLinkEmpty.hidden = false;
+
+    confirmInspectionLinkButton.disabled = true;
+
+    return;
+  }
+
+  inspectionLinkEmpty.hidden = true;
+
+  availableUnlinkedInspections.forEach((inspection) => {
+    inspectionLinkList.appendChild(createInspectionLinkOption(inspection));
+  });
+}
+
+async function loadUnlinkedInspections() {
+  inspectionLinkLoading.hidden = false;
+
+  inspectionLinkEmpty.hidden = true;
+
+  inspectionLinkError.hidden = true;
+
+  inspectionLinkList.innerHTML = "";
+
+  confirmInspectionLinkButton.disabled = true;
+
+  try {
+    const inspectionsQuery = query(
+      collection(db, "vistorias"),
+      where("ordemVinculada", "==", false),
+    );
+
+    const snapshot = await getDocs(inspectionsQuery);
+
+    availableUnlinkedInspections = snapshot.docs
+      .map((documentSnapshot) => ({
+        id: documentSnapshot.id,
+        ...documentSnapshot.data(),
+      }))
+      .filter((inspection) => inspection.validada === true)
+      .sort(
+        (inspectionA, inspectionB) =>
+          Number(inspectionB.numero || 0) - Number(inspectionA.numero || 0),
+      );
+
+    renderInspectionLinkOptions();
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível carregar as vistorias:",
+      error,
+    );
+
+    inspectionLinkEmpty.hidden = false;
+
+    inspectionLinkEmpty.querySelector("strong").textContent =
+      "Não foi possível carregar as vistorias";
+
+    inspectionLinkEmpty.querySelector("p").textContent =
+      "Verifique a conexão e as permissões do Firebase.";
+  } finally {
+    inspectionLinkLoading.hidden = true;
+  }
+}
+
+async function openInspectionLinkModal() {
+  inspectionLinkModal.hidden = false;
+
+  inspectionLinkModal.setAttribute("aria-hidden", "false");
+
+  body.classList.add("inspection-link-modal-open");
+
+  await loadUnlinkedInspections();
+}
+
+function closeInspectionLinkModal({ keepCategory = false } = {}) {
+  inspectionLinkModal.hidden = true;
+
+  inspectionLinkModal.setAttribute("aria-hidden", "true");
+
+  body.classList.remove("inspection-link-modal-open");
+
+  inspectionLinkError.hidden = true;
+
+  confirmInspectionLinkButton.disabled = true;
+
+  if (!keepCategory && !selectedInspectionForOrder) {
+    const inspectionInput = Array.from(categoryInputs).find(
+      (input) => input.value === "vistoria",
+    );
+
+    if (inspectionInput) {
+      inspectionInput.checked = false;
+    }
+
+    syncCategoryStyles();
+
+    updateSummary();
+
+    updateProgress();
+  }
+}
+
+async function applySelectedInspectionToOrder() {
+  const selectedInput = inspectionLinkList.querySelector(
+    'input[name="vistoriaSelecionada"]:checked',
+  );
+
+  if (!selectedInput) {
+    inspectionLinkError.hidden = false;
+
+    return;
+  }
+
+  const inspection = availableUnlinkedInspections.find(
+    (item) => item.id === selectedInput.value,
+  );
+
+  if (!inspection) {
+    inspectionLinkError.hidden = false;
+
+    return;
+  }
+
+  const condominiumId = String(
+    inspection.condominio?.id || inspection.condominioId || "",
+  ).trim();
+
+  const condominium = availableCondominiums.find(
+    (item) => item.id === condominiumId,
+  );
+
+  if (!condominium) {
+    showFeedback(
+      "O condomínio da vistoria não foi encontrado entre os condomínios ativos.",
+      "error",
+    );
+
+    return;
+  }
+
+  selectedInspectionForOrder = inspection;
+
+  condominiumSelect.value = condominium.id;
+
+  await handleCondominiumChange();
+
+  const clientUid = String(
+    inspection.cliente?.id || inspection.clienteUid || "",
+  ).trim();
+
+  const linkedClient = availableLinkedClients.find(
+    (client) => client.uid === clientUid,
+  );
+
+  if (linkedClient) {
+    applyLinkedClient(linkedClient);
+  } else if (clientUid) {
+    selectedClientUid = clientUid;
+
+    selectedClientProfile = {
+      ...(inspection.cliente || {}),
+      uid: clientUid,
+    };
+
+    nomeCliente.value = String(inspection.cliente?.nome || "").trim();
+
+    telefoneCliente.value = String(inspection.cliente?.telefone || "").trim();
+
+    emailCliente.value = String(inspection.cliente?.email || "").trim();
+
+    if (
+      !Array.from(buscarCliente.options).some(
+        (option) => option.value === clientUid,
+      )
+    ) {
+      buscarCliente.appendChild(
+        createCondominiumOption(
+          clientUid,
+          inspection.cliente?.nome || "Responsável da vistoria",
+        ),
+      );
+    }
+
+    buscarCliente.disabled = false;
+
+    buscarCliente.value = clientUid;
+
+    updateClientSummary();
+  }
+
+  categoryInputs.forEach((input) => {
+    input.checked = input.value === "vistoria";
+  });
+
+  const adjustments = getInspectionAdjustments(inspection);
+
+  const adjustmentDescription = adjustments
+    .map((item) => {
+      const name = String(item.nome || "Equipamento").trim();
+
+      const observation = String(item.observacao || "Ajuste necessário").trim();
+
+      return `${name}: ${observation}`;
+    })
+    .join("; ");
+
+  const description = [
+    `Ordem de serviço originada da ${inspection.codigo || "vistoria selecionada"}.`,
+
+    adjustments.length > 0
+      ? `Ajustes identificados: ${adjustmentDescription}.`
+      : "A vistoria foi validada sem não conformidades registradas.",
+  ].join("\n\n");
+
+  serviceDescription.value = description.slice(0, 1200);
+
+  serviceError.hidden = true;
+
+  updateServiceDescriptionCounter();
+
+  syncCategoryStyles();
+
+  updateSummary();
+
+  updateProgress();
+
+  closeInspectionLinkModal({
+    keepCategory: true,
+  });
+
+  scrollToElement(servicesSection);
+
+  showFeedback(
+    `${inspection.codigo || "Vistoria"} selecionada para a nova OS.`,
+  );
+}
+
+async function handleCategoryChange(event) {
   const changedInput = event.target;
 
-  if (changedInput.value === "vistoria" && changedInput.checked) {
+  if (changedInput.checked) {
     categoryInputs.forEach((input) => {
       if (input !== changedInput) {
         input.checked = false;
       }
     });
-
-    selectedServiceKeys.clear();
   }
 
-  if (changedInput.value !== "vistoria" && changedInput.checked) {
-    const inspectionInput = Array.from(categoryInputs).find(
-      (input) => input.value === "vistoria",
-    );
-
-    if (inspectionInput?.checked) {
-      inspectionInput.checked = false;
-
-      Array.from(selectedServiceKeys).forEach((key) => {
-        if (getCategoryFromServiceKey(key) === "vistoria") {
-          selectedServiceKeys.delete(key);
-        }
-      });
-    }
+  if (changedInput.checked && changedInput.value !== "vistoria") {
+    selectedInspectionForOrder = null;
   }
 
   syncCategoryStyles();
 
   categoryError.hidden = true;
 
-  renderServices();
+  updateSummary();
+  updateProgress();
+
+  if (
+    currentProfile === "admin" &&
+    changedInput.checked &&
+    changedInput.value === "vistoria"
+  ) {
+    await openInspectionLinkModal();
+  }
 }
 
 /* =========================================
@@ -1977,12 +2628,6 @@ function handlePhotoSelection() {
    OBSERVAÇÕES
 ========================================= */
 
-function updateObservationCounter() {
-  const currentLength = observacaoCliente.value.length;
-
-  observationCounter.textContent = `${currentLength}/600`;
-}
-
 /* =========================================
    RESUMO DA ORDEM
 ========================================= */
@@ -1994,15 +2639,9 @@ function getSelectedCategoryNames() {
 }
 
 function getSelectedServiceNames() {
-  return Array.from(selectedServiceKeys).map((key) => {
-    const category = getCategoryFromServiceKey(key);
+  const description = getServiceDescription();
 
-    const service = getServiceFromServiceKey(key);
-
-    const categoryName = catalogoServicos[category]?.nome;
-
-    return categoryName ? `${categoryName}: ${service}` : service;
-  });
+  return description ? [description] : [];
 }
 
 function getScheduleSummary() {
@@ -2094,10 +2733,11 @@ function isScheduleComplete() {
 
 function updateProgress() {
   const steps = [
+    Boolean(selectedCondominium?.id),
     isClientDataComplete(),
     isAddressComplete(),
     getSelectedCategories().length > 0,
-    selectedServiceKeys.size > 0,
+    getServiceDescription().length >= 10,
   ];
 
   if (currentProfile === "admin") {
@@ -2143,6 +2783,16 @@ function validateForm() {
   categoryError.hidden = true;
   serviceError.hidden = true;
 
+  if (!selectedCondominium?.id) {
+    showFeedback("Selecione o condomínio da ordem de serviço.", "error");
+
+    scrollToElement(document.getElementById("condominium-field"));
+
+    condominiumSelect.focus();
+
+    return false;
+  }
+
   if (!form.checkValidity()) {
     form.reportValidity();
 
@@ -2155,8 +2805,27 @@ function validateForm() {
     return false;
   }
 
-  if (selectedServiceKeys.size === 0) {
+  const selectedCategory = getSelectedCategories()[0] || "";
+
+  if (
+    currentProfile === "admin" &&
+    selectedCategory === "vistoria" &&
+    !selectedInspectionForOrder
+  ) {
+    showFeedback(
+      "Selecione uma vistoria validada antes de criar a OS.",
+      "error",
+    );
+
+    openInspectionLinkModal();
+
+    return false;
+  }
+
+  if (getServiceDescription().length < 10) {
     showServiceValidation();
+
+    serviceDescription.focus();
 
     return false;
   }
@@ -2170,6 +2839,16 @@ function validateForm() {
 function validateEmergencyData() {
   categoryError.hidden = true;
   serviceError.hidden = true;
+
+  if (!selectedCondominium?.id) {
+    showFeedback("Selecione o condomínio da emergência.", "error");
+
+    scrollToElement(document.getElementById("condominium-field"));
+
+    condominiumSelect.focus();
+
+    return false;
+  }
 
   if (!isClientDataComplete()) {
     showFeedback("Informe o nome e o telefone do cliente.", "error");
@@ -2195,10 +2874,12 @@ function validateEmergencyData() {
     return false;
   }
 
-  if (selectedServiceKeys.size === 0) {
+  if (getServiceDescription().length < 10) {
     showServiceValidation();
 
-    showFeedback("Selecione o serviço relacionado à emergência.", "error");
+    showFeedback("Descreva o serviço relacionado à emergência.", "error");
+
+    serviceDescription.focus();
 
     return false;
   }
@@ -2364,21 +3045,45 @@ function buildOrderData({
   isEmergency = false,
   emergencyDescription = "",
 }) {
+  if (!selectedCondominium?.id) {
+    throw new Error("CONDOMINIUM_REQUIRED");
+  }
+
   const selectedCategories = getSelectedCategories();
 
-  const selectedServices = Array.from(selectedServiceKeys).map((key) => ({
-    categoria: getCategoryFromServiceKey(key),
+  const selectedCategory = selectedCategories[0] || "";
 
-    servico: getServiceFromServiceKey(key),
-  }));
+  const serviceTypeName =
+    catalogoServicos[selectedCategory]?.nome ||
+    (selectedCategory === "vistoria" ? "Vistoria técnica" : "Manutenção geral");
 
-  const isInspection = selectedCategories.includes("vistoria");
+  const serviceDescriptionText = getServiceDescription();
 
-  const mainService = isInspection
-    ? selectedServices.find((service) => service.categoria === "vistoria")
-    : selectedServices[0];
+  const selectedServices = selectedCategory
+    ? [
+        {
+          categoria: selectedCategory,
+
+          servico: serviceTypeName,
+        },
+      ]
+    : [];
+
+  const isInspection = selectedCategory === "vistoria";
+
+  const mainService = selectedServices[0] || null;
 
   const finalEmergencyDescription = String(emergencyDescription || "").trim();
+
+  const finalClientObservation = [
+    `Descrição do serviço: ${serviceDescriptionText}`,
+
+    isEmergency && finalEmergencyDescription
+      ? `Descrição da emergência: ${finalEmergencyDescription}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const initialStatus = isEmergency
     ? "nova-solicitacao"
@@ -2426,6 +3131,10 @@ function buildOrderData({
 
     clienteUid: clientUid,
 
+    condominioId: selectedCondominium.id,
+
+    clientesAutorizadosIds: getLinkedClientIds(selectedCondominium),
+
     tipoAtendimento: isInspection ? "vistoria" : "servico",
 
     categoriaPrincipal: mainService?.categoria || selectedCategories[0] || "",
@@ -2447,11 +3156,13 @@ function buildOrderData({
     },
 
     condominio: {
-      id: selectedCondominium?.id || "",
+      id: selectedCondominium.id,
 
-      codigo: selectedCondominium?.codigo || "",
+      codigo: selectedCondominium.codigo || "",
 
-      nome: selectedCondominium?.nome || "",
+      nome: selectedCondominium.nome || "",
+
+      cnpj: selectedCondominium.cnpj || "",
     },
 
     endereco: orderAddress,
@@ -2482,9 +3193,7 @@ function buildOrderData({
     },
 
     observacoes: {
-      cliente: isEmergency
-        ? finalEmergencyDescription
-        : observacaoCliente.value.trim(),
+      cliente: finalClientObservation,
 
       resposta:
         currentProfile === "admin"
@@ -2505,29 +3214,89 @@ function buildOrderData({
     quantidadeFotos: selectedFiles.length,
 
     vistoria: isInspection
-      ? {
-          tipo: mainService?.servico || "Vistoria técnica",
+      ? selectedInspectionForOrder
+        ? {
+            id: selectedInspectionForOrder.id,
 
-          status: "solicitada",
+            codigo: selectedInspectionForOrder.codigo || "",
 
-          progresso: 0,
+            tipo:
+              selectedInspectionForOrder.tipo ||
+              mainService?.servico ||
+              "Vistoria técnica",
 
-          naoConformidades: 0,
+            status: "concluida",
 
-          pendenciasCriticas: 0,
+            validada: true,
 
-          quantidadeFotos: selectedFiles.length,
+            progresso: Number(selectedInspectionForOrder.progresso || 100),
 
-          concluidaEm: "",
-        }
+            checklist: Array.isArray(selectedInspectionForOrder.checklist)
+              ? selectedInspectionForOrder.checklist
+              : [],
+
+            totalItens: Number(selectedInspectionForOrder.totalItens || 0),
+
+            itensConcluidos: Number(
+              selectedInspectionForOrder.itensConcluidos || 0,
+            ),
+
+            equipamentosAvaliados: Number(
+              selectedInspectionForOrder.equipamentosAvaliados || 0,
+            ),
+
+            naoConformidades: Number(
+              selectedInspectionForOrder.naoConformidades || 0,
+            ),
+
+            pendenciasCriticas: Number(
+              selectedInspectionForOrder.pendenciasCriticas || 0,
+            ),
+
+            quantidadeFotos: Number(
+              selectedInspectionForOrder.quantidadeFotos || 0,
+            ),
+
+            concluidaEm:
+              selectedInspectionForOrder.validadaEm ||
+              selectedInspectionForOrder.atualizadoEm ||
+              "",
+          }
+        : {
+            tipo: mainService?.servico || "Vistoria técnica",
+
+            status: "solicitada",
+
+            progresso: 0,
+
+            naoConformidades: 0,
+
+            pendenciasCriticas: 0,
+
+            quantidadeFotos: selectedFiles.length,
+
+            concluidaEm: "",
+          }
       : null,
 
-    origem: {
-      tipo:
-        currentProfile === "admin" ? "cadastro-admin" : "solicitacao-cliente",
+    origem: selectedInspectionForOrder
+      ? {
+          tipo: "vistoria",
 
-      ordemOrigemId: "",
-    },
+          vistoriaId: selectedInspectionForOrder.id,
+
+          codigoVistoria: selectedInspectionForOrder.codigo || "",
+
+          ordemOrigemId: "",
+        }
+      : {
+          tipo:
+            currentProfile === "admin"
+              ? "cadastro-admin"
+              : "solicitacao-cliente",
+
+          ordemOrigemId: "",
+        },
   };
 }
 
@@ -2584,8 +3353,9 @@ async function handleSubmit(event) {
       return;
     }
 
-    const destination =
-      savedOrder.tipoAtendimento === "vistoria"
+    const destination = selectedInspectionForOrder
+      ? "ordens.html"
+      : savedOrder.tipoAtendimento === "vistoria"
         ? "vistorias.html"
         : "ordens.html";
 
@@ -2611,6 +3381,21 @@ async function handleSubmit(event) {
     if (error.message === "INVALID_ORDER_COUNTER") {
       showFeedback(
         "O contador das ordens está com um valor inválido.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.message === "INSPECTION_NOT_FOUND") {
+      showFeedback("A vistoria selecionada não foi encontrada.", "error");
+
+      return;
+    }
+
+    if (error.message === "INSPECTION_ALREADY_LINKED") {
+      showFeedback(
+        "Essa vistoria já possui uma Ordem de Serviço vinculada.",
         "error",
       );
 
@@ -2655,9 +3440,9 @@ function formatCep(value) {
 
 btnEditarDados.addEventListener("click", handleClientEdit);
 
-btnBuscarCliente.addEventListener("click", handleClientSearch);
+buscarCliente.addEventListener("change", handleLinkedClientChange);
 
-btnNovoClienteRapido.addEventListener("click", handleQuickClientCreation);
+btnNovoClienteRapido?.addEventListener("click", handleQuickClientCreation);
 
 if (condominiumSelect) {
   condominiumSelect.addEventListener("change", handleCondominiumChange);
@@ -2706,9 +3491,13 @@ horarioPreferido.addEventListener("change", () => {
 
 fotosProblema.addEventListener("change", handlePhotoSelection);
 
-observacaoCliente.addEventListener("input", () => {
-  updateObservationCounter();
+serviceDescription.addEventListener("input", () => {
+  updateServiceDescriptionCounter();
+
+  serviceError.hidden = true;
+
   updateSummary();
+  updateProgress();
 });
 
 form.addEventListener("submit", handleSubmit);
@@ -2720,11 +3509,34 @@ closeEmergencyModalButtons.forEach((button) => {
   button.addEventListener("click", closeEmergencyModal);
 });
 
+closeInspectionLinkModalButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    closeInspectionLinkModal();
+  });
+});
+
+if (confirmInspectionLinkButton) {
+  confirmInspectionLinkButton.addEventListener(
+    "click",
+    applySelectedInspectionToOrder,
+  );
+}
+
 if (confirmEmergencyButton) {
   confirmEmergencyButton.addEventListener("click", handleEmergencyConfirmation);
 }
 
 document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    inspectionLinkModal &&
+    !inspectionLinkModal.hidden
+  ) {
+    closeInspectionLinkModal();
+
+    return;
+  }
+
   if (event.key === "Escape" && emergencyModal && !emergencyModal.hidden) {
     closeEmergencyModal();
   }
@@ -2751,7 +3563,7 @@ async function initializePage() {
 
     toggleSpecificTime();
 
-    updateObservationCounter();
+    updateServiceDescriptionCounter();
 
     applyAuthenticatedSession(session);
 
@@ -2761,10 +3573,10 @@ async function initializePage() {
 
     if (currentProfile === "admin" && condominiumIdFromURL) {
       await loadCondominiumFromURL();
+    } else if (currentProfile === "admin") {
+      await loadAllCondominiumsForAdmin();
     } else {
-      await loadCondominiumsForClient(
-        currentProfile === "cliente" ? currentSession.uid : selectedClientUid,
-      );
+      await loadCondominiumsForClient(currentSession.uid);
     }
 
     preselectCategoryFromURL();

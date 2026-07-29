@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/vistorias.css" />
+  <link rel="stylesheet" href="css/vistorias.css?v=1.0.3" />
 </head>
 
 <body data-page="vistorias" data-profile="admin" data-allowed-roles="admin">
@@ -83,7 +83,7 @@
 
       </div>
 
-      <a href="nova-ordem.html?perfil=admin&tipo=vistoria" class="new-inspection-button">
+      <a href="nova-vistoria.html?perfil=admin" class="new-inspection-button">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v14"></path>
@@ -145,6 +145,18 @@
         </span>
 
         <strong id="summary-completed">
+          0
+        </strong>
+
+      </button>
+
+      <button type="button" class="overview-item overview-item--validation" data-inspection-view="validation" aria-pressed="false">
+
+        <span>
+          Aguardando validação
+        </span>
+
+        <strong id="summary-validation">
           0
         </strong>
 
@@ -611,7 +623,7 @@
 
   <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></div>
 
-  <script type="module" src="js/vistorias.js?v=1.0.1"></script>
+  <script type="module" src="js/vistorias.js?v=1.0.6"></script>
 
 </body>
 

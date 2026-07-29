@@ -68,11 +68,12 @@ const profileConfig = {
         icon: "clipboard",
       },
       {
-        title: "Agenda",
-        description: "Consulte atendimentos confirmados e disponíveis.",
-        target: "agenda.html?perfil=admin",
-        icon: "calendar",
+        title: "Nova Vistoria",
+        description: "Inicie uma vistoria técnica diretamente no condomínio.",
+        target: "nova-vistoria.html?perfil=admin",
+        icon: "inspection",
       },
+
       {
         title: "Ordens de Serviço",
         description: "Gerencie todas as ordens e seus respectivos status.",

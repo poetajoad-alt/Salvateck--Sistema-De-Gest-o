@@ -1903,6 +1903,333 @@ textarea.input {
 }
 
 /* =========================================
+   MODAL DE SELEÇÃO DE VISTORIA
+========================================= */
+
+.inspection-link-modal[hidden] {
+  display: none !important;
+}
+
+.inspection-link-modal {
+  position: fixed;
+  z-index: 2100;
+  inset: 0;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+}
+
+.inspection-link-modal__backdrop {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  cursor: pointer;
+
+  background-color: rgba(4, 26, 47, 0.74);
+
+  border: 0;
+
+  backdrop-filter: blur(6px);
+}
+
+.inspection-link-modal__dialog {
+  position: relative;
+  z-index: 1;
+
+  width: min(100%, 590px);
+  max-height: calc(100vh - 40px);
+
+  overflow-y: auto;
+
+  padding: clamp(24px, 6vw, 34px);
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+  border-radius: 25px;
+
+  box-shadow: 0 25px 65px rgba(4, 26, 47, 0.44);
+}
+
+.inspection-link-modal__close {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 1.35rem;
+  line-height: 1;
+
+  color: #687077;
+  background-color: #edf0f2;
+
+  border: 0;
+  border-radius: 50%;
+}
+
+.inspection-link-modal__icon {
+  width: 64px;
+  height: 64px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 17px;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 7px solid rgba(221, 154, 23, 0.15);
+  border-radius: 20px;
+}
+
+.inspection-link-modal__icon svg {
+  width: 30px;
+  height: 30px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.inspection-link-modal__eyebrow {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+
+  color: #9a6a0d;
+}
+
+.inspection-link-modal h2 {
+  margin: 0;
+
+  font-size: clamp(1.25rem, 5vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.2;
+
+  color: #0d3861;
+}
+
+.inspection-link-modal__dialog > p {
+  margin: 12px 0 0;
+
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.6;
+
+  color: #666d73;
+}
+
+.inspection-link-modal__loading,
+.inspection-link-modal__empty {
+  margin-top: 22px;
+  padding: 24px 18px;
+
+  text-align: center;
+
+  color: #687077;
+  background-color: rgba(13, 56, 97, 0.04);
+
+  border: 1px dashed rgba(13, 56, 97, 0.2);
+  border-radius: 17px;
+}
+
+.inspection-link-modal__empty strong,
+.inspection-link-modal__empty p {
+  display: block;
+}
+
+.inspection-link-modal__empty strong {
+  color: #0d3861;
+}
+
+.inspection-link-modal__empty p {
+  margin: 7px 0 0;
+
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.inspection-link-modal__list {
+  display: grid;
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+.inspection-link-option {
+  position: relative;
+
+  cursor: pointer;
+}
+
+.inspection-link-option > input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inspection-link-option__content {
+  display: grid;
+  gap: 7px;
+
+  padding: 16px;
+
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.12);
+  border-radius: 17px;
+
+  box-shadow: 0 5px 14px rgba(13, 56, 97, 0.05);
+
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.inspection-link-option:hover .inspection-link-option__content {
+  transform: translateY(-1px);
+
+  border-color: rgba(221, 154, 23, 0.55);
+}
+
+.inspection-link-option > input:checked + .inspection-link-option__content {
+  background-color: rgba(221, 154, 23, 0.1);
+
+  border-color: #dd9a17;
+
+  box-shadow:
+    0 0 0 3px rgba(221, 154, 23, 0.12),
+    0 8px 18px rgba(13, 56, 97, 0.08);
+}
+
+.inspection-link-option__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspection-link-option__top strong {
+  padding: 5px 9px;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+
+  color: #0d3861;
+  background-color: #edf0f2;
+
+  border-radius: var(--radius-pill);
+}
+
+.inspection-link-option__top small {
+  padding: 5px 9px;
+
+  font-size: 0.62rem;
+  font-weight: 800;
+
+  color: #775006;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border-radius: var(--radius-pill);
+}
+
+.inspection-link-option__condominium {
+  font-size: 0.82rem;
+  color: #0d3861;
+}
+
+.inspection-link-option__client,
+.inspection-link-option__meta {
+  font-size: 0.67rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  color: #6c747b;
+}
+
+.inspection-link-modal__error {
+  margin-top: 10px !important;
+
+  font-size: 0.67rem !important;
+  font-weight: 800 !important;
+
+  color: #b42318 !important;
+}
+
+.inspection-link-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+.inspection-link-modal__button {
+  min-height: 50px;
+
+  padding: 0 15px;
+
+  cursor: pointer;
+
+  font-size: 0.69rem;
+  font-weight: 800;
+
+  border-radius: var(--radius-pill);
+}
+
+.inspection-link-modal__button--secondary {
+  color: #0d3861;
+  background-color: #edf0f2;
+
+  border: 1px solid rgba(13, 56, 97, 0.13);
+}
+
+.inspection-link-modal__button--primary {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.44);
+}
+
+.inspection-link-modal__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+body.inspection-link-modal-open {
+  overflow: hidden;
+}
+
+/* =========================================
    MODAL DE EMERGÊNCIA
 ========================================= */
 
@@ -2281,4 +2608,11 @@ body.emergency-modal-open {
   .condominium-field__optional {
     font-size: 0.52rem;
   }
+}
+/* =========================================
+   ESPAÇO ENTRE CONDOMÍNIO E RESPONSÁVEL
+========================================= */
+
+.condominium-field + .admin-client-search {
+  margin-top: 20px;
 }

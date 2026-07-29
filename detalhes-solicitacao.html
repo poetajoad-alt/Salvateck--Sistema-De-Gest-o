@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/detalhes-solicitacao.css?v=1.0.2" />
+  <link rel="stylesheet" href="css/detalhes-solicitacao.css?v=1.0.4" />
 </head>
 
 <body data-page="detalhes-solicitacao" data-allowed-roles="admin,cliente">
@@ -327,7 +327,65 @@
     </section>
 
     <!-- =====================================
-         DADOS DO CLIENTE
+         ATIVO PRINCIPAL
+    ====================================== -->
+
+    <section class="details-card condominium-card" id="condominium-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 21V5h10v16"></path>
+            <path d="M14 9h6v12"></path>
+            <path d="M7 8h4"></path>
+            <path d="M7 12h4"></path>
+            <path d="M7 16h4"></path>
+            <path d="M17 12h1"></path>
+            <path d="M17 16h1"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Ativo principal
+          </p>
+
+          <h2>
+            Condomínio do atendimento
+          </h2>
+
+        </div>
+
+      </div>
+
+      <div class="condominium-information">
+
+        <span class="condominium-information__code" id="condominium-code">
+          COND-0000
+        </span>
+
+        <strong id="condominium-name">
+          Condomínio não informado
+        </strong>
+
+        <p class="condominium-information__cnpj" id="condominium-cnpj">
+          CNPJ não informado
+        </p>
+
+        <p id="condominium-description">
+          Ativo principal vinculado a esta ordem de serviço.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         SOLICITANTE OU RESPONSÁVEL
     ====================================== -->
 
     <section class="details-card admin-visible" id="client-card">
@@ -346,11 +404,11 @@
         <div>
 
           <p>
-            Solicitante
+            Solicitante / responsável
           </p>
 
           <h2>
-            Dados do cliente
+            Dados do responsável
           </h2>
 
         </div>
@@ -388,60 +446,6 @@
     </section>
 
     <!-- =====================================
-         CONDOMÍNIO
-    ====================================== -->
-
-    <section class="details-card condominium-card" id="condominium-card" hidden>
-
-      <div class="details-card__header">
-
-        <span class="details-card__icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 21V5h10v16"></path>
-            <path d="M14 9h6v12"></path>
-            <path d="M7 8h4"></path>
-            <path d="M7 12h4"></path>
-            <path d="M7 16h4"></path>
-            <path d="M17 12h1"></path>
-            <path d="M17 16h1"></path>
-          </svg>
-
-        </span>
-
-        <div>
-
-          <p>
-            Local vinculado
-          </p>
-
-          <h2>
-            Condomínio do atendimento
-          </h2>
-
-        </div>
-
-      </div>
-
-      <div class="condominium-information">
-
-        <span class="condominium-information__code" id="condominium-code">
-          COND-0000
-        </span>
-
-        <strong id="condominium-name">
-          Condomínio não informado
-        </strong>
-
-        <p id="condominium-description">
-          Condomínio vinculado a esta ordem de serviço.
-        </p>
-
-      </div>
-
-    </section>
-
-    <!-- =====================================
          SERVIÇOS SOLICITADOS
     ====================================== -->
 
@@ -461,11 +465,11 @@
         <div>
 
           <p>
-            Manutenção
+            Atendimento
           </p>
 
           <h2>
-            Serviços solicitados
+            Tipo de atendimento
           </h2>
 
         </div>
@@ -598,11 +602,11 @@
         <div>
 
           <p>
-            Informações adicionais
+            Detalhes do atendimento
           </p>
 
           <h2>
-            Observações
+            Descrição e comunicação
           </h2>
 
         </div>
@@ -612,11 +616,11 @@
       <div class="observation-box">
 
         <span>
-          Observação do cliente
+          Descrição do serviço
         </span>
 
         <p id="client-observation">
-          Nenhuma observação informada.
+          Descrição do serviço não informada.
         </p>
 
       </div>
@@ -644,6 +648,86 @@
         </p>
 
       </div>
+
+    </section>
+
+    <!-- =====================================
+         RESPONSABILIDADE TÉCNICA
+    ====================================== -->
+
+    <section class="details-card admin-only technical-responsibility-card" id="technical-responsibility-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M5 21a7 7 0 0 1 14 0"></path>
+            <path d="m16 12 2 2 3-3"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Registro administrativo
+          </p>
+
+          <h2>
+            Responsabilidade técnica
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="technical-responsibility-card__description">
+        Informe os dados que devem constar na Ordem de Serviço e no documento final.
+      </p>
+
+      <form id="technical-responsibility-form" novalidate>
+
+        <div class="form-group">
+
+          <label class="form-label" for="technical-responsible-name">
+            Responsável técnico
+          </label>
+
+          <input id="technical-responsible-name" name="technicalResponsibleName" type="text" class="input" maxlength="160" placeholder="Nome completo do responsável técnico" required />
+
+        </div>
+
+        <div class="form-grid form-grid--2">
+
+          <div class="form-group">
+
+            <label class="form-label" for="technical-crea">
+              CREA <small>(opcional)</small>
+            </label>
+
+            <input id="technical-crea" name="technicalCrea" type="text" class="input" maxlength="60" placeholder="Ex: CREA-SP 0000000000" />
+
+          </div>
+
+          <div class="form-group">
+
+            <label class="form-label" for="technical-trt">
+              TRT <small>(opcional)</small>
+            </label>
+
+            <input id="technical-trt" name="technicalTrt" type="text" class="input" maxlength="100" placeholder="Número ou identificação da TRT" />
+
+          </div>
+
+        </div>
+
+        <button type="submit" class="technical-responsibility-save" id="save-technical-responsibility-button">
+          Salvar dados técnicos
+        </button>
+
+      </form>
 
     </section>
 
@@ -709,6 +793,42 @@
         <article>
 
           <span>
+            Ativo principal
+          </span>
+
+          <strong id="final-document-condominium">
+            Não informado
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            CNPJ
+          </span>
+
+          <strong id="final-document-condominium-cnpj">
+            Não informado
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            Solicitante / responsável
+          </span>
+
+          <strong id="final-document-client">
+            --
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
             Ordem de serviço
           </span>
 
@@ -721,35 +841,11 @@
         <article>
 
           <span>
-            Serviço principal
+            Tipo de atendimento
           </span>
 
           <strong id="final-document-service">
             --
-          </strong>
-
-        </article>
-
-        <article>
-
-          <span>
-            Cliente
-          </span>
-
-          <strong id="final-document-client">
-            --
-          </strong>
-
-        </article>
-
-        <article>
-
-          <span>
-            Condomínio
-          </span>
-
-          <strong id="final-document-condominium">
-            Não vinculado
           </strong>
 
         </article>
@@ -778,7 +874,121 @@
 
         </article>
 
+        <article>
+
+          <span>
+            Responsável técnico
+          </span>
+
+          <strong id="final-document-technical-responsible">
+            Não informado
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            CREA
+          </span>
+
+          <strong id="final-document-crea">
+            Não informado
+          </strong>
+
+        </article>
+
+        <article>
+
+          <span>
+            TRT
+          </span>
+
+          <strong id="final-document-trt">
+            Não informado
+          </strong>
+
+        </article>
+
       </div>
+
+      <section class="final-inspection-block" id="final-inspection-block" hidden>
+
+        <div class="final-inspection-block__header">
+
+          <div>
+
+            <span>
+              Resultado técnico
+            </span>
+
+            <h3>
+              Checklist da vistoria
+            </h3>
+
+          </div>
+
+          <strong id="final-inspection-code">
+            VST-0000
+          </strong>
+
+        </div>
+
+        <div class="final-inspection-summary">
+
+          <article>
+
+            <span>
+              Técnico executor
+            </span>
+
+            <strong id="final-inspection-technician">
+              Não informado
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Vistoria validada em
+            </span>
+
+            <strong id="final-inspection-date">
+              Não informada
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Equipamentos avaliados
+            </span>
+
+            <strong id="final-inspection-evaluated">
+              0
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Não conformidades
+            </span>
+
+            <strong id="final-inspection-nonconformities">
+              0
+            </strong>
+
+          </article>
+
+        </div>
+
+        <div class="final-inspection-checklist" id="final-inspection-checklist"></div>
+
+      </section>
 
       <div class="final-document-actions">
 
@@ -1133,6 +1343,10 @@
           Reagendar
         </button>
 
+        <button type="button" class="action-button action-button--inspection" id="start-inspection-button" hidden>
+          Iniciar vistoria
+        </button>
+
         <button type="button" class="action-button action-button--accept" id="complete-request-button">
           Concluir OS
         </button>
@@ -1327,7 +1541,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 
-  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.4"></script>
+  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.7"></script>
 </body>
 
 </html>

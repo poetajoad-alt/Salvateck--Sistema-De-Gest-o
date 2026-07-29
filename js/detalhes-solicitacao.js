@@ -130,6 +130,8 @@ const condominiumCode = document.getElementById("condominium-code");
 
 const condominiumName = document.getElementById("condominium-name");
 
+const condominiumCnpj = document.getElementById("condominium-cnpj");
+
 const condominiumDescription = document.getElementById(
   "condominium-description",
 );
@@ -194,6 +196,28 @@ const internalObservationBox = document.getElementById(
 
 const internalObservation = document.getElementById("internal-observation");
 
+/* Responsabilidade técnica */
+
+const technicalResponsibilityCard = document.getElementById(
+  "technical-responsibility-card",
+);
+
+const technicalResponsibilityForm = document.getElementById(
+  "technical-responsibility-form",
+);
+
+const technicalResponsibleName = document.getElementById(
+  "technical-responsible-name",
+);
+
+const technicalCrea = document.getElementById("technical-crea");
+
+const technicalTrt = document.getElementById("technical-trt");
+
+const saveTechnicalResponsibilityButton = document.getElementById(
+  "save-technical-responsibility-button",
+);
+
 /* Prioridade */
 
 const priorityInputs = document.querySelectorAll('input[name="prioridade"]');
@@ -239,6 +263,10 @@ const scheduledWhatsAppButton = document.getElementById(
 
 const rescheduleRequestButton = document.getElementById(
   "reschedule-request-button",
+);
+
+const startInspectionButton = document.getElementById(
+  "start-inspection-button",
 );
 
 const completeRequestButton = document.getElementById(
@@ -307,10 +335,44 @@ const finalDocumentCondominium = document.getElementById(
   "final-document-condominium",
 );
 
+const finalDocumentCondominiumCnpj = document.getElementById(
+  "final-document-condominium-cnpj",
+);
+
 const finalDocumentDate = document.getElementById("final-document-date");
 
 const finalDocumentResponsible = document.getElementById(
   "final-document-responsible",
+);
+
+const finalDocumentTechnicalResponsible = document.getElementById(
+  "final-document-technical-responsible",
+);
+
+const finalDocumentCrea = document.getElementById("final-document-crea");
+
+const finalDocumentTrt = document.getElementById("final-document-trt");
+
+const finalInspectionBlock = document.getElementById("final-inspection-block");
+
+const finalInspectionCode = document.getElementById("final-inspection-code");
+
+const finalInspectionTechnician = document.getElementById(
+  "final-inspection-technician",
+);
+
+const finalInspectionDate = document.getElementById("final-inspection-date");
+
+const finalInspectionEvaluated = document.getElementById(
+  "final-inspection-evaluated",
+);
+
+const finalInspectionNonconformities = document.getElementById(
+  "final-inspection-nonconformities",
+);
+
+const finalInspectionChecklist = document.getElementById(
+  "final-inspection-checklist",
 );
 
 const viewFinalDocumentButton = document.getElementById(
@@ -731,11 +793,13 @@ function normalizeOrder(snapshot) {
     },
 
     condominio: {
-      id: String(order.condominio?.id || "").trim(),
+      id: String(order.condominio?.id || order.condominioId || "").trim(),
 
       codigo: String(order.condominio?.codigo || "").trim(),
 
       nome: String(order.condominio?.nome || "").trim(),
+
+      cnpj: String(order.condominio?.cnpj || order.condominioCnpj || "").trim(),
     },
 
     perfilCriador: order.perfilCriador || "cliente",
@@ -777,6 +841,41 @@ function normalizeOrder(snapshot) {
     concluidaPorNome: String(order.concluidaPorNome || "").trim(),
 
     documentoFinal: order.documentoFinal || null,
+
+    responsabilidadeTecnica: {
+      nome: String(order.responsabilidadeTecnica?.nome || "").trim(),
+
+      crea: String(order.responsabilidadeTecnica?.crea || "").trim(),
+
+      trt: String(order.responsabilidadeTecnica?.trt || "").trim(),
+
+      atualizadoPorUid: String(
+        order.responsabilidadeTecnica?.atualizadoPorUid || "",
+      ).trim(),
+
+      atualizadoEm: order.responsabilidadeTecnica?.atualizadoEm || null,
+    },
+
+    vistoria:
+      order.vistoria && typeof order.vistoria === "object"
+        ? {
+            ...order.vistoria,
+
+            id: String(
+              order.vistoria.id || order.vistoria.vistoriaId || "",
+            ).trim(),
+
+            codigo: String(
+              order.vistoria.codigo || order.vistoria.codigoVistoria || "",
+            ).trim(),
+
+            status: String(order.vistoria.status || "solicitada").trim(),
+
+            validada: order.vistoria.validada === true,
+
+            progresso: Number(order.vistoria.progresso || 0),
+          }
+        : null,
 
     endereco: normalizeOrderAddress(order),
 
@@ -1025,6 +1124,12 @@ function getCondominiumLabel(condominium = {}) {
   );
 }
 
+function getServiceDescriptionText(value) {
+  return String(value || "")
+    .replace(/^Descrição do serviço:\s*/i, "")
+    .trim();
+}
+
 function renderCondominium() {
   const condominium = currentRequest.condominio || {};
 
@@ -1037,6 +1142,7 @@ function renderCondominium() {
   if (!hasCondominium) {
     condominiumCode.textContent = "";
     condominiumName.textContent = "";
+    condominiumCnpj.textContent = "";
     condominiumDescription.textContent = "";
 
     return;
@@ -1048,10 +1154,12 @@ function renderCondominium() {
 
   condominiumName.textContent = condominium.nome || "Condomínio vinculado";
 
+  condominiumCnpj.textContent = condominium.cnpj
+    ? `CNPJ: ${condominium.cnpj}`
+    : "CNPJ não informado";
+
   condominiumDescription.textContent =
-    currentRequest.tipoAtendimento === "vistoria"
-      ? "Condomínio vinculado a esta vistoria técnica."
-      : "Condomínio vinculado a esta ordem de serviço.";
+    "Ativo principal vinculado a esta ordem de serviço.";
 }
 
 /* =========================================
@@ -1060,39 +1168,33 @@ function renderCondominium() {
 
 function renderServices() {
   categoryTags.innerHTML = "";
-
   servicesList.innerHTML = "";
 
-  currentRequest.categorias.forEach((category) => {
-    const tag = document.createElement("span");
+  categoryTags.hidden = true;
 
-    tag.className = "category-tag";
+  const serviceType =
+    currentRequest.tipoAtendimento === "vistoria"
+      ? "Vistoria técnica"
+      : "Manutenção geral";
 
-    tag.textContent = categoriaConfig[category] || category;
+  const item = document.createElement("article");
 
-    categoryTags.appendChild(tag);
-  });
+  item.className = "service-item";
 
-  currentRequest.servicos.forEach((service) => {
-    const item = document.createElement("article");
+  item.innerHTML = `
+    <span class="service-item__check">
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M5 12l4 4L19 6"></path>
+      </svg>
+    </span>
 
-    item.className = "service-item";
+    <span>${serviceType}</span>
+  `;
 
-    item.innerHTML = `
-        <span class="service-item__check">
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path d="M5 12l4 4L19 6"></path>
-          </svg>
-        </span>
-
-        <span>${service}</span>
-      `;
-
-    servicesList.appendChild(item);
-  });
+  servicesList.appendChild(item);
 }
 
 /* =========================================
@@ -1235,10 +1337,11 @@ function renderPhotos() {
 ========================================= */
 
 function renderObservations() {
-  const observations = currentRequest.observacoes;
+  const observations = currentRequest.observacoes || {};
 
   clientObservation.textContent =
-    observations.cliente || "Nenhuma observação informada.";
+    getServiceDescriptionText(observations.cliente) ||
+    "Descrição do serviço não informada.";
 
   const hasResponse = Boolean(observations.resposta);
 
@@ -1250,6 +1353,190 @@ function renderObservations() {
   internalObservation.textContent =
     observations.interna || "Nenhuma observação interna registrada.";
 }
+/* =========================================
+   RESPONSABILIDADE TÉCNICA
+========================================= */
+
+function getTechnicalResponsibilityFormData() {
+  return {
+    nome: String(technicalResponsibleName?.value || "").trim(),
+
+    crea: String(technicalCrea?.value || "").trim(),
+
+    trt: String(technicalTrt?.value || "").trim(),
+  };
+}
+
+function isTechnicalResponsibilityComplete(data = {}) {
+  return Boolean(String(data.nome || "").trim());
+}
+
+function focusFirstMissingTechnicalField(data = {}) {
+  if (!String(data.nome || "").trim()) {
+    technicalResponsibleName?.focus();
+  }
+}
+
+function renderTechnicalResponsibility() {
+  const data = currentRequest.responsabilidadeTecnica || {};
+
+  technicalResponsibleName.value = data.nome || "";
+
+  technicalCrea.value = data.crea || "";
+
+  technicalTrt.value = data.trt || "";
+}
+
+async function saveTechnicalResponsibility(event) {
+  event.preventDefault();
+
+  const isFinalStatus = ["concluida", "recusada", "cancelada"].includes(
+    currentRequest.status,
+  );
+
+  if (currentSession.role !== "admin" || isFinalStatus) {
+    return;
+  }
+
+  const data = getTechnicalResponsibilityFormData();
+
+  if (!isTechnicalResponsibilityComplete(data)) {
+    showFeedback("Informe o nome do Responsável Técnico.");
+
+    focusFirstMissingTechnicalField(data);
+
+    return;
+  }
+
+  const originalText = saveTechnicalResponsibilityButton.textContent;
+
+  saveTechnicalResponsibilityButton.disabled = true;
+
+  saveTechnicalResponsibilityButton.textContent = "Salvando...";
+
+  try {
+    await saveChanges(
+      {
+        responsabilidadeTecnica: {
+          ...data,
+
+          atualizadoPorUid: currentSession.uid,
+
+          atualizadoEm: serverTimestamp(),
+        },
+      },
+
+      "Responsabilidade técnica salva na OS.",
+    );
+  } finally {
+    saveTechnicalResponsibilityButton.disabled = false;
+
+    saveTechnicalResponsibilityButton.textContent = originalText;
+  }
+}
+
+function renderFinalTechnicalResponsibility(data = {}) {
+  finalDocumentTechnicalResponsible.textContent =
+    String(data.nome || "").trim() || "Não informado";
+
+  finalDocumentCrea.textContent =
+    String(data.crea || "").trim() || "Não informado";
+
+  finalDocumentTrt.textContent =
+    String(data.trt || "").trim() || "Não informado";
+}
+
+function renderFinalInspection(documentData = null) {
+  const inspection = documentData?.vistoria || null;
+
+  const hasInspection = Boolean(
+    documentData?.tipoAtendimento === "vistoria" &&
+    inspection &&
+    (inspection.id || inspection.codigo),
+  );
+
+  finalInspectionBlock.hidden = !hasInspection;
+
+  finalInspectionChecklist.innerHTML = "";
+
+  if (!hasInspection) {
+    return;
+  }
+
+  const checklist = Array.isArray(inspection.checklist)
+    ? inspection.checklist
+    : [];
+
+  finalInspectionCode.textContent = inspection.codigo || "Vistoria sem código";
+
+  finalInspectionTechnician.textContent =
+    inspection.tecnico?.nome || "Técnico não informado";
+
+  finalInspectionDate.textContent = formatDateTime(
+    inspection.validadaEm || inspection.concluidaEm,
+  );
+
+  finalInspectionEvaluated.textContent = String(
+    Number(
+      inspection.equipamentosAvaliados ||
+        inspection.itensConcluidos ||
+        checklist.length,
+    ),
+  );
+
+  finalInspectionNonconformities.textContent = String(
+    Number(inspection.naoConformidades || 0),
+  );
+
+  checklist.forEach((item, index) => {
+    const result = String(item.resultado || "").trim();
+
+    const needsAdjustment = result === "precisa-ajuste";
+
+    const card = document.createElement("article");
+
+    card.className = needsAdjustment
+      ? "final-inspection-item needs-adjustment"
+      : "final-inspection-item is-ok";
+
+    const top = document.createElement("div");
+
+    top.className = "final-inspection-item__top";
+
+    const identification = document.createElement("div");
+
+    const category = document.createElement("span");
+
+    category.textContent = String(item.categoria || "").trim() || "Equipamento";
+
+    const name = document.createElement("strong");
+
+    name.textContent = String(item.nome || "").trim() || `Item ${index + 1}`;
+
+    identification.append(category, name);
+
+    const status = document.createElement("small");
+
+    status.textContent = needsAdjustment ? "Precisa de ajuste" : "OK";
+
+    top.append(identification, status);
+
+    card.appendChild(top);
+
+    const observation = String(item.observacao || "").trim();
+
+    if (observation) {
+      const observationText = document.createElement("p");
+
+      observationText.textContent = observation;
+
+      card.appendChild(observationText);
+    }
+
+    finalInspectionChecklist.appendChild(card);
+  });
+}
+
 /* =========================================
    DOCUMENTO FINAL
 ========================================= */
@@ -1276,7 +1563,7 @@ function renderFinalDocument() {
 
     finalDocumentCode.textContent = currentRequest.codigo;
 
-    finalDocumentService.textContent = currentRequest.titulo;
+    finalDocumentService.textContent = getFinalPdfType(currentRequest);
 
     finalDocumentClient.textContent = currentRequest.cliente.nome;
 
@@ -1284,13 +1571,19 @@ function renderFinalDocument() {
       currentRequest.condominio,
     );
 
+    finalDocumentCondominiumCnpj.textContent =
+      currentRequest.condominio?.cnpj || "Não informado";
+
     finalDocumentDate.textContent = formatDateTime(currentRequest.concluidaEm);
 
     finalDocumentResponsible.textContent =
       currentRequest.concluidaPorNome || "Não informado";
 
-    viewFinalDocumentButton.disabled = true;
+    renderFinalTechnicalResponsibility(currentRequest.responsabilidadeTecnica);
 
+    renderFinalInspection(null);
+
+    viewFinalDocumentButton.disabled = true;
     downloadFinalDocumentButton.disabled = true;
 
     return;
@@ -1309,12 +1602,14 @@ function renderFinalDocument() {
 
   finalDocumentCode.textContent = documentData.codigo || currentRequest.codigo;
 
-  finalDocumentService.textContent =
-    documentData.titulo || currentRequest.titulo;
+  finalDocumentService.textContent = getFinalPdfType(documentData);
 
   finalDocumentClient.textContent = client.nome || currentRequest.cliente.nome;
 
   finalDocumentCondominium.textContent = getCondominiumLabel(condominium);
+
+  finalDocumentCondominiumCnpj.textContent =
+    condominium.cnpj || currentRequest.condominio?.cnpj || "Não informado";
 
   finalDocumentDate.textContent = formatDateTime(
     documentData.concluidaEm || currentRequest.concluidaEm,
@@ -1322,6 +1617,12 @@ function renderFinalDocument() {
 
   finalDocumentResponsible.textContent =
     completedBy.nome || currentRequest.concluidaPorNome || "Administrador";
+
+  renderFinalTechnicalResponsibility(
+    documentData.responsabilidadeTecnica || {},
+  );
+
+  renderFinalInspection(documentData);
 
   viewFinalDocumentButton.disabled = generatingFinalPdf;
 
@@ -1443,11 +1744,39 @@ function getFinalPdfSchedule(documentData) {
 
   return `${date} - ${period} - ${time}`;
 }
+function getFinalPdfInspectionChecklist(inspection = {}) {
+  const checklist = Array.isArray(inspection.checklist)
+    ? inspection.checklist
+    : [];
 
+  if (checklist.length === 0) {
+    return "Nenhum item de checklist registrado.";
+  }
+
+  return checklist
+    .map((item, index) => {
+      const category = sanitizePdfText(item.categoria) || "Equipamento";
+
+      const name = sanitizePdfText(item.nome) || `Item ${index + 1}`;
+
+      const result =
+        item.resultado === "precisa-ajuste" ? "Precisa de ajuste" : "OK";
+
+      const observation = sanitizePdfText(item.observacao);
+
+      return [
+        `${index + 1}. ${category} - ${name}: ${result}.`,
+        observation ? `Observação: ${observation}` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    })
+    .join("\n");
+}
 function getFinalPdfType(documentData) {
   return documentData.tipoAtendimento === "vistoria"
     ? "Vistoria técnica"
-    : "Serviço de manutenção";
+    : "Manutenção geral";
 }
 
 function getFinalPdfFileName(documentData) {
@@ -1848,12 +2177,17 @@ async function createFinalDocumentPdf() {
 
   const completedBy = documentData.concluidaPor || {};
 
+  const technicalResponsibility = documentData.responsabilidadeTecnica || {};
+
+  const inspection = documentData.vistoria || null;
+
   const categories = getFinalPdfCategories(documentData);
 
   const services = getFinalPdfServices(documentData);
 
-  const clientObservation =
-    documentData.observacoes?.cliente || "Nenhuma observação informada.";
+  const serviceDescription =
+    getServiceDescriptionText(documentData.observacoes?.cliente) ||
+    "Descrição do serviço não informada.";
 
   const companyResponse =
     documentData.observacoes?.resposta ||
@@ -1867,12 +2201,12 @@ async function createFinalDocumentPdf() {
     pdf,
     y,
     {
-      label: "Cliente",
-      value: client.nome || "Não informado",
+      label: "Ativo principal",
+      value: getCondominiumLabel(condominium),
     },
     {
-      label: "Condomínio",
-      value: getCondominiumLabel(condominium),
+      label: "CNPJ",
+      value: condominium.cnpj || "Não informado",
     },
     documentData,
   );
@@ -1881,12 +2215,26 @@ async function createFinalDocumentPdf() {
     pdf,
     y,
     {
+      label: "Solicitante / responsável",
+      value: client.nome || "Não informado",
+    },
+    {
       label: "Ordem de serviço",
       value: documentData.codigo || "Não informada",
     },
+    documentData,
+  );
+
+  y = addPdfInfoPair(
+    pdf,
+    y,
     {
       label: "Criada em",
       value: formatDateTime(documentData.criadaEm),
+    },
+    {
+      label: "Tipo de atendimento",
+      value: getFinalPdfType(documentData),
     },
     documentData,
   );
@@ -1899,18 +2247,18 @@ async function createFinalDocumentPdf() {
     documentData,
   );
 
-  y = addPdfSectionTitle(pdf, y, "Serviço realizado", documentData);
+  y = addPdfSectionTitle(pdf, y, "Responsabilidade técnica", documentData);
 
   y = addPdfInfoPair(
     pdf,
     y,
     {
-      label: "Serviço principal",
-      value: documentData.titulo || "Não informado",
+      label: "Responsável técnico",
+      value: technicalResponsibility.nome || "Não informado",
     },
     {
-      label: "Tipo de atendimento",
-      value: getFinalPdfType(documentData),
+      label: "CREA",
+      value: technicalResponsibility.crea || "Não informado",
     },
     documentData,
   );
@@ -1918,22 +2266,18 @@ async function createFinalDocumentPdf() {
   y = addPdfTextBlock(
     pdf,
     y,
-    "Categorias",
-    categories.length ? categories.join(", ") : "Não informadas",
+    "TRT",
+    technicalResponsibility.trt || "Não informado",
     documentData,
   );
+
+  y = addPdfSectionTitle(pdf, y, "Atendimento", documentData);
 
   y = addPdfTextBlock(
     pdf,
     y,
-    "Serviços realizados",
-    services.length
-      ? services
-          .map((service, index) => {
-            return `${index + 1}. ${service}`;
-          })
-          .join("\n")
-      : "Nenhum serviço informado.",
+    "Descrição do serviço",
+    serviceDescription,
     documentData,
   );
 
@@ -1945,15 +2289,78 @@ async function createFinalDocumentPdf() {
     documentData,
   );
 
-  y = addPdfSectionTitle(pdf, y, "Registro do atendimento", documentData);
+  if (inspection && (inspection.id || inspection.codigo)) {
+    const totalItems = Number(
+      inspection.totalItens ||
+        inspection.itensConcluidos ||
+        inspection.checklist?.length ||
+        0,
+    );
 
-  y = addPdfTextBlock(
-    pdf,
-    y,
-    "Observação inicial do cliente",
-    clientObservation,
-    documentData,
-  );
+    const nonconformities = Number(inspection.naoConformidades || 0);
+
+    const okItems = Math.max(0, totalItems - nonconformities);
+
+    y = addPdfSectionTitle(pdf, y, "Resultado da vistoria", documentData);
+
+    y = addPdfInfoPair(
+      pdf,
+      y,
+      {
+        label: "Vistoria",
+        value: inspection.codigo || "Não informada",
+      },
+      {
+        label: "Técnico executor",
+        value: inspection.tecnico?.nome || "Não informado",
+      },
+      documentData,
+    );
+
+    y = addPdfInfoPair(
+      pdf,
+      y,
+      {
+        label: "Validada em",
+        value: formatDateTime(inspection.validadaEm || inspection.concluidaEm),
+      },
+      {
+        label: "Equipamentos avaliados",
+        value: String(
+          Number(
+            inspection.equipamentosAvaliados ||
+              inspection.itensConcluidos ||
+              totalItems,
+          ),
+        ),
+      },
+      documentData,
+    );
+
+    y = addPdfInfoPair(
+      pdf,
+      y,
+      {
+        label: "Itens OK",
+        value: String(okItems),
+      },
+      {
+        label: "Não conformidades",
+        value: String(nonconformities),
+      },
+      documentData,
+    );
+
+    y = addPdfTextBlock(
+      pdf,
+      y,
+      "Checklist completo",
+      getFinalPdfInspectionChecklist(inspection),
+      documentData,
+    );
+  }
+
+  y = addPdfSectionTitle(pdf, y, "Comunicação do atendimento", documentData);
 
   y = addPdfTextBlock(
     pdf,
@@ -2115,6 +2522,12 @@ function renderProfile() {
 
   const isScheduled = status === "agendada";
 
+  const isInspection = currentRequest.tipoAtendimento === "vistoria";
+
+  const hasLinkedInspection = Boolean(getLinkedInspectionId());
+
+  const hasCompletedInspection = hasExecutedInspection();
+
   const isFinalStatus = ["concluida", "recusada", "cancelada"].includes(status);
 
   body.dataset.profile = currentSession.role;
@@ -2137,10 +2550,42 @@ function renderProfile() {
     input.disabled = !isAdmin || isFinalStatus;
   });
 
+  technicalResponsibilityCard.hidden = !isAdmin || isFinalStatus;
+
+  [
+    technicalResponsibleName,
+    technicalCrea,
+    technicalTrt,
+    saveTechnicalResponsibilityButton,
+  ].forEach((field) => {
+    if (field) {
+      field.disabled = !isAdmin || isFinalStatus;
+    }
+  });
+
   adminActionsCard.hidden =
     !isAdmin || (!isNewOrAnalysis && !isAwaitingConfirmation);
 
   scheduledActionsCard.hidden = !isAdmin || !isScheduled;
+
+  startInspectionButton.hidden = !isAdmin || !isScheduled || !isInspection;
+
+  startInspectionButton.textContent = hasLinkedInspection
+    ? "Abrir vistoria"
+    : "Iniciar vistoria";
+
+  completeRequestButton.hidden =
+    !isAdmin || !isScheduled || (isInspection && !hasLinkedInspection);
+
+  rescheduleRequestButton.hidden =
+    !isAdmin || !isScheduled || hasCompletedInspection;
+
+  adminCancelRequestButton.hidden =
+    !isAdmin || !isScheduled || hasCompletedInspection;
+
+  if (hasCompletedInspection) {
+    rescheduleForm.hidden = true;
+  }
 
   acceptRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
 
@@ -2177,6 +2622,8 @@ function renderAll() {
   renderPhotos();
 
   renderObservations();
+
+  renderTechnicalResponsibility();
 
   renderFinalDocument();
 
@@ -2502,7 +2949,11 @@ function confirmSchedule() {
 function submitReschedule(event) {
   event.preventDefault();
 
-  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.status !== "agendada" ||
+    hasExecutedInspection()
+  ) {
     return;
   }
 
@@ -2589,9 +3040,101 @@ function submitReschedule(event) {
     },
   });
 }
-function buildFinalDocument(responsibleName) {
+async function loadLinkedInspectionForFinalDocument() {
+  if (currentRequest.tipoAtendimento !== "vistoria") {
+    return null;
+  }
+
+  const inspectionId = getLinkedInspectionId();
+
+  if (!inspectionId) {
+    return null;
+  }
+
+  const inspectionSnapshot = await getDoc(doc(db, "vistorias", inspectionId));
+
+  if (!inspectionSnapshot.exists()) {
+    return null;
+  }
+
+  const inspection = inspectionSnapshot.data();
+
+  const linkedOrderId = String(
+    inspection.ordemId || inspection.origem?.ordemId || "",
+  ).trim();
+
+  if (linkedOrderId && linkedOrderId !== currentRequest.documentId) {
+    throw new Error("INSPECTION_ORDER_MISMATCH");
+  }
+
+  const checklist = Array.isArray(inspection.checklist)
+    ? inspection.checklist.map((item) => ({
+        equipamentoId: String(item.equipamentoId || "").trim(),
+
+        nome: String(item.nome || "").trim(),
+
+        categoria: String(item.categoria || "").trim(),
+
+        resultado: String(item.resultado || "").trim(),
+
+        observacao: String(item.observacao || "").trim(),
+      }))
+    : [];
+
   return {
-    versao: 1,
+    id: inspectionSnapshot.id,
+
+    numero: Number(inspection.numero || 0),
+
+    codigo: String(
+      inspection.codigo || currentRequest.vistoria?.codigo || "",
+    ).trim(),
+
+    tecnico: {
+      uid: String(
+        inspection.tecnico?.uid || inspection.criadoPorUid || "",
+      ).trim(),
+
+      nome: String(
+        inspection.tecnico?.nome || inspection.criadoPorNome || "",
+      ).trim(),
+
+      email: String(inspection.tecnico?.email || "").trim(),
+    },
+
+    validadaEm:
+      inspection.validadaEm ||
+      inspection.atualizadoEm ||
+      inspection.criadoEm ||
+      null,
+
+    concluidaEm: inspection.validadaEm || inspection.atualizadoEm || null,
+
+    totalItens: Number(inspection.totalItens || checklist.length),
+
+    itensConcluidos: Number(inspection.itensConcluidos || checklist.length),
+
+    equipamentosAvaliados: Number(
+      inspection.equipamentosAvaliados ||
+        inspection.itensConcluidos ||
+        checklist.length,
+    ),
+
+    naoConformidades: Number(inspection.naoConformidades || 0),
+
+    pendenciasCriticas: Number(inspection.pendenciasCriticas || 0),
+
+    checklist,
+  };
+}
+
+function buildFinalDocument(
+  responsibleName,
+  inspectionData = null,
+  technicalResponsibility = {},
+) {
+  return {
+    versao: 3,
 
     ordemId: currentRequest.documentId,
 
@@ -2621,7 +3164,19 @@ function buildFinalDocument(responsibleName) {
       codigo: currentRequest.condominio?.codigo || "",
 
       nome: currentRequest.condominio?.nome || "",
+
+      cnpj: currentRequest.condominio?.cnpj || "",
     },
+
+    responsabilidadeTecnica: {
+      nome: String(technicalResponsibility.nome || "").trim(),
+
+      crea: String(technicalResponsibility.crea || "").trim(),
+
+      trt: String(technicalResponsibility.trt || "").trim(),
+    },
+
+    vistoria: inspectionData,
 
     categorias: [...currentRequest.categorias],
 
@@ -2655,11 +3210,71 @@ function buildFinalDocument(responsibleName) {
   };
 }
 /* =========================================
+   ABRIR OU INICIAR VISTORIA
+========================================= */
+
+function getLinkedInspectionId() {
+  return String(
+    currentRequest?.vistoria?.id || currentRequest?.vistoria?.vistoriaId || "",
+  ).trim();
+}
+
+function hasExecutedInspection() {
+  return (
+    currentRequest?.tipoAtendimento === "vistoria" &&
+    Boolean(getLinkedInspectionId())
+  );
+}
+
+function openInspectionExecution() {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.status !== "agendada" ||
+    currentRequest.tipoAtendimento !== "vistoria"
+  ) {
+    return;
+  }
+
+  const linkedInspectionId = getLinkedInspectionId();
+
+  const parameters = new URLSearchParams({
+    perfil: "admin",
+  });
+
+  if (linkedInspectionId) {
+    parameters.set("vistoria", linkedInspectionId);
+
+    parameters.set("modo", "consulta");
+  } else {
+    parameters.set("ordem", currentRequest.documentId);
+
+    parameters.set("modo", "execucao");
+  }
+
+  window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+}
+
+/* =========================================
    CONCLUIR ORDEM DE SERVIÇO
 ========================================= */
 
 function completeRequest() {
   if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+    return;
+  }
+
+  const technicalResponsibility = getTechnicalResponsibilityFormData();
+
+  if (!isTechnicalResponsibilityComplete(technicalResponsibility)) {
+    showFeedback("Informe o nome do Responsável Técnico.");
+
+    focusFirstMissingTechnicalField(technicalResponsibility);
+
+    technicalResponsibilityCard.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
     return;
   }
 
@@ -2678,6 +3293,38 @@ function completeRequest() {
         currentSession.email ||
         "Administrador";
 
+      let inspectionData = null;
+
+      if (currentRequest.tipoAtendimento === "vistoria") {
+        try {
+          inspectionData = await loadLinkedInspectionForFinalDocument();
+        } catch (error) {
+          console.error("[Detalhes] Vínculo da vistoria inválido:", error);
+
+          showFeedback(
+            "A vistoria vinculada não corresponde a esta Ordem de Serviço.",
+          );
+
+          return;
+        }
+
+        if (!inspectionData) {
+          showFeedback(
+            "A vistoria vinculada não foi encontrada. Abra ou execute a vistoria antes de concluir a OS.",
+          );
+
+          return;
+        }
+      }
+
+      const technicalRecord = {
+        ...technicalResponsibility,
+
+        atualizadoPorUid: currentSession.uid,
+
+        atualizadoEm: serverTimestamp(),
+      };
+
       const changes = {
         status: "concluida",
 
@@ -2687,7 +3334,13 @@ function completeRequest() {
 
         concluidaPorNome: responsibleName,
 
-        documentoFinal: buildFinalDocument(responsibleName),
+        responsabilidadeTecnica: technicalRecord,
+
+        documentoFinal: buildFinalDocument(
+          responsibleName,
+          inspectionData,
+          technicalResponsibility,
+        ),
       };
 
       if (currentRequest.tipoAtendimento === "vistoria") {
@@ -2705,7 +3358,11 @@ function completeRequest() {
 ========================================= */
 
 function cancelRequestByAdmin() {
-  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.status !== "agendada" ||
+    hasExecutedInspection()
+  ) {
     return;
   }
 
@@ -2863,6 +3520,12 @@ function openClientRegistration() {
 viewFinalDocumentButton.addEventListener("click", viewFinalDocumentPdf);
 
 downloadFinalDocumentButton.addEventListener("click", downloadFinalDocumentPdf);
+
+technicalResponsibilityForm.addEventListener(
+  "submit",
+  saveTechnicalResponsibility,
+);
+
 priorityInputs.forEach((input) => {
   input.addEventListener("change", () => {
     changePriority(input.value);
@@ -2879,6 +3542,10 @@ confirmScheduleButton.addEventListener("click", confirmSchedule);
 scheduledWhatsAppButton.addEventListener("click", contactScheduledClient);
 
 rescheduleRequestButton.addEventListener("click", () => {
+  if (hasExecutedInspection()) {
+    return;
+  }
+
   rescheduleDate.value = currentRequest.atendimento?.dataConfirmada || "";
 
   reschedulePeriod.value = currentRequest.atendimento?.periodoConfirmado || "";
@@ -2887,6 +3554,8 @@ rescheduleRequestButton.addEventListener("click", () => {
 
   openActionForm(rescheduleForm);
 });
+
+startInspectionButton.addEventListener("click", openInspectionExecution);
 
 completeRequestButton.addEventListener("click", completeRequest);
 

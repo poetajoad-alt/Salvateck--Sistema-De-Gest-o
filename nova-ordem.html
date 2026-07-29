@@ -21,7 +21,7 @@
 
   <!-- CSS global e CSS da página -->
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.5" />
+  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.6" />
 </head>
 
 <body data-page="nova-ordem" data-allowed-roles="admin,cliente">
@@ -102,7 +102,7 @@
 
     <form id="formNovaOrdem" class="order-form" novalidate>
 
-      <!-- Dados do cliente -->
+      <!-- Condomínio e responsável -->
       <section class="form-card" data-section="cliente">
 
         <div class="form-card__header">
@@ -114,14 +114,52 @@
           <div>
 
             <p class="form-card__eyebrow">
-              Identificação
+              Identificação do atendimento
             </p>
 
             <h2 class="form-card__title">
-              Cliente e Condomínio
+              Condomínio e responsável
             </h2>
 
           </div>
+
+        </div>
+
+        <div class="condominium-field" id="condominium-field">
+
+          <div class="condominium-field__header">
+
+            <div>
+
+              <span class="condominium-field__eyebrow">
+                Ativo principal
+              </span>
+
+              <strong>
+                Condomínio da ordem de serviço
+              </strong>
+
+            </div>
+
+            <span class="condominium-field__optional">
+              Obrigatório
+            </span>
+
+          </div>
+
+          <label class="form-label" for="condominioAtendimento">
+            Selecione o condomínio
+          </label>
+
+          <select id="condominioAtendimento" name="condominioAtendimento" class="input condominium-field__select" required disabled>
+            <option value="">
+              Carregando condomínios...
+            </option>
+          </select>
+
+          <p class="condominium-field__help" id="condominioAtendimentoAjuda">
+            Selecione o condomínio para continuar.
+          </p>
 
         </div>
 
@@ -129,24 +167,28 @@
         <div class="admin-only admin-client-search" hidden>
 
           <label class="form-label" for="buscarCliente">
-            Pesquisar cliente cadastrado
+            Responsável vinculado
           </label>
 
-          <div class="input-action">
+          <select id="buscarCliente" name="buscarCliente" class="input" disabled>
+            <option value="">
+              Selecione o condomínio primeiro
+            </option>
+          </select>
 
-            <input id="buscarCliente" name="buscarCliente" type="search" class="input" placeholder="Digite o nome ou telefone" autocomplete="off" />
+          <!-- Mantido oculto para compatibilidade temporária -->
+          <button type="button" id="btnBuscarCliente" hidden tabindex="-1" aria-hidden="true"></button>
 
-            <button type="button" class="input-action__button" id="btnBuscarCliente">
-              Buscar
-            </button>
-
-          </div>
-
-          <button type="button" class="text-button" id="btnNovoClienteRapido">
-            + Cadastrar novo cliente
-          </button>
+          <p class="form-help">
+            Os clientes vinculados ao condomínio serão carregados
+            automaticamente.
+          </p>
 
         </div>
+
+        <p class="form-label">
+          Solicitante ou responsável
+        </p>
 
         <div class="client-summary">
 
@@ -157,7 +199,7 @@
           <div class="client-summary__copy">
 
             <strong id="resumoNomeCliente">
-              Carregando dados...
+              Nenhum responsável selecionado
             </strong>
 
             <span id="resumoContatoCliente">
@@ -181,7 +223,7 @@
           <div class="form-group">
 
             <label class="form-label" for="nomeCliente">
-              Nome
+              Nome do solicitante
             </label>
 
             <input id="nomeCliente" name="nomeCliente" type="text" class="input" value="" readonly required />
@@ -211,46 +253,9 @@
         </div>
 
         <p class="form-help">
-          Os dados foram preenchidos com as informações da conta conectada. Alterações feitas aqui valem somente para esta solicitação.
+          O cliente será registrado como solicitante ou responsável pelo
+          atendimento. A ordem de serviço pertencerá ao condomínio.
         </p>
-
-        <div class="condominium-field" id="condominium-field">
-
-          <div class="condominium-field__header">
-
-            <div>
-
-              <span class="condominium-field__eyebrow">
-                Local vinculado
-              </span>
-
-              <strong>
-                Condomínio do atendimento
-              </strong>
-
-            </div>
-
-            <span class="condominium-field__optional">
-              Opcional
-            </span>
-
-          </div>
-
-          <label class="form-label" for="condominioAtendimento">
-            Selecione o condomínio
-          </label>
-
-          <select id="condominioAtendimento" name="condominioAtendimento" class="input condominium-field__select" disabled>
-            <option value="">
-              Carregando condomínios...
-            </option>
-          </select>
-
-          <p class="condominium-field__help" id="condominioAtendimentoAjuda">
-            Serão exibidos os condomínios vinculados ao cliente.
-          </p>
-
-        </div>
 
       </section>
 
@@ -440,7 +445,7 @@
             </p>
 
             <h2 class="form-card__title">
-              Selecione uma ou mais categorias
+              Selecione o tipo de atendimento
             </h2>
 
           </div>
@@ -448,104 +453,23 @@
         </div>
 
         <p class="form-card__description">
-          Marque todas as áreas relacionadas ao serviço que precisa.
+          Escolha entre manutenção geral ou vistoria técnica.
         </p>
 
         <div class="category-grid" id="category-grid">
 
           <label class="category-card">
 
-            <input type="checkbox" name="categorias" value="hidraulica" />
-
-            <span class="category-card__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11Z"></path>
-              </svg>
-            </span>
-
-            <span class="category-card__label">
-              Hidráulica
-            </span>
-
-          </label>
-
-          <label class="category-card">
-
-            <input type="checkbox" name="categorias" value="eletrica" />
-
-            <span class="category-card__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m13 2-7 12h6l-1 8 7-12h-6l1-8Z"></path>
-              </svg>
-            </span>
-
-            <span class="category-card__label">
-              Elétrica
-            </span>
-
-          </label>
-
-          <label class="category-card">
-
-            <input type="checkbox" name="categorias" value="pintura" />
-
-            <span class="category-card__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 4h11v5H4z"></path>
-                <path d="M15 6h3a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-5"></path>
-                <path d="M13 9v12"></path>
-              </svg>
-            </span>
-
-            <span class="category-card__label">
-              Pintura
-            </span>
-
-          </label>
-
-          <label class="category-card">
-
-            <input type="checkbox" name="categorias" value="alvenaria" />
-
-            <span class="category-card__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 5h8v5H3zM13 5h8v5h-8zM3 14h5v5H3zM10 14h11v5H10z"></path>
-              </svg>
-            </span>
-
-            <span class="category-card__label">
-              Alvenaria
-            </span>
-
-          </label>
-
-          <label class="category-card">
-
-            <input type="checkbox" name="categorias" value="instalacoes" />
-
-            <span class="category-card__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m14 6 4-4 4 4-4 4"></path>
-                <path d="m16 8-9.5 9.5a2.1 2.1 0 0 1-3-3L13 5"></path>
-              </svg>
-            </span>
-
-            <span class="category-card__label">
-              Instalações
-            </span>
-
-          </label>
-
-          <label class="category-card">
-
             <input type="checkbox" name="categorias" value="manutencao-geral" />
 
             <span class="category-card__icon">
+
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 20h16"></path>
                 <path d="M7 20V9l5-5 5 5v11"></path>
                 <path d="M10 20v-6h4v6"></path>
               </svg>
+
             </span>
 
             <span class="category-card__label">
@@ -553,6 +477,7 @@
             </span>
 
           </label>
+
           <label class="category-card">
 
             <input type="checkbox" name="categorias" value="vistoria" />
@@ -560,15 +485,10 @@
             <span class="category-card__icon">
 
               <svg viewBox="0 0 24 24" aria-hidden="true">
-
                 <path d="M9 5h6"></path>
-
                 <path d="M9 3h6v4H9z"></path>
-
                 <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
-
                 <path d="m8 14 2 2 5-5"></path>
-
               </svg>
 
             </span>
@@ -587,7 +507,7 @@
 
       </section>
 
-      <!-- Mini serviços -->
+      <!-- Descrição do serviço -->
       <section class="form-card" id="services-section" data-section="servicos">
 
         <div class="form-card__header">
@@ -599,11 +519,11 @@
           <div>
 
             <p class="form-card__eyebrow">
-              Detalhes do serviço
+              Detalhes do atendimento
             </p>
 
             <h2 class="form-card__title">
-              O que precisa ser feito?
+              Descrição do serviço
             </h2>
 
           </div>
@@ -611,29 +531,34 @@
         </div>
 
         <p class="form-card__description">
-          Os serviços aparecerão conforme as categorias selecionadas.
+          Descreva o que precisa ser feito, verificado, observado
+          ou avaliado pela equipe.
         </p>
 
-        <div class="service-placeholder" id="service-placeholder">
+        <div class="form-group">
 
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3v18M3 12h18"></path>
-          </svg>
+          <label class="form-label" for="descricaoServico">
+            O que a equipe precisa realizar?
+          </label>
 
-          <strong>
-            Selecione uma categoria acima
-          </strong>
+          <textarea id="descricaoServico" name="descricaoServico" class="input textarea" rows="6" minlength="10" maxlength="1200" required placeholder="Ex: Verificar o vazamento próximo à casa de bombas, identificar a origem e avaliar os reparos necessários."></textarea>
 
-          <span>
-            Depois você poderá marcar um ou mais serviços.
-          </span>
+          <div class="character-counter">
+
+            <span>
+              Campo obrigatório
+            </span>
+
+            <span id="service-description-counter">
+              0/1200
+            </span>
+
+          </div>
 
         </div>
 
-        <div class="selected-services" id="selected-services"></div>
-
         <p class="validation-message" id="service-error" hidden>
-          Selecione pelo menos um serviço.
+          Descreva o serviço com pelo menos 10 caracteres.
         </p>
 
       </section>
@@ -854,7 +779,7 @@
       </section>
 
       <!-- Observações -->
-      <section class="form-card" data-section="observacoes">
+      <section class="form-card admin-only" data-section="observacoes" hidden>
 
         <div class="form-card__header">
 
@@ -876,27 +801,7 @@
 
         </div>
 
-        <div class="form-group">
 
-          <label class="form-label" for="observacaoCliente">
-            Algo que a equipe precisa saber?
-          </label>
-
-          <textarea id="observacaoCliente" name="observacaoCliente" class="input textarea" rows="5" maxlength="600" placeholder="Ex: O vazamento aumenta quando o registro é aberto."></textarea>
-
-          <div class="character-counter">
-
-            <span>
-              Campo opcional
-            </span>
-
-            <span id="observation-counter">
-              0/600
-            </span>
-
-          </div>
-
-        </div>
 
         <!-- Apenas para o administrador -->
         <div class="admin-only admin-notes" hidden>
@@ -939,10 +844,6 @@
               <option value="em-analise">
                 Em análise
               </option>
-
-              <option value="agendado">
-                Agendado
-              </option>
             </select>
 
           </div>
@@ -979,11 +880,11 @@
           <div class="order-summary__item">
 
             <span>
-              Cliente
+              Condomínio
             </span>
 
-            <strong id="summary-client">
-              Cliente não informado
+            <strong id="summary-condominium">
+              Condomínio não selecionado
             </strong>
 
           </div>
@@ -991,11 +892,11 @@
           <div class="order-summary__item">
 
             <span>
-              Condomínio
+              Solicitante
             </span>
 
-            <strong id="summary-condominium">
-              Sem condomínio selecionado
+            <strong id="summary-client">
+              Solicitante não informado
             </strong>
 
           </div>
@@ -1027,11 +928,11 @@
           <div class="order-summary__item">
 
             <span>
-              Serviços
+              Descrição do serviço
             </span>
 
             <strong id="summary-services">
-              Nenhum selecionado
+              Descrição não informada
             </strong>
 
           </div>
@@ -1132,6 +1033,81 @@
   </main>
 
   <!-- =====================================
+     MODAL DE SELEÇÃO DE VISTORIA
+====================================== -->
+
+  <div class="inspection-link-modal" id="inspection-link-modal" aria-hidden="true" hidden>
+
+    <button type="button" class="inspection-link-modal__backdrop" data-close-inspection-link-modal tabindex="-1" aria-label="Fechar seleção de vistoria"></button>
+
+    <section class="inspection-link-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-link-modal-title" aria-describedby="inspection-link-modal-description">
+
+      <button type="button" class="inspection-link-modal__close" data-close-inspection-link-modal aria-label="Fechar">
+        ×
+      </button>
+
+      <span class="inspection-link-modal__icon" aria-hidden="true">
+
+        <svg viewBox="0 0 24 24">
+          <path d="M9 5h6"></path>
+          <path d="M9 3h6v4H9z"></path>
+          <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+          <path d="m8 14 2 2 5-5"></path>
+        </svg>
+
+      </span>
+
+      <span class="inspection-link-modal__eyebrow">
+        Vistoria validada
+      </span>
+
+      <h2 id="inspection-link-modal-title">
+        Selecione a vistoria
+      </h2>
+
+      <p id="inspection-link-modal-description">
+        Escolha uma vistoria concluída que ainda não possua uma Ordem de Serviço vinculada.
+      </p>
+
+      <div class="inspection-link-modal__loading" id="inspection-link-loading" hidden>
+        Carregando vistorias disponíveis...
+      </div>
+
+      <div class="inspection-link-modal__list" id="inspection-link-list"></div>
+
+      <div class="inspection-link-modal__empty" id="inspection-link-empty" hidden>
+
+        <strong>
+          Nenhuma vistoria disponível
+        </strong>
+
+        <p>
+          Todas as vistorias validadas já possuem uma Ordem de Serviço vinculada.
+        </p>
+
+      </div>
+
+      <p class="inspection-link-modal__error" id="inspection-link-error" hidden>
+        Selecione uma vistoria para continuar.
+      </p>
+
+      <div class="inspection-link-modal__actions">
+
+        <button type="button" class="inspection-link-modal__button inspection-link-modal__button--secondary" data-close-inspection-link-modal>
+          Voltar
+        </button>
+
+        <button type="button" class="inspection-link-modal__button inspection-link-modal__button--primary" id="confirm-inspection-link-button" disabled>
+          Usar vistoria
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
      MODAL DE EMERGÊNCIA
 ====================================== -->
 
@@ -1204,7 +1180,7 @@
     Solicitação enviada com sucesso!
   </div>
 
-  <script type="module" src="js/nova-ordem.js?v=1.0.9"></script>
+  <script type="module" src="js/nova-ordem.js?v=1.0.16"></script>
 </body>
 
 </html>

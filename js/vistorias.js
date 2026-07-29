@@ -85,6 +85,11 @@ const viewConfig = {
     title: "Vistorias concluídas no mês",
   },
 
+  validation: {
+    eyebrow: "Validação administrativa",
+    title: "Vistorias aguardando validação",
+  },
+
   overdue: {
     eyebrow: "Atenção necessária",
     title: "Vistorias atrasadas",
@@ -102,6 +107,8 @@ const summaryProgress = document.getElementById("summary-progress");
 const summaryCritical = document.getElementById("summary-critical");
 
 const summaryCompleted = document.getElementById("summary-completed");
+
+const summaryValidation = document.getElementById("summary-validation");
 
 const inspectionsOverviewHint = document.getElementById(
   "inspections-overview-hint",
@@ -292,19 +299,49 @@ async function loadInspectionOrdersFromFirestore() {
     where("tipoAtendimento", "==", "vistoria"),
   );
 
-  const snapshot = await getDocs(inspectionsQuery);
+  const [ordersSnapshot, inspectionsSnapshot] = await Promise.all([
+    getDocs(inspectionsQuery),
+    getDocs(collection(db, "vistorias")),
+  ]);
 
-  inspectionOrders = snapshot.docs
+  const independentInspections = inspectionsSnapshot.docs.map(
+    (documentSnapshot, index) =>
+      normalizeIndependentInspection(
+        {
+          id: documentSnapshot.id,
+          ...documentSnapshot.data(),
+        },
+        index,
+      ),
+  );
+
+  /*
+    Quando uma VST já estiver ligada a uma OS de vistoria,
+    exibimos o registro VST e evitamos duplicar a mesma
+    inspeção usando também o registro da coleção ordens.
+  */
+  const linkedOrderIds = new Set(
+    independentInspections
+      .map((inspection) => inspection.ordemId)
+      .filter(Boolean),
+  );
+
+  const orderInspections = ordersSnapshot.docs
     .map((documentSnapshot) => ({
       id: documentSnapshot.id,
       ...documentSnapshot.data(),
     }))
     .filter(isInspectionOrder)
+    .filter((order) => !linkedOrderIds.has(order.id))
     .map(normalizeInspectionOrder);
 
-  console.info(
-    `[Vistorias] ${inspectionOrders.length} vistoria(s) carregada(s) do Firestore.`,
-  );
+  inspectionOrders = [...orderInspections, ...independentInspections];
+
+  console.info("[Vistorias] Registros carregados:", {
+    vindasDeOrdens: orderInspections.length,
+    vistoriasIndependentes: independentInspections.length,
+    total: inspectionOrders.length,
+  });
 }
 
 function isInspectionOrder(order) {
@@ -440,6 +477,7 @@ function getInspectionObservation(order) {
     order.vistoria?.observacao ||
     order.observacoes?.interna ||
     order.observacoes?.cliente ||
+    order.observacao ||
     ""
   );
 }
@@ -453,6 +491,8 @@ function normalizeInspectionOrder(order, index) {
 
   return {
     original: order,
+
+    origemRegistro: "ordem",
 
     id: order.id || `ordem-vistoria-${index + 1}`,
 
@@ -505,6 +545,92 @@ function normalizeInspectionOrder(order, index) {
 
     statusOriginal:
       order.vistoria?.status || order.status || "nova-solicitacao",
+
+    validada: Boolean(
+      order.vistoria?.validada || order.vistoria?.status === "concluida",
+    ),
+
+    ordemVinculada: true,
+
+    ordemId: order.id || "",
+
+    codigoOS: order.codigo || "",
+  };
+}
+
+function normalizeIndependentInspection(inspection, index) {
+  const progress = clampNumber(inspection.progresso, 0, 100);
+
+  const addressData =
+    inspection.endereco || inspection.condominio?.endereco || {};
+
+  return {
+    original: inspection,
+
+    origemRegistro: "vistoria",
+
+    id: inspection.id || `vistoria-${index + 1}`,
+
+    codigo: inspection.codigo || `VST-${String(index + 1).padStart(4, "0")}`,
+
+    titulo: inspection.titulo || inspection.tipo || "Vistoria técnica",
+
+    tipo: getInspectionType(inspection),
+
+    prioridade: getInspectionPriority(inspection),
+
+    dataAgendada: inspection.validadaEm || inspection.criadoEm || "",
+
+    concluidaEm:
+      inspection.validadaEm ||
+      inspection.atualizadoEm ||
+      inspection.criadoEm ||
+      "",
+
+    condominioId: inspection.condominioId || inspection.condominio?.id || "",
+
+    condominio: inspection.condominio?.nome || "Condomínio não informado",
+
+    clienteId: inspection.clienteUid || inspection.cliente?.id || "",
+
+    cliente: inspection.cliente?.nome || "Cliente não informado",
+
+    nomePrincipal: inspection.condominio?.nome || "Vistoria sem identificação",
+
+    endereco: getAddressSummary({
+      endereco: addressData,
+    }),
+
+    responsavel:
+      inspection.tecnico?.nome ||
+      inspection.criadoPorNome ||
+      "Técnico não informado",
+
+    progresso: progress,
+
+    totalItens: Number(inspection.totalItens) || 0,
+
+    itensConcluidos: Number(inspection.itensConcluidos) || 0,
+
+    equipamentosAvaliados: Number(inspection.equipamentosAvaliados) || 0,
+
+    naoConformidades: Number(inspection.naoConformidades) || 0,
+
+    pendenciasCriticas: Number(inspection.pendenciasCriticas) || 0,
+
+    fotos: Number(inspection.quantidadeFotos) || 0,
+
+    observacao: getInspectionObservation(inspection),
+
+    statusOriginal: inspection.status || "concluida",
+
+    validada: inspection.validada === true,
+
+    ordemVinculada: inspection.ordemVinculada === true,
+
+    ordemId: inspection.ordemId || inspection.origem?.ordemId || "",
+
+    codigoOS: inspection.codigoOS || inspection.origem?.codigoOS || "",
   };
 }
 
@@ -520,6 +646,26 @@ function getStatusData(inspection) {
       grupo: "cancelled",
       nome: "Cancelada",
       classe: "status--cancelled",
+    };
+  }
+
+  if (inspection.origemRegistro === "vistoria" && inspection.ordemVinculada) {
+    return {
+      grupo: "completed",
+
+      nome: inspection.codigoOS
+        ? `Vinculada à ${inspection.codigoOS}`
+        : "Vinculada à OS",
+
+      classe: "status--completed",
+    };
+  }
+
+  if (inspection.origemRegistro === "vistoria" && inspection.validada) {
+    return {
+      grupo: "completed",
+      nome: "Validada — sem OS",
+      classe: "status--completed",
     };
   }
 
@@ -592,6 +738,15 @@ function updateSummary() {
   ).length;
 
   const pending = inspectionOrders.filter((inspection) => {
+    const requiresOrder =
+      inspection.origemRegistro === "vistoria" &&
+      !inspection.ordemVinculada &&
+      inspection.naoConformidades > 0;
+
+    if (requiresOrder) {
+      return true;
+    }
+
     const statusGroup = getStatusData(inspection).grupo;
 
     const isClosed = statusGroup === "completed" || statusGroup === "cancelled";
@@ -609,6 +764,11 @@ function updateSummary() {
       isCurrentMonth(inspection.concluidaEm),
   ).length;
 
+  const awaitingValidation = inspectionOrders.filter(
+    (inspection) =>
+      inspection.origemRegistro === "vistoria" && !inspection.ordemVinculada,
+  ).length;
+
   summaryScheduled.textContent = String(scheduled);
 
   summaryProgress.textContent = String(inProgress);
@@ -616,6 +776,8 @@ function updateSummary() {
   summaryCritical.textContent = String(pending);
 
   summaryCompleted.textContent = String(completed);
+
+  summaryValidation.textContent = String(awaitingValidation);
 }
 
 /* =========================================
@@ -795,7 +957,22 @@ function matchesCurrentView(inspection) {
     return true;
   }
 
+  if (currentView === "validation") {
+    return (
+      inspection.origemRegistro === "vistoria" && !inspection.ordemVinculada
+    );
+  }
+
   if (currentView === "pending") {
+    const requiresOrder =
+      inspection.origemRegistro === "vistoria" &&
+      !inspection.ordemVinculada &&
+      inspection.naoConformidades > 0;
+
+    if (requiresOrder) {
+      return true;
+    }
+
     const isClosed = statusGroup === "completed" || statusGroup === "cancelled";
 
     if (isClosed) {
@@ -1022,6 +1199,16 @@ function clearSearchAndFilters() {
    LINKS
 ========================================= */
 
+function createInspectionDetailsURL(inspection) {
+  const parameters = new URLSearchParams({
+    perfil: "admin",
+    vistoria: inspection.id,
+    modo: "consulta",
+  });
+
+  return `nova-vistoria.html?${parameters.toString()}`;
+}
+
 function createOrderDetailsURL(inspection) {
   const parameters = new URLSearchParams({
     perfil: "admin",
@@ -1138,11 +1325,22 @@ function createInspectionItem(inspection) {
 
   condominium.textContent = inspection.nomePrincipal;
 
+  const relationshipReference =
+    inspection.origemRegistro === "vistoria"
+      ? inspection.ordemVinculada
+        ? inspection.codigoOS
+          ? `Vinculada à ${inspection.codigoOS}`
+          : "Vinculada a uma OS"
+        : "Sem OS vinculada"
+      : "";
+
   reference.textContent =
     [
       inspection.cliente !== inspection.nomePrincipal ? inspection.cliente : "",
 
       inspection.endereco,
+
+      relationshipReference,
     ]
       .filter(Boolean)
       .join(" · ") || "Sem referência cadastrada";
@@ -1230,22 +1428,34 @@ function createInspectionItem(inspection) {
     toggleButton.setAttribute("aria-expanded", String(willOpen));
   });
 
-  viewAction.href = createOrderDetailsURL(inspection);
+  if (inspection.origemRegistro === "vistoria") {
+    viewAction.href = createInspectionDetailsURL(inspection);
 
-  viewAction.textContent = "Abrir OS";
+    viewAction.textContent = "Abrir vistoria";
 
-  continueAction.hidden = true;
+    viewAction.hidden = false;
 
-  const canGenerateCorrectiveOrder =
-    statusData.grupo === "completed" && inspection.naoConformidades > 0;
+    continueAction.hidden = true;
 
-  orderAction.hidden = !canGenerateCorrectiveOrder;
+    orderAction.hidden = true;
+  } else {
+    viewAction.href = createOrderDetailsURL(inspection);
 
-  orderAction.textContent = "Gerar OS corretiva";
+    viewAction.textContent = "Abrir OS";
 
-  orderAction.addEventListener("click", () => {
-    window.location.href = createCorrectiveOrderURL(inspection);
-  });
+    continueAction.hidden = true;
+
+    const canGenerateCorrectiveOrder =
+      statusData.grupo === "completed" && inspection.naoConformidades > 0;
+
+    orderAction.hidden = !canGenerateCorrectiveOrder;
+
+    orderAction.textContent = "Gerar OS corretiva";
+
+    orderAction.addEventListener("click", () => {
+      window.location.href = createCorrectiveOrderURL(inspection);
+    });
+  }
 
   return fragment;
 }

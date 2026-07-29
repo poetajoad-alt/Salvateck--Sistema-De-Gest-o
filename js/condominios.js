@@ -1909,11 +1909,11 @@ function abrirNovaOrdem(condominio) {
 function abrirNovaVistoria(condominio) {
   const parametros = new URLSearchParams({
     perfil: "admin",
-    tipo: "vistoria",
     condominio: condominio.id,
+    origem: "condominio",
   });
 
-  window.location.href = `nova-ordem.html?${parametros.toString()}`;
+  window.location.href = `nova-vistoria.html?${parametros.toString()}`;
 }
 /* =========================================
    ATIVAÇÃO VISUAL DO CONDOMÍNIO

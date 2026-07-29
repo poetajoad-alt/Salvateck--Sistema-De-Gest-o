@@ -1,0 +1,393 @@
+/* =========================================
+   NOVA VISTORIA
+========================================= */
+
+.inspection-condominium-summary {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 20px;
+  border: 1px solid rgba(13, 56, 97, 0.12);
+  border-radius: 18px;
+  background: rgba(13, 56, 97, 0.04);
+}
+
+.inspection-condominium-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.inspection-condominium-summary span,
+.inspection-summary-item span {
+  color: #68717c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.inspection-condominium-summary strong {
+  color: #0d3861;
+  font-size: 1rem;
+}
+
+.inspection-condominium-summary p,
+.inspection-condominium-summary small {
+  margin: 0;
+  color: #5d6670;
+  line-height: 1.55;
+}
+
+.inspection-client-summary {
+  margin-top: 18px;
+}
+
+.inspection-checklist-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 36px 20px;
+  border: 1px dashed rgba(13, 56, 97, 0.25);
+  border-radius: 20px;
+  background: rgba(13, 56, 97, 0.025);
+  text-align: center;
+}
+
+.inspection-checklist-empty__icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 17px;
+  background: rgba(221, 154, 23, 0.16);
+  color: #0d3861;
+}
+
+.inspection-checklist-empty__icon svg {
+  width: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.inspection-checklist-empty strong {
+  color: #0d3861;
+  font-size: 1rem;
+}
+
+.inspection-checklist-empty p {
+  max-width: 420px;
+  margin: 0;
+  color: #68717c;
+  line-height: 1.55;
+}
+
+.inspection-checklist {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.inspection-checklist-item {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(13, 56, 97, 0.12);
+  border-radius: 18px;
+  background: #ffffff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.inspection-checklist-item.is-ok {
+  border-color: rgba(36, 139, 88, 0.35);
+  background: rgba(36, 139, 88, 0.035);
+}
+
+.inspection-checklist-item.needs-adjustment {
+  border-color: rgba(221, 154, 23, 0.55);
+  background: rgba(221, 154, 23, 0.055);
+}
+
+.inspection-checklist-item__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.inspection-checklist-item__heading > div {
+  display: grid;
+  gap: 5px;
+}
+
+.inspection-checklist-item__heading span {
+  color: #68717c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.inspection-checklist-item__heading strong {
+  color: #0d3861;
+  font-size: 1rem;
+}
+
+.inspection-checklist-item__heading
+  > .inspection-checklist-item__heading-actions {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 8px;
+}
+
+.inspection-checklist-item__toggle {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  color: #0d3861;
+  background-color: rgba(13, 56, 97, 0.07);
+  border: 1px solid rgba(13, 56, 97, 0.12);
+  border-radius: 50%;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.inspection-checklist-item__toggle:hover {
+  background-color: rgba(221, 154, 23, 0.18);
+}
+
+.inspection-checklist-item__toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.inspection-checklist-item__toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.inspection-checklist-item__status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(13, 56, 97, 0.08);
+  color: #0d3861;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.inspection-checklist-item.is-ok .inspection-checklist-item__status {
+  background: rgba(36, 139, 88, 0.14);
+  color: #17653e;
+}
+
+.inspection-checklist-item.needs-adjustment .inspection-checklist-item__status {
+  background: rgba(221, 154, 23, 0.2);
+  color: #805500;
+}
+
+.inspection-checklist-item__details {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.inspection-checklist-item__details[hidden] {
+  display: none;
+}
+
+.inspection-checklist-item__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inspection-checklist-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.inspection-checklist-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inspection-checklist-option span {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid rgba(13, 56, 97, 0.16);
+  border-radius: 13px;
+  background: #ffffff;
+  color: #33404d;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.inspection-checklist-option input[value="ok"]:checked + span {
+  border-color: rgba(36, 139, 88, 0.52);
+  background: rgba(36, 139, 88, 0.12);
+  color: #17653e;
+}
+
+.inspection-checklist-option input[value="precisa-ajuste"]:checked + span {
+  border-color: rgba(221, 154, 23, 0.65);
+  background: rgba(221, 154, 23, 0.16);
+  color: #805500;
+}
+
+.inspection-checklist-observation {
+  display: grid;
+  gap: 8px;
+}
+
+.inspection-checklist-observation[hidden] {
+  display: none;
+}
+
+.inspection-checklist-observation span {
+  color: #0d3861;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.inspection-checklist-observation textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 13px 14px;
+  border: 1px solid rgba(13, 56, 97, 0.16);
+  border-radius: 13px;
+  outline: none;
+  color: #2b2f33;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.inspection-checklist-observation textarea:focus {
+  border-color: #0d3861;
+  box-shadow: 0 0 0 3px rgba(13, 56, 97, 0.08);
+}
+
+.inspection-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.inspection-summary-item {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  border: 1px solid rgba(13, 56, 97, 0.1);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.inspection-summary-item strong {
+  color: #0d3861;
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
+.inspection-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-bottom: 34px;
+}
+
+.inspection-cancel-button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+  color: #0d3861;
+  background-color: #dd9a17;
+  box-shadow: 0 10px 22px rgba(4, 26, 47, 0.22);
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.inspection-cancel-button:hover {
+  background-color: #e7a51d;
+  box-shadow: 0 13px 26px rgba(4, 26, 47, 0.28);
+  transform: translateY(-1px);
+}
+
+.inspection-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 640px) {
+  .inspection-checklist-item__heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .inspection-checklist-item__heading
+    > .inspection-checklist-item__heading-actions {
+    display: grid;
+    justify-items: end;
+    align-content: center;
+    gap: 8px;
+  }
+
+  .inspection-checklist-item__status {
+    white-space: nowrap;
+  }
+
+  .inspection-checklist-item__options {
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-cancel-button,
+  .inspection-form-actions button {
+    width: 100%;
+  }
+}

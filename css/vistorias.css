@@ -291,7 +291,7 @@ a {
 
 .inspections-overview {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 
   margin-top: 18px;
 
@@ -353,6 +353,10 @@ a {
 
 .overview-item--warning strong {
   color: var(--inspection-red);
+}
+
+.overview-item--validation strong {
+  color: var(--inspection-yellow);
 }
 
 /* =========================================
@@ -1464,11 +1468,16 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .overview-item:nth-child(2)::after {
+  .overview-item--validation {
+    grid-column: 1 / -1;
+  }
+
+  .overview-item:nth-child(2)::after,
+  .overview-item:nth-child(4)::after {
     display: none;
   }
 
-  .overview-item:nth-child(-n + 2) {
+  .overview-item:nth-child(-n + 4) {
     border-bottom: 1px solid rgba(43, 47, 51, 0.1);
   }
 

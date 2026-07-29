@@ -18,13 +18,12 @@ service cloud.firestore {
     }
 
     function eAdministrador() {
-      return estaAutenticado()
-        && exists(
-          /databases/$(database)/documents/usuarios/$(request.auth.uid)
-        )
-        && usuarioAtual().role == "admin"
-        && usuarioAtual().ativo == true;
-    }
+  return estaAutenticado()
+    && exists(
+      /databases/$(database)/documents/usuarios/$(request.auth.uid)
+    )
+    && usuarioAtual().role == "admin";
+}
 
     function contadorOrdensDepois() {
       return getAfter(
@@ -32,10 +31,34 @@ service cloud.firestore {
       ).data;
     }
 
-    function ordemDepois(ordemId) {
+        function ordemDepois(ordemId) {
       return getAfter(
         /databases/$(database)/documents/ordens/$(ordemId)
       ).data;
+    }
+
+    function dadosCondominio(condominioId) {
+      return get(
+        /databases/$(database)/documents/condominios/$(condominioId)
+      ).data;
+    }
+
+    function condominioVinculadoAoCliente(condominioId) {
+      return estaAutenticado()
+
+        && condominioId is string
+        && condominioId != ""
+
+        && exists(
+          /databases/$(database)/documents/condominios/$(condominioId)
+        )
+
+        && "clientesIds" in dadosCondominio(condominioId)
+
+        && dadosCondominio(condominioId).clientesIds is list
+
+        && request.auth.uid
+          in dadosCondominio(condominioId).clientesIds;
     }
 
     /* =====================================
@@ -88,10 +111,22 @@ service cloud.firestore {
     ===================================== */
 
     match /ordens/{ordemId} {
-      allow read: if eAdministrador()
+            allow read: if eAdministrador()
         || (
           estaAutenticado()
-          && resource.data.clienteUid == request.auth.uid
+
+          && (
+            resource.data.clienteUid == request.auth.uid
+
+            || (
+              "clientesAutorizadosIds" in resource.data
+
+              && resource.data.clientesAutorizadosIds is list
+
+              && request.auth.uid
+                in resource.data.clientesAutorizadosIds
+            )
+          )
         );
 
       allow create: if eAdministrador()
@@ -108,7 +143,9 @@ service cloud.firestore {
             "perfilCriador",
             "criadoPorUid",
             "criadoPorNome",
-            "clienteUid",
+                        "clienteUid",
+            "condominioId",
+            "clientesAutorizadosIds",
             "tipoAtendimento",
             "categoriaPrincipal",
             "servicoPrincipal",
@@ -135,8 +172,55 @@ service cloud.firestore {
           && request.resource.data.numero is int
           && request.resource.data.numero > 0
 
-          && request.resource.data.clienteUid == request.auth.uid
+                    && request.resource.data.clienteUid == request.auth.uid
           && request.resource.data.criadoPorUid == request.auth.uid
+
+          && request.resource.data.condominioId is string
+          && request.resource.data.condominioId != ""
+
+          && condominioVinculadoAoCliente(
+            request.resource.data.condominioId
+          )
+
+          && request.resource.data.clientesAutorizadosIds is list
+
+          && request.auth.uid
+            in request.resource.data.clientesAutorizadosIds
+
+          && request.resource.data.clientesAutorizadosIds.hasAll(
+            dadosCondominio(
+              request.resource.data.condominioId
+            ).clientesIds
+          )
+
+          && request.resource.data.clientesAutorizadosIds.hasOnly(
+            dadosCondominio(
+              request.resource.data.condominioId
+            ).clientesIds
+          )
+
+          && request.resource.data.condominio is map
+
+          && request.resource.data.condominio.keys().hasAll([
+            "id",
+            "codigo",
+            "nome",
+            "cnpj"
+          ])
+
+          && request.resource.data.condominio.keys().hasOnly([
+            "id",
+            "codigo",
+            "nome",
+            "cnpj"
+          ])
+
+          && request.resource.data.condominio.id
+            == request.resource.data.condominioId
+
+          && request.resource.data.condominio.codigo is string
+          && request.resource.data.condominio.nome is string
+          && request.resource.data.condominio.cnpj is string
 
           && request.resource.data.cliente is map
           && request.resource.data.cliente.id == request.auth.uid
@@ -340,16 +424,14 @@ service cloud.firestore {
     ===================================== */
 
     match /condominios/{condominioId} {
-      allow read: if eAdministrador()
-        || (
-          estaAutenticado()
-          && "clientesIds" in resource.data
-          && resource.data.clientesIds is list
-          && request.auth.uid in resource.data.clientesIds
-        );
+  allow read: if eAdministrador()
+    || (
+      estaAutenticado()
+      && request.auth.uid in resource.data.clientesIds
+    );
 
-      allow create, update, delete: if eAdministrador();
-    }
+  allow create, update, delete: if eAdministrador();
+}
 
     /* =====================================
        FINANCEIRO

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Criação e execução de vistoria técnica da Salvateck" />
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Nova Vistoria | Salvateck</title>
+
+  <!-- Fonte Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- CSS global e CSS da página -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.5" />
+  <link rel="stylesheet" href="css/nova-vistoria.css?v=1.0.1" />
+</head>
+
+<body data-page="nova-vistoria" data-profile="admin" data-allowed-roles="admin">
+
+  <main class="order-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="order-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" id="inspection-back-link" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="order-header__content">
+
+        <p class="order-header__eyebrow">
+          Controle preventivo
+        </p>
+
+        <h1 class="order-header__title" id="inspection-page-title">
+          Nova Vistoria
+        </h1>
+
+      </div>
+
+      <div class="order-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="order-intro">
+
+      <div class="order-intro__copy">
+
+        <span class="order-intro__badge">
+          Execução técnica
+        </span>
+
+        <h2 id="inspection-intro-title">
+          Inicie uma vistoria no condomínio
+        </h2>
+
+        <p id="inspection-intro-description">
+          Selecione o condomínio, confirme o responsável e avalie os
+          equipamentos cadastrados no local.
+        </p>
+
+      </div>
+
+      <div class="order-progress">
+
+        <div class="order-progress__top">
+
+          <span id="progress-label">
+            Etapa inicial
+          </span>
+
+          <strong id="progress-value">
+            0%
+          </strong>
+
+        </div>
+
+        <div class="order-progress__track" aria-hidden="true">
+          <span id="progress-bar"></span>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         FORMULÁRIO
+    ====================================== -->
+
+    <form id="formNovaVistoria" class="order-form" novalidate>
+
+      <!-- =====================================
+           CONDOMÍNIO E RESPONSÁVEL
+      ====================================== -->
+
+      <section class="form-card" data-section="identificacao">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            1
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Identificação da vistoria
+            </p>
+
+            <h2 class="form-card__title">
+              Condomínio e responsável
+            </h2>
+
+          </div>
+
+        </div>
+
+        <div class="inspection-condominium-summary" id="inspection-order-summary" hidden>
+
+          <div>
+
+            <span>
+              Ordem de serviço vinculada
+            </span>
+
+            <strong id="inspection-order-code">
+              OS não informada
+            </strong>
+
+          </div>
+
+          <p id="inspection-order-title">
+            Vistoria técnica
+          </p>
+
+          <small id="inspection-order-status">
+            Atendimento agendado
+          </small>
+
+        </div>
+
+        <div class="condominium-field" id="condominium-field">
+
+          <div class="condominium-field__header">
+
+            <div>
+
+              <span class="condominium-field__eyebrow">
+                Ativo principal
+              </span>
+
+              <strong>
+                Condomínio da vistoria
+              </strong>
+
+            </div>
+
+            <span class="condominium-field__optional">
+              Obrigatório
+            </span>
+
+          </div>
+
+          <label class="form-label" for="condominioVistoria">
+            Selecione o condomínio
+          </label>
+
+          <select id="condominioVistoria" name="condominioVistoria" class="input condominium-field__select" required disabled>
+
+            <option value="">
+              Carregando condomínios...
+            </option>
+
+          </select>
+
+          <p class="condominium-field__help" id="condominioVistoriaAjuda">
+            Selecione o condomínio para carregar os responsáveis e os
+            equipamentos.
+          </p>
+
+        </div>
+
+        <div class="admin-client-search">
+
+          <label class="form-label" for="responsavelVistoria">
+            Responsável vinculado
+          </label>
+
+          <select id="responsavelVistoria" name="responsavelVistoria" class="input" required disabled>
+
+            <option value="">
+              Selecione o condomínio primeiro
+            </option>
+
+          </select>
+
+          <p class="form-help">
+            Somente os clientes vinculados ao condomínio serão apresentados.
+          </p>
+
+        </div>
+
+        <div class="client-summary inspection-client-summary" id="responsavelResumo" hidden>
+
+          <div class="client-summary__avatar" id="responsavelAvatar">
+            CL
+          </div>
+
+          <div class="client-summary__copy">
+
+            <strong id="responsavelNome">
+              Nenhum responsável selecionado
+            </strong>
+
+            <span id="responsavelTelefone">
+              Telefone não informado
+            </span>
+
+            <span id="responsavelEmail">
+              E-mail não informado
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="inspection-condominium-summary" id="condominioResumo" hidden>
+
+          <div>
+
+            <span>
+              Condomínio selecionado
+            </span>
+
+            <strong id="condominioResumoNome">
+              Condomínio não informado
+            </strong>
+
+          </div>
+
+          <p id="condominioResumoEndereco">
+            Endereço não informado
+          </p>
+
+          <small id="condominioResumoCnpj">
+            CNPJ não informado
+          </small>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           CHECKLIST
+      ====================================== -->
+
+      <section class="form-card" data-section="checklist">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            2
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Avaliação técnica
+            </p>
+
+            <h2 class="form-card__title">
+              Checklist de equipamentos
+            </h2>
+
+          </div>
+
+        </div>
+
+        <p class="form-help">
+          Os equipamentos cadastrados no condomínio serão copiados para esta
+          vistoria e permanecerão registrados no histórico.
+        </p>
+
+        <div class="inspection-checklist-empty" id="checklist-empty">
+
+          <span class="inspection-checklist-empty__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5h6"></path>
+              <path d="M9 3h6v4H9z"></path>
+              <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+              <path d="m8 14 2 2 5-5"></path>
+            </svg>
+
+          </span>
+
+          <strong>
+            Nenhum equipamento carregado
+          </strong>
+
+          <p>
+            Selecione o condomínio para iniciar o checklist.
+          </p>
+
+        </div>
+
+        <div class="inspection-checklist" id="checklist-list" hidden></div>
+
+      </section>
+
+      <!-- =====================================
+           RESUMO
+      ====================================== -->
+
+      <section class="form-card" data-section="resumo">
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            3
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Conferência
+            </p>
+
+            <h2 class="form-card__title">
+              Resumo da vistoria
+            </h2>
+
+          </div>
+
+        </div>
+
+        <div class="inspection-summary-grid">
+
+          <div class="inspection-summary-item">
+
+            <span>
+              Condomínio
+            </span>
+
+            <strong id="summary-condominium">
+              Não selecionado
+            </strong>
+
+          </div>
+
+          <div class="inspection-summary-item">
+
+            <span>
+              Responsável
+            </span>
+
+            <strong id="summary-client">
+              Não selecionado
+            </strong>
+
+          </div>
+
+          <div class="inspection-summary-item">
+
+            <span>
+              Equipamentos
+            </span>
+
+            <strong id="summary-equipment">
+              0 equipamentos
+            </strong>
+
+          </div>
+
+          <div class="inspection-summary-item">
+
+            <span>
+              Avaliados
+            </span>
+
+            <strong id="summary-evaluated">
+              0 de 0
+            </strong>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================
+           AÇÕES
+      ====================================== -->
+
+      <div class="inspection-form-actions">
+
+        <a href="principal.html?perfil=admin" class="inspection-cancel-button">
+          Cancelar
+        </a>
+
+        <button type="submit" class="button button--primary" id="btnSalvarVistoria" disabled>
+          Salvar vistoria
+        </button>
+
+      </div>
+
+    </form>
+
+    <p class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></p>
+
+  </main>
+
+  <script type="module" src="js/nova-vistoria.js?v=1.0.5"></script>
+
+</body>
+
+</html>
