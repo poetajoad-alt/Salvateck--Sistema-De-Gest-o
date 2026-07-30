@@ -323,34 +323,319 @@
   padding-bottom: 34px;
 }
 
-.inspection-cancel-button {
+.inspection-cancel-button,
+.inspection-form-actions .button--primary {
+  flex: 1 1 0;
+  min-height: 58px;
+
   display: inline-flex;
-  min-height: 48px;
   align-items: center;
   justify-content: center;
-  padding: 0 22px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 14px;
-  color: #0d3861;
-  background-color: #dd9a17;
-  box-shadow: 0 10px 22px rgba(4, 26, 47, 0.22);
+
+  padding: 0 24px;
+
+  cursor: pointer;
+
+  font-size: 0.9rem;
   font-weight: 800;
+  text-align: center;
   text-decoration: none;
+
+  border-radius: 999px;
+
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.inspection-cancel-button {
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 1px solid #dd9a17;
+
+  box-shadow: 0 10px 22px rgba(4, 26, 47, 0.22);
 }
 
 .inspection-cancel-button:hover {
+  color: #0d3861;
   background-color: #e7a51d;
+
   box-shadow: 0 13px 26px rgba(4, 26, 47, 0.28);
+
+  transform: translateY(-1px);
+}
+
+.inspection-form-actions .button--primary {
+  color: #ffffff;
+  background-color: #248b58;
+
+  border: 1px solid #248b58;
+
+  box-shadow: 0 10px 22px rgba(36, 139, 88, 0.28);
+}
+
+.inspection-form-actions .button--primary:hover {
+  color: #ffffff;
+  background-color: #17653e;
+
+  border-color: #17653e;
+
+  box-shadow: 0 13px 26px rgba(36, 139, 88, 0.34);
+
   transform: translateY(-1px);
 }
 
 .inspection-form-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* =========================================
+   EXPORTAÇÃO DO PDF DA VISTORIA
+========================================= */
+
+.inspection-export-button[hidden] {
+  display: none !important;
+}
+
+.inspection-export-button {
+  flex: 1 0 100%;
+  min-height: 58px;
+
+  color: #ffffff;
+  background: linear-gradient(135deg, #1b73c7 0%, #145a9b 100%);
+
+  border: 1px solid #2b84d6;
+  border-radius: 999px;
+
+  box-shadow:
+    0 10px 22px rgba(4, 26, 47, 0.28),
+    0 0 0 3px rgba(27, 115, 199, 0.12);
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.inspection-export-button:hover {
+  color: #ffffff;
+  background: linear-gradient(135deg, #2484dc 0%, #1b73c7 100%);
+
+  box-shadow:
+    0 14px 28px rgba(4, 26, 47, 0.34),
+    0 0 0 4px rgba(27, 115, 199, 0.18);
+
+  transform: translateY(-2px);
+}
+
+.inspection-export-button:active {
+  transform: scale(0.98);
+}
+/* =========================================
+   MODAL DO PDF DA VISTORIA
+========================================= */
+
+.inspection-pdf-modal[hidden] {
+  display: none !important;
+}
+
+.inspection-pdf-modal {
+  position: fixed;
+  z-index: 2200;
+  inset: 0;
+
+  display: grid;
+  place-items: center;
+
+  padding: 20px;
+}
+
+.inspection-pdf-modal__backdrop {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  background-color: rgba(4, 26, 47, 0.78);
+
+  border: 0;
+
+  backdrop-filter: blur(6px);
+}
+
+.inspection-pdf-modal__dialog {
+  position: relative;
+  z-index: 1;
+
+  width: min(100%, 540px);
+  max-height: calc(100vh - 40px);
+
+  overflow-y: auto;
+
+  padding: clamp(26px, 6vw, 36px);
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(221, 154, 23, 0.46);
+  border-radius: 25px;
+
+  box-shadow: 0 25px 65px rgba(4, 26, 47, 0.46);
+}
+
+.inspection-pdf-modal__close {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 1.35rem;
+  line-height: 1;
+
+  color: #687077;
+  background-color: #edf0f2;
+
+  border: 0;
+  border-radius: 50%;
+}
+
+.inspection-pdf-modal__eyebrow {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+
+  color: #9a6a0d;
+}
+
+.inspection-pdf-modal h2 {
+  margin: 0;
+
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 800;
+  line-height: 1.2;
+
+  color: #0d3861;
+}
+
+.inspection-pdf-modal__dialog > p {
+  margin: 13px 0 0;
+
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.65;
+
+  color: #626970;
+}
+
+.inspection-pdf-modal__warning {
+  display: grid;
+  gap: 7px;
+
+  margin-top: 22px;
+  padding: 17px;
+
+  background-color: rgba(221, 154, 23, 0.12);
+
+  border: 1px solid rgba(221, 154, 23, 0.32);
+  border-left: 4px solid #dd9a17;
+  border-radius: 16px;
+}
+
+.inspection-pdf-modal__warning strong {
+  font-size: 0.78rem;
+  line-height: 1.45;
+
+  color: #0d3861;
+}
+
+.inspection-pdf-modal__warning span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.55;
+
+  color: #5d6670;
+}
+
+.inspection-pdf-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.45fr;
+  gap: 10px;
+
+  margin-top: 23px;
+}
+
+.inspection-pdf-modal__button {
+  min-height: 52px;
+
+  padding: 0 16px;
+
+  cursor: pointer;
+
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+
+  border-radius: 999px;
+
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.inspection-pdf-modal__button:active {
+  transform: scale(0.98);
+}
+
+.inspection-pdf-modal__button--secondary {
+  color: #0d3861;
+  background-color: #edf0f2;
+
+  border: 1px solid rgba(13, 56, 97, 0.16);
+}
+
+.inspection-pdf-modal__button--primary {
+  color: #ffffff;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.5);
+
+  box-shadow: 0 9px 20px rgba(13, 56, 97, 0.24);
+}
+
+.inspection-pdf-modal__button--primary:hover {
+  color: #0d3861;
+  background-color: #dd9a17;
+}
+
+body.inspection-pdf-modal-open {
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
@@ -389,5 +674,9 @@
   .inspection-cancel-button,
   .inspection-form-actions button {
     width: 100%;
+  }
+
+  .inspection-pdf-modal__actions {
+    grid-template-columns: 1fr;
   }
 }

@@ -495,6 +495,17 @@ function showFeedback(message, type = "success") {
   }, 3500);
 }
 
+function scrollToElement(element) {
+  if (!element) {
+    return;
+  }
+
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+}
+
 function sanitizePhoneNumber(value) {
   return String(value || "").replace(/\D/g, "");
 }

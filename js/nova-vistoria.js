@@ -198,6 +198,20 @@ const inspectionOrderStatus = document.getElementById(
   "inspection-order-status",
 );
 
+const exportInspectionPdfButton = document.getElementById(
+  "btnExportarPdfVistoria",
+);
+
+const inspectionPdfModal = document.getElementById("inspection-pdf-modal");
+
+const confirmInspectionPdfButton = document.getElementById(
+  "confirm-inspection-pdf-button",
+);
+
+const closeInspectionPdfModalButtons = document.querySelectorAll(
+  "[data-close-inspection-pdf-modal]",
+);
+
 /* =========================================
    ESTADO
 ========================================= */
@@ -215,6 +229,10 @@ let availableResponsibleClients = [];
 let checklistItems = [];
 
 let currentLinkedOrder = null;
+
+let currentInspectionDocument = null;
+
+let generatingInspectionPdf = false;
 
 let feedbackTimeout;
 
@@ -610,6 +628,12 @@ async function loadExistingInspection(inspectionId) {
 
   const inspection = inspectionSnapshot.data();
 
+  currentInspectionDocument = {
+    ...inspection,
+
+    id: inspectionSnapshot.id,
+  };
+
   selectedCondominium = {
     id: inspection.condominio?.id || inspection.condominioId || "",
 
@@ -688,9 +712,56 @@ async function loadExistingInspection(inspectionId) {
     field.disabled = true;
   });
 
-  saveInspectionButton.disabled = true;
+  const linkedOrderId = String(
+    inspection.ordemId || inspection.origem?.ordemId || "",
+  ).trim();
+
+  const hasLinkedOrder = inspection.ordemVinculada === true;
+
+  saveInspectionButton.type = "button";
 
   saveInspectionButton.textContent = inspection.codigo || "Vistoria validada";
+
+  saveInspectionButton.onclick = null;
+
+  if (hasLinkedOrder && linkedOrderId) {
+    saveInspectionButton.disabled = false;
+
+    saveInspectionButton.onclick = () => {
+      window.location.href = `detalhes-solicitacao.html?id=${encodeURIComponent(
+        linkedOrderId,
+      )}`;
+    };
+  } else if (hasLinkedOrder) {
+    saveInspectionButton.disabled = true;
+
+    saveInspectionButton.textContent = "OS vinculada não identificada";
+  } else {
+    saveInspectionButton.disabled = false;
+
+    saveInspectionButton.onclick = () => {
+      const parameters = new URLSearchParams({
+        perfil: "admin",
+        tipo: "vistoria",
+        origem: "vistoria",
+        vistoria: inspectionSnapshot.id,
+      });
+
+      if (selectedCondominium.id) {
+        parameters.set("condominio", selectedCondominium.id);
+      }
+
+      if (selectedResponsible.uid) {
+        parameters.set("cliente", selectedResponsible.uid);
+      }
+
+      window.location.href = `nova-ordem.html?${parameters.toString()}`;
+    };
+  }
+
+  if (exportInspectionPdfButton) {
+    exportInspectionPdfButton.hidden = false;
+  }
 
   const pageTitle = document.getElementById("inspection-page-title");
 
@@ -1889,7 +1960,669 @@ async function handleSubmit(event) {
     showFeedback("Não foi possível salvar a vistoria.", "error");
   }
 }
+/* =========================================
+   PDF DA VISTORIA
+========================================= */
 
+const INSPECTION_PDF_COLORS = {
+  navy: [13, 56, 97],
+  gold: [221, 154, 23],
+  green: [36, 139, 88],
+  dark: [43, 47, 51],
+  gray: [98, 106, 113],
+  lightGray: [243, 246, 248],
+  border: [217, 224, 228],
+  white: [249, 249, 249],
+  paleGreen: [239, 248, 243],
+  paleGold: [255, 248, 231],
+};
+
+function sanitizeInspectionPdfText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[–—]/g, "-")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/•/g, "-")
+    .trim();
+}
+
+function formatInspectionPdfDate(value) {
+  if (!value) {
+    return "Não informada";
+  }
+
+  let date = value;
+
+  if (typeof value.toDate === "function") {
+    date = value.toDate();
+  } else if (!(value instanceof Date)) {
+    date = new Date(value);
+  }
+
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "Não informada";
+  }
+
+  return date.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function getInspectionPdfFileName() {
+  const code = sanitizeInspectionPdfText(
+    currentInspectionDocument?.codigo || "VST",
+  );
+
+  return `Salvateck-${code}-vistoria-tecnica.pdf`;
+}
+
+function drawInspectionPdfHeader(pdf, code, compact = false) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const headerHeight = compact ? 22 : 34;
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.rect(0, 0, pageWidth, headerHeight, "F");
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.gold);
+
+  pdf.rect(0, headerHeight, pageWidth, 2, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(compact ? 13 : 18);
+
+  pdf.text("SALVATECK", 16, compact ? 12 : 14);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(compact ? 8 : 10);
+
+  pdf.text(
+    compact ? "Relatório de Vistoria Técnica" : "RELATÓRIO DE VISTORIA TÉCNICA",
+    16,
+    compact ? 17 : 22,
+  );
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.gold);
+
+  pdf.roundedRect(pageWidth - 52, compact ? 6 : 10, 36, 11, 3, 3, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9);
+
+  pdf.text(code, pageWidth - 34, compact ? 13 : 17, {
+    align: "center",
+  });
+
+  return headerHeight + 10;
+}
+
+function ensureInspectionPdfSpace(pdf, y, requiredHeight, code) {
+  if (y + requiredHeight <= 278) {
+    return y;
+  }
+
+  pdf.addPage();
+
+  return drawInspectionPdfHeader(pdf, code, true);
+}
+
+function addInspectionPdfSectionTitle(pdf, y, title, code) {
+  y = ensureInspectionPdfSpace(pdf, y, 14, code);
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.gold);
+
+  pdf.roundedRect(16, y, 4, 8, 1, 1, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(10);
+
+  pdf.text(sanitizeInspectionPdfText(title).toUpperCase(), 24, y + 6);
+
+  return y + 14;
+}
+
+function addInspectionPdfInfoPair(pdf, y, leftItem, rightItem, code) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const columnGap = 8;
+
+  const columnWidth = (contentWidth - columnGap) / 2;
+
+  const leftValue = sanitizeInspectionPdfText(
+    leftItem.value || "Não informado",
+  );
+
+  const rightValue = sanitizeInspectionPdfText(
+    rightItem.value || "Não informado",
+  );
+
+  const leftLines = pdf.splitTextToSize(leftValue, columnWidth);
+
+  const rightLines = pdf.splitTextToSize(rightValue, columnWidth);
+
+  const maximumLines = Math.max(leftLines.length, rightLines.length);
+
+  const blockHeight = 13 + maximumLines * 4.3;
+
+  y = ensureInspectionPdfSpace(pdf, y, blockHeight, code);
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  pdf.text(sanitizeInspectionPdfText(leftItem.label).toUpperCase(), 16, y + 4);
+
+  pdf.text(
+    sanitizeInspectionPdfText(rightItem.label).toUpperCase(),
+    16 + columnWidth + columnGap,
+    y + 4,
+  );
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(9);
+
+  pdf.text(leftLines, 16, y + 10);
+
+  pdf.text(rightLines, 16 + columnWidth + columnGap, y + 10);
+
+  return y + blockHeight;
+}
+
+function addInspectionPdfTextBlock(pdf, y, label, value, code) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const finalValue = sanitizeInspectionPdfText(value || "Não informado");
+
+  const lines = pdf.splitTextToSize(finalValue, contentWidth - 12);
+
+  const blockHeight = 15 + lines.length * 4.4;
+
+  y = ensureInspectionPdfSpace(pdf, y, blockHeight, code);
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.lightGray);
+
+  pdf.roundedRect(16, y, contentWidth, blockHeight, 3, 3, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  pdf.text(sanitizeInspectionPdfText(label).toUpperCase(), 22, y + 6);
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(9);
+
+  pdf.text(lines, 22, y + 12);
+
+  return y + blockHeight + 5;
+}
+
+function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const needsAdjustment = item.resultado === "precisa-ajuste";
+
+  const statusText = needsAdjustment ? "PRECISA DE AJUSTE" : "OK";
+
+  const name = sanitizeInspectionPdfText(
+    `${index + 1}. ${item.nome || "Equipamento"}`,
+  );
+
+  const category = sanitizeInspectionPdfText(
+    item.categoria || "Outros equipamentos",
+  );
+
+  const observation = sanitizeInspectionPdfText(item.observacao || "");
+
+  const nameLines = pdf.splitTextToSize(name, contentWidth - 54);
+
+  const observationLines = observation
+    ? pdf.splitTextToSize(observation, contentWidth - 12)
+    : [];
+
+  const blockHeight =
+    18 +
+    nameLines.length * 4.4 +
+    (observationLines.length > 0 ? 8 + observationLines.length * 4.2 : 0);
+
+  y = ensureInspectionPdfSpace(pdf, y, blockHeight + 5, code);
+
+  pdf.setFillColor(
+    ...(needsAdjustment
+      ? INSPECTION_PDF_COLORS.paleGold
+      : INSPECTION_PDF_COLORS.paleGreen),
+  );
+
+  pdf.setDrawColor(
+    ...(needsAdjustment
+      ? INSPECTION_PDF_COLORS.gold
+      : INSPECTION_PDF_COLORS.green),
+  );
+
+  pdf.setLineWidth(0.35);
+
+  pdf.roundedRect(16, y, contentWidth, blockHeight, 3, 3, "FD");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  pdf.text(category.toUpperCase(), 22, y + 6);
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.setFontSize(9);
+
+  pdf.text(nameLines, 22, y + 12);
+
+  pdf.setFillColor(
+    ...(needsAdjustment
+      ? INSPECTION_PDF_COLORS.gold
+      : INSPECTION_PDF_COLORS.green),
+  );
+
+  pdf.roundedRect(pageWidth - 57, y + 5, 35, 8, 2, 2, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFontSize(needsAdjustment ? 6.2 : 7);
+
+  pdf.text(statusText, pageWidth - 39.5, y + 10.3, {
+    align: "center",
+  });
+
+  if (observationLines.length > 0) {
+    const observationY = y + 14 + nameLines.length * 4.4;
+
+    pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+    pdf.setFont("helvetica", "bold");
+
+    pdf.setFontSize(7);
+
+    pdf.text("OBSERVAÇÃO", 22, observationY);
+
+    pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(8.5);
+
+    pdf.text(observationLines, 22, observationY + 5);
+  }
+
+  return y + blockHeight + 5;
+}
+
+function addInspectionPdfFooters(pdf, code) {
+  const pageCount = pdf.getNumberOfPages();
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    pdf.setPage(pageNumber);
+
+    pdf.setDrawColor(...INSPECTION_PDF_COLORS.border);
+
+    pdf.setLineWidth(0.3);
+
+    pdf.line(16, 285, pageWidth - 16, 285);
+
+    pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(6.5);
+
+    pdf.text(
+      "Documento de Vistoria - não substitui uma Ordem de Serviço.",
+      16,
+      290,
+    );
+
+    pdf.text(
+      `${code} | Página ${pageNumber} de ${pageCount}`,
+      pageWidth - 16,
+      290,
+      {
+        align: "right",
+      },
+    );
+  }
+}
+
+function createInspectionPdf() {
+  const PdfConstructor = window.jspdf?.jsPDF;
+
+  if (!PdfConstructor) {
+    throw new Error("JSPDF_NOT_LOADED");
+  }
+
+  if (!currentInspectionDocument) {
+    throw new Error("INSPECTION_DOCUMENT_NOT_FOUND");
+  }
+
+  const pdf = new PdfConstructor({
+    orientation: "portrait",
+
+    unit: "mm",
+
+    format: "a4",
+  });
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const inspection = currentInspectionDocument;
+
+  const code = sanitizeInspectionPdfText(inspection.codigo || "VST");
+
+  const checklist = Array.isArray(inspection.checklist)
+    ? inspection.checklist
+    : [];
+
+  const okayItems = checklist.filter((item) => item.resultado === "ok").length;
+
+  const adjustmentItems = checklist.filter(
+    (item) => item.resultado === "precisa-ajuste",
+  ).length;
+
+  let y = drawInspectionPdfHeader(pdf, code);
+
+  const warningText =
+    "Este relatório registra exclusivamente uma Vistoria Técnica. " +
+    "Ele não representa, não substitui e não possui validade como Ordem de Serviço.";
+
+  const warningLines = pdf.splitTextToSize(warningText, contentWidth - 12);
+
+  const warningHeight = 12 + warningLines.length * 4.3;
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.paleGold);
+
+  pdf.setDrawColor(...INSPECTION_PDF_COLORS.gold);
+
+  pdf.roundedRect(16, y, contentWidth, warningHeight, 3, 3, "FD");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(8.5);
+
+  pdf.text(warningLines, 22, y + 8);
+
+  y += warningHeight + 8;
+
+  y = addInspectionPdfSectionTitle(pdf, y, "Identificação", code);
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Código da vistoria",
+      value: code,
+    },
+    {
+      label: "Situação",
+      value:
+        inspection.ordemVinculada === true
+          ? `Vinculada à ${inspection.codigoOS || "OS"}`
+          : "Validada - sem OS",
+    },
+    code,
+  );
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Condomínio",
+      value: [inspection.condominio?.codigo, inspection.condominio?.nome]
+        .filter(Boolean)
+        .join(" - "),
+    },
+    {
+      label: "CNPJ",
+      value: inspection.condominio?.cnpj || "Não informado",
+    },
+    code,
+  );
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Responsável",
+      value: inspection.cliente?.nome || "Não informado",
+    },
+    {
+      label: "Contato",
+      value: [inspection.cliente?.telefone, inspection.cliente?.email]
+        .filter(Boolean)
+        .join(" | "),
+    },
+    code,
+  );
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Vistoria validada em",
+      value: formatInspectionPdfDate(
+        inspection.validadaEm || inspection.criadoEm,
+      ),
+    },
+    {
+      label: "Técnico",
+      value:
+        inspection.tecnico?.nome || inspection.criadoPorNome || "Não informado",
+    },
+    code,
+  );
+
+  y = addInspectionPdfTextBlock(
+    pdf,
+    y,
+    "Endereço do condomínio",
+    getCondominiumAddress(inspection.condominio || selectedCondominium),
+    code,
+  );
+
+  y = addInspectionPdfSectionTitle(pdf, y, "Resumo técnico", code);
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Equipamentos avaliados",
+      value: String(checklist.length),
+    },
+    {
+      label: "Equipamentos OK",
+      value: String(okayItems),
+    },
+    code,
+  );
+
+  y = addInspectionPdfInfoPair(
+    pdf,
+    y,
+    {
+      label: "Precisam de ajuste",
+      value: String(adjustmentItems),
+    },
+    {
+      label: "Progresso",
+      value: "100% - vistoria concluída",
+    },
+    code,
+  );
+
+  y = addInspectionPdfSectionTitle(pdf, y, "Checklist de equipamentos", code);
+
+  if (checklist.length === 0) {
+    y = addInspectionPdfTextBlock(
+      pdf,
+      y,
+      "Checklist",
+      "Nenhum equipamento foi registrado nesta vistoria.",
+      code,
+    );
+  } else {
+    checklist.forEach((item, index) => {
+      y = addInspectionPdfChecklistItem(pdf, y, item, index, code);
+    });
+  }
+
+  y = ensureInspectionPdfSpace(pdf, y, 28, code);
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.roundedRect(16, y, contentWidth, 23, 3, 3, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(8.5);
+
+  const finalNotice = pdf.splitTextToSize(
+    "Para gerar uma Ordem de Serviço a partir desta vistoria, utilize no sistema Salvateck o botão verde identificado pelo código da VST.",
+    contentWidth - 12,
+  );
+
+  pdf.text(finalNotice, 22, y + 8);
+
+  addInspectionPdfFooters(pdf, code);
+
+  return pdf;
+}
+
+function openInspectionPdfModal() {
+  if (!currentInspectionDocument || !inspectionPdfModal) {
+    showFeedback("Não foi possível identificar a vistoria.", "error");
+
+    return;
+  }
+
+  inspectionPdfModal.hidden = false;
+
+  inspectionPdfModal.setAttribute("aria-hidden", "false");
+
+  document.body.classList.add("inspection-pdf-modal-open");
+
+  confirmInspectionPdfButton?.focus();
+}
+
+function closeInspectionPdfModal() {
+  if (!inspectionPdfModal) {
+    return;
+  }
+
+  inspectionPdfModal.hidden = true;
+
+  inspectionPdfModal.setAttribute("aria-hidden", "true");
+
+  document.body.classList.remove("inspection-pdf-modal-open");
+
+  exportInspectionPdfButton?.focus();
+}
+
+function setInspectionPdfBusy(isBusy) {
+  generatingInspectionPdf = isBusy;
+
+  if (exportInspectionPdfButton) {
+    exportInspectionPdfButton.disabled = isBusy;
+
+    exportInspectionPdfButton.textContent = isBusy
+      ? "Gerando PDF..."
+      : "Exportar PDF";
+  }
+
+  if (confirmInspectionPdfButton) {
+    confirmInspectionPdfButton.disabled = isBusy;
+
+    confirmInspectionPdfButton.textContent = isBusy
+      ? "Gerando PDF..."
+      : "Baixar PDF da vistoria";
+  }
+}
+
+function handleInspectionPdfError(error) {
+  console.error("[PDF Vistoria] Não foi possível gerar o PDF:", error);
+
+  if (error.message === "JSPDF_NOT_LOADED") {
+    showFeedback(
+      "A biblioteca de PDF não foi carregada. Atualize a página.",
+      "error",
+    );
+
+    return;
+  }
+
+  if (error.message === "INSPECTION_DOCUMENT_NOT_FOUND") {
+    showFeedback("Os dados da vistoria não foram encontrados.", "error");
+
+    return;
+  }
+
+  showFeedback("Não foi possível gerar o PDF da vistoria.", "error");
+}
+
+function downloadInspectionPdf() {
+  if (generatingInspectionPdf) {
+    return;
+  }
+
+  setInspectionPdfBusy(true);
+
+  try {
+    const pdf = createInspectionPdf();
+
+    pdf.save(getInspectionPdfFileName());
+
+    closeInspectionPdfModal();
+
+    showFeedback("PDF da vistoria baixado com sucesso!");
+  } catch (error) {
+    handleInspectionPdfError(error);
+  } finally {
+    setInspectionPdfBusy(false);
+  }
+}
 /* =========================================
    INICIALIZAÇÃO
 ========================================= */
@@ -2054,5 +2787,23 @@ responsibleSelect.addEventListener("change", handleResponsibleChange);
 checklistList.addEventListener("change", handleChecklistChange);
 
 checklistList.addEventListener("input", handleChecklistObservation);
+
+exportInspectionPdfButton?.addEventListener("click", openInspectionPdfModal);
+
+closeInspectionPdfModalButtons.forEach((button) => {
+  button.addEventListener("click", closeInspectionPdfModal);
+});
+
+confirmInspectionPdfButton?.addEventListener("click", downloadInspectionPdf);
+
+document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    inspectionPdfModal &&
+    !inspectionPdfModal.hidden
+  ) {
+    closeInspectionPdfModal();
+  }
+});
 
 initializePage();

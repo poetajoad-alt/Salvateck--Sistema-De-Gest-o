@@ -426,6 +426,10 @@
           Salvar vistoria
         </button>
 
+        <button type="button" class="button inspection-export-button" id="btnExportarPdfVistoria" hidden>
+          Exportar PDF
+        </button>
+
       </div>
 
     </form>
@@ -433,8 +437,60 @@
     <p class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden></p>
 
   </main>
+  <div class="inspection-pdf-modal" id="inspection-pdf-modal" aria-hidden="true" hidden>
 
-  <script type="module" src="js/nova-vistoria.js?v=1.0.5"></script>
+    <button type="button" class="inspection-pdf-modal__backdrop" data-close-inspection-pdf-modal aria-label="Fechar aviso de exportação"></button>
+
+    <section class="inspection-pdf-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-pdf-modal-title">
+
+      <button type="button" class="inspection-pdf-modal__close" data-close-inspection-pdf-modal aria-label="Fechar">
+        ×
+      </button>
+
+      <span class="inspection-pdf-modal__eyebrow">
+        Documento de vistoria
+      </span>
+
+      <h2 id="inspection-pdf-modal-title">
+        Exportar relatório em PDF?
+      </h2>
+
+      <p>
+        Este documento registra somente a Vistoria Técnica e não possui
+        validade como Ordem de Serviço.
+      </p>
+
+      <div class="inspection-pdf-modal__warning">
+
+        <strong>
+          Este PDF não transforma a vistoria em uma OS.
+        </strong>
+
+        <span>
+          Para criar uma Ordem de Serviço a partir desta vistoria, feche este
+          aviso e utilize o botão verde com o código da VST.
+        </span>
+
+      </div>
+
+      <div class="inspection-pdf-modal__actions">
+
+        <button type="button" class="inspection-pdf-modal__button inspection-pdf-modal__button--secondary" data-close-inspection-pdf-modal>
+          Voltar
+        </button>
+
+        <button type="button" class="inspection-pdf-modal__button inspection-pdf-modal__button--primary" id="confirm-inspection-pdf-button">
+          Baixar PDF da vistoria
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+
+  <script type="module" src="js/nova-vistoria.js?v=1.0.6"></script>
 
 </body>
 
