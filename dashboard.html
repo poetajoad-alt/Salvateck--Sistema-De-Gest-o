@@ -6,39 +6,43 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <meta name="description" content="Dashboard operacional e financeiro da Salvateck" />
+
   <meta name="theme-color" content="#0D3861" />
 
   <title>Dashboard | Salvateck</title>
 
-  <!-- Fonte Montserrat -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- CSS -->
   <link rel="stylesheet" href="./css/base.css?v=1.0.2" />
 
-  <link rel="stylesheet" href="./css/em-breve.css?v=1.0.0" />
+  <link rel="stylesheet" href="./css/dashboard.css?v=1.0.0" />
 </head>
 
 <body data-page="dashboard" data-profile="admin" data-allowed-roles="admin">
 
-  <main class="coming-soon-shell">
+  <main class="dashboard-shell">
 
-    <header class="coming-soon-header">
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
 
-      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+    <header class="dashboard-header">
+
+      <a href="principal.html?perfil=admin" class="dashboard-header__back" aria-label="Voltar para o painel administrativo">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
         </svg>
       </a>
 
-      <div class="coming-soon-header__copy">
+      <div class="dashboard-header__copy">
 
         <span>
-          Área administrativa
+          Sistema de Gestão
         </span>
 
         <h1>
@@ -47,110 +51,848 @@
 
       </div>
 
-      <a href="principal.html" class="coming-soon-logo" aria-label="Voltar para a tela principal" title="Tela principal">
+      <a href="principal.html" class="dashboard-header__logo" aria-label="Voltar para a tela principal">
         <img src="./assets/logo.salvateck.png" alt="Logo da Salvateck" />
       </a>
 
     </header>
 
-    <section class="coming-soon-content">
+    <!-- =====================================
+         APRESENTAÇÃO E FILTROS
+    ====================================== -->
 
-      <div class="coming-soon-card">
+    <section class="dashboard-intro">
 
-        <span class="coming-soon-badge">
-          Em breve
+      <div class="dashboard-intro__copy">
+
+        <span class="dashboard-intro__badge">
+          Inteligência operacional
         </span>
 
-        <div class="coming-soon-icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V10"></path>
-            <path d="M10 20V4"></path>
-            <path d="M16 20v-7"></path>
-            <path d="M22 20H2"></path>
-          </svg>
-
-        </div>
-
-        <p class="coming-soon-eyebrow">
-          Indicadores Salvateck
-        </p>
-
         <h2>
-          O Dashboard está sendo preparado
+          Visão geral da Salvateck
         </h2>
 
-        <p class="coming-soon-description">
-          Em uma próxima atualização, esta área reunirá indicadores
-          operacionais, financeiros e informações estratégicas da empresa.
+        <p>
+          Acompanhe ordens de serviço, vistorias, atendimentos,
+          pendências e resultados financeiros em um único lugar.
         </p>
 
-        <div class="coming-soon-features">
+      </div>
 
-          <div class="coming-soon-feature">
+      <div class="dashboard-intro__date">
 
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
+        <span>
+          Atualizado em
+        </span>
 
-            <span>
-              Visão geral das ordens de serviço
-            </span>
-
-          </div>
-
-          <div class="coming-soon-feature">
-
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
-
-            <span>
-              Indicadores financeiros e operacionais
-            </span>
-
-          </div>
-
-          <div class="coming-soon-feature">
-
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
-
-            <span>
-              Gráficos e acompanhamento de resultados
-            </span>
-
-          </div>
-
-        </div>
-
-        <a href="principal.html?perfil=admin" class="coming-soon-button">
-          Voltar ao painel
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19 12H5"></path>
-            <path d="m11 18-6-6 6-6"></path>
-          </svg>
-        </a>
+        <strong id="dashboard-updated-at">
+          Carregando...
+        </strong>
 
       </div>
 
     </section>
 
-    <footer class="coming-soon-footer">
+    <section class="dashboard-filters" aria-label="Filtros do Dashboard">
+
+      <label class="dashboard-filter-field">
+
+        <span>
+          Período
+        </span>
+
+        <select id="dashboard-period-filter">
+
+          <option value="this-month">
+            Este mês
+          </option>
+
+          <option value="last-30">
+            Últimos 30 dias
+          </option>
+
+          <option value="last-90">
+            Últimos 90 dias
+          </option>
+
+          <option value="this-year">
+            Este ano
+          </option>
+
+          <option value="all">
+            Todo o período
+          </option>
+
+        </select>
+
+      </label>
+
+      <label class="dashboard-filter-field">
+
+        <span>
+          Condomínio
+        </span>
+
+        <select id="dashboard-condominium-filter">
+
+          <option value="">
+            Todos os condomínios
+          </option>
+
+        </select>
+
+      </label>
+
+      <button type="button" class="dashboard-refresh-button" id="dashboard-refresh-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8 8 0 1 0-2.3 5.7"></path>
+          <path d="M20 4v7h-7"></path>
+        </svg>
+
+        <span>
+          Atualizar
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         ESTADO DE CARREGAMENTO
+    ====================================== -->
+
+    <section class="dashboard-loading" id="dashboard-loading" aria-live="polite">
+
+      <span class="dashboard-loading__spinner"></span>
+
+      <div>
+
+        <strong>
+          Carregando indicadores
+        </strong>
+
+        <p>
+          Consultando ordens, vistorias e movimentações financeiras.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CONTEÚDO
+    ====================================== -->
+
+    <div id="dashboard-content" hidden>
+
+      <!-- ===================================
+           OPERAÇÃO
+      ==================================== -->
+
+      <section class="dashboard-section">
+
+        <header class="dashboard-section__heading">
+
+          <div>
+
+            <span>
+              Operação
+            </span>
+
+            <h2>
+              Ordens de serviço
+            </h2>
+
+          </div>
+
+          <a href="ordens.html?perfil=admin" class="dashboard-section__link">
+            Ver todas as OSs
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </a>
+
+        </header>
+
+        <div class="dashboard-metric-grid">
+
+          <article class="dashboard-metric-card">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4h14v16H5z"></path>
+                <path d="M8 8h8"></path>
+                <path d="M8 12h6"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                OSs abertas
+              </span>
+
+              <strong id="metric-open-orders">
+                0
+              </strong>
+
+              <small id="metric-open-orders-detail">
+                Demandas não finalizadas
+              </small>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-metric-card dashboard-metric-card--progress">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v4"></path>
+                <path d="M12 17v4"></path>
+                <path d="m4.2 4.2 2.9 2.9"></path>
+                <path d="m16.9 16.9 2.9 2.9"></path>
+                <path d="M3 12h4"></path>
+                <path d="M17 12h4"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                Em andamento
+              </span>
+
+              <strong id="metric-progress-orders">
+                0
+              </strong>
+
+              <small>
+                Serviços em execução
+              </small>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-metric-card dashboard-metric-card--scheduled">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                <path d="M16 3v4"></path>
+                <path d="M8 3v4"></path>
+                <path d="M3 10h18"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                Agendadas
+              </span>
+
+              <strong id="metric-scheduled-orders">
+                0
+              </strong>
+
+              <small>
+                Atendimentos programados
+              </small>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-metric-card dashboard-metric-card--danger">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 9v4"></path>
+                <path d="M12 17h.01"></path>
+                <path d="M10.3 3.7 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                Atrasadas
+              </span>
+
+              <strong id="metric-overdue-orders">
+                0
+              </strong>
+
+              <small>
+                Exigem atenção
+              </small>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-metric-card dashboard-metric-card--success">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="m8 12 2.7 2.7L16 9"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                Concluídas no mês
+              </span>
+
+              <strong id="metric-completed-orders">
+                0
+              </strong>
+
+              <small>
+                Serviços finalizados
+              </small>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-metric-card dashboard-metric-card--inspection">
+
+            <span class="dashboard-metric-card__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 5h6"></path>
+                <path d="M9 3h6v4H9z"></path>
+                <path d="M6 5H4v16h16V5h-2"></path>
+                <path d="m8 13 2 2 5-5"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span>
+                Vistorias aguardando OS
+              </span>
+
+              <strong id="metric-unlinked-inspections">
+                0
+              </strong>
+
+              <small>
+                VSTs ainda não convertidas
+              </small>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================
+           GRÁFICOS OPERACIONAIS
+      ==================================== -->
+
+      <section class="dashboard-chart-grid">
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Distribuição
+              </span>
+
+              <h3>
+                OSs por status
+              </h3>
+
+            </div>
+
+          </header>
+
+          <div class="dashboard-chart-container dashboard-chart-container--doughnut">
+
+            <canvas id="orders-status-chart" aria-label="Gráfico de ordens de serviço por status"></canvas>
+
+            <div class="dashboard-chart-empty" id="orders-status-chart-empty" hidden>
+              Nenhuma OS encontrada no período.
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Evolução
+              </span>
+
+              <h3>
+                Abertas versus concluídas
+              </h3>
+
+            </div>
+
+          </header>
+
+          <div class="dashboard-chart-container">
+
+            <canvas id="orders-evolution-chart" aria-label="Gráfico de ordens abertas e concluídas"></canvas>
+
+            <div class="dashboard-chart-empty" id="orders-evolution-chart-empty" hidden>
+              Não há histórico suficiente para este gráfico.
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Demanda por local
+              </span>
+
+              <h3>
+                Atendimentos por condomínio
+              </h3>
+
+            </div>
+
+          </header>
+
+          <div class="dashboard-chart-container">
+
+            <canvas id="condominium-orders-chart" aria-label="Gráfico de atendimentos por condomínio"></canvas>
+
+            <div class="dashboard-chart-empty" id="condominium-orders-chart-empty" hidden>
+              Nenhum atendimento vinculado a condomínio.
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Origem operacional
+              </span>
+
+              <h3>
+                Origem das demandas
+              </h3>
+
+            </div>
+
+          </header>
+
+          <div class="dashboard-chart-container">
+
+            <canvas id="service-types-chart" aria-label="Gráfico de origem das demandas"></canvas>
+            <div class="dashboard-chart-empty" id="service-types-chart-empty" hidden>
+              Nenhuma origem de demanda encontrada no período.
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- ===================================
+           AÇÕES OPERACIONAIS
+      ==================================== -->
+
+      <section class="dashboard-action-grid">
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Prioridades
+              </span>
+
+              <h3>
+                Atenção necessária
+              </h3>
+
+            </div>
+
+            <span class="dashboard-panel__count" id="attention-count">
+              0
+            </span>
+
+          </header>
+
+          <div class="dashboard-action-list" id="attention-list"></div>
+
+          <div class="dashboard-empty-state" id="attention-empty" hidden>
+
+            <span class="dashboard-empty-state__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m8 12 2.7 2.7L16 9"></path>
+                <circle cx="12" cy="12" r="9"></circle>
+              </svg>
+
+            </span>
+
+            <strong>
+              Nenhuma pendência crítica
+            </strong>
+
+            <p>
+              Não existem itens exigindo atenção imediata neste período.
+            </p>
+
+          </div>
+
+        </article>
+
+        <article class="dashboard-panel">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Programação
+              </span>
+
+              <h3>
+                Próximos atendimentos
+              </h3>
+
+            </div>
+
+            <span class="dashboard-panel__count" id="upcoming-count">
+              0
+            </span>
+
+          </header>
+
+          <div class="dashboard-action-list" id="upcoming-list"></div>
+
+          <div class="dashboard-empty-state" id="upcoming-empty" hidden>
+
+            <span class="dashboard-empty-state__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                <path d="M8 3v4"></path>
+                <path d="M16 3v4"></path>
+                <path d="M3 10h18"></path>
+              </svg>
+
+            </span>
+
+            <strong>
+              Nenhum atendimento próximo
+            </strong>
+
+            <p>
+              Não há serviços agendados para os próximos dias.
+            </p>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- ===================================
+           VISTORIAS
+      ==================================== -->
+
+      <section class="dashboard-section">
+
+        <header class="dashboard-section__heading">
+
+          <div>
+
+            <span>
+              Análise técnica
+            </span>
+
+            <h2>
+              Indicadores de vistoria
+            </h2>
+
+          </div>
+
+          <a href="vistorias.html?perfil=admin" class="dashboard-section__link">
+            Ver vistorias
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </a>
+
+        </header>
+
+        <div class="dashboard-chart-grid">
+
+          <article class="dashboard-panel">
+
+            <header class="dashboard-panel__heading">
+
+              <div>
+
+                <span>
+                  Conformidade
+                </span>
+
+                <h3>
+                  Resultado dos equipamentos
+                </h3>
+
+              </div>
+
+            </header>
+
+            <div class="dashboard-chart-container dashboard-chart-container--doughnut">
+
+              <canvas id="inspection-results-chart" aria-label="Gráfico de resultados das vistorias"></canvas>
+
+              <div class="dashboard-chart-empty" id="inspection-results-chart-empty" hidden>
+                Nenhum equipamento avaliado no período.
+              </div>
+
+            </div>
+
+          </article>
+
+          <article class="dashboard-panel">
+
+            <header class="dashboard-panel__heading">
+
+              <div>
+
+                <span>
+                  Não conformidades
+                </span>
+
+                <h3>
+                  Equipamentos com mais ajustes
+                </h3>
+
+              </div>
+
+            </header>
+
+            <div class="dashboard-chart-container">
+
+              <canvas id="inspection-adjustments-chart" aria-label="Gráfico de equipamentos com mais ajustes"></canvas>
+
+              <div class="dashboard-chart-empty" id="inspection-adjustments-chart-empty" hidden>
+                Nenhum ajuste foi registrado no período.
+              </div>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================
+           FINANCEIRO
+      ==================================== -->
+
+      <section class="dashboard-section dashboard-finance-section">
+
+        <header class="dashboard-section__heading">
+
+          <div>
+
+            <span>
+              Gestão financeira
+            </span>
+
+            <h2>
+              Visão financeira
+            </h2>
+
+          </div>
+
+          <a href="financeiro.html?perfil=admin" class="dashboard-section__link">
+            Abrir Gestão Financeira
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </a>
+
+        </header>
+
+        <div class="dashboard-finance-grid">
+
+          <article class="dashboard-finance-card dashboard-finance-card--income">
+
+            <span>
+              Recebido no período
+            </span>
+
+            <strong id="finance-received">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Entradas efetivamente pagas
+            </small>
+
+          </article>
+
+          <article class="dashboard-finance-card">
+
+            <span>
+              A receber
+            </span>
+
+            <strong id="finance-receivable">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Recebimentos pendentes
+            </small>
+
+          </article>
+
+          <article class="dashboard-finance-card dashboard-finance-card--danger">
+
+            <span>
+              Em atraso
+            </span>
+
+            <strong id="finance-overdue">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Recebimentos vencidos
+            </small>
+
+          </article>
+
+          <article class="dashboard-finance-card dashboard-finance-card--expense">
+
+            <span>
+              Despesas pagas
+            </span>
+
+            <strong id="finance-expenses">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Saídas efetivamente pagas
+            </small>
+
+          </article>
+
+          <article class="dashboard-finance-card dashboard-finance-card--balance">
+
+            <span>
+              Saldo do período
+            </span>
+
+            <strong id="finance-balance">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Recebimentos menos despesas
+            </small>
+
+          </article>
+
+        </div>
+
+        <article class="dashboard-panel dashboard-finance-chart">
+
+          <header class="dashboard-panel__heading">
+
+            <div>
+
+              <span>
+                Evolução financeira
+              </span>
+
+              <h3>
+                Receitas versus despesas
+              </h3>
+
+            </div>
+
+          </header>
+
+          <div class="dashboard-chart-container">
+
+            <canvas id="finance-evolution-chart" aria-label="Gráfico de receitas e despesas"></canvas>
+
+            <div class="dashboard-chart-empty" id="finance-evolution-chart-empty" hidden>
+              Nenhuma movimentação paga foi encontrada.
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+    </div>
+
+    <footer class="dashboard-footer">
       Salvateck Group · Sistema de Gestão
     </footer>
 
   </main>
 
-  <script type="module" src="./js/auth-guard.js?v=1.0.2"></script>
+  <div class="dashboard-feedback" id="dashboard-feedback" role="status" aria-live="polite" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+
+  <script type="module" src="./js/dashboard.js?v=1.0.1"></script>
 
 </body>
 
