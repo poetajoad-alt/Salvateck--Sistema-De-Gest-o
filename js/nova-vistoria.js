@@ -308,7 +308,95 @@ function getCondominiumAddress(condominium = {}) {
 
   return [firstLine, secondLine].filter(Boolean).join(" | ");
 }
+function normalizeCondominiumStructureEquipment(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
 
+  const equipmentId = String(
+    value.equipamentoId || value.equipmentId || value.id || value.codigo || "",
+  ).trim();
+
+  if (!equipmentId) {
+    return null;
+  }
+
+  const legacyCatalogItem = equipmentCatalog[equipmentId];
+
+  return {
+    equipamentoId: equipmentId,
+
+    equipamentoNome: String(
+      value.equipamentoNome ||
+        value.nome ||
+        legacyCatalogItem?.nome ||
+        equipmentId,
+    ).trim(),
+
+    categoria: String(
+      value.categoria || legacyCatalogItem?.categoria || "Outros equipamentos",
+    ).trim(),
+
+    quantidade: Math.max(1, Number(value.quantidade) || 1),
+
+    observacao: String(
+      value.observacao || value.localizacao || value.notas || "",
+    ).trim(),
+  };
+}
+
+function normalizeCondominiumStructureEnvironment(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const environmentId = String(
+    value.ambienteId || value.environmentId || value.id || value.codigo || "",
+  ).trim();
+
+  if (!environmentId) {
+    return null;
+  }
+
+  const legacy =
+    Boolean(value.legado) || environmentId === "sem-ambiente-definido";
+
+  const equipment = Array.isArray(value.equipamentos)
+    ? value.equipamentos
+        .map(normalizeCondominiumStructureEquipment)
+        .filter(Boolean)
+    : [];
+
+  return {
+    ambienteId: environmentId,
+
+    ambienteNome: String(
+      value.ambienteNome ||
+        value.nome ||
+        (legacy ? "Sem ambiente definido" : environmentId),
+    ).trim(),
+
+    categoria: String(
+      value.categoria || (legacy ? "Cadastro anterior" : "Outros ambientes"),
+    ).trim(),
+
+    observacao: String(
+      value.observacao || value.observacoes || value.notas || "",
+    ).trim(),
+
+    legado: legacy,
+
+    equipamentos: equipment,
+  };
+}
+
+function normalizeCondominiumStructure(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map(normalizeCondominiumStructureEnvironment).filter(Boolean);
+}
 function mapCondominiumSnapshot(snapshot) {
   const data = snapshot.data();
 
@@ -332,6 +420,10 @@ function mapCondominiumSnapshot(snapshot) {
       : [],
 
     equipamentos: Array.isArray(data.equipamentos) ? data.equipamentos : [],
+
+    estruturaAmbientes: normalizeCondominiumStructure(
+      data.estruturaAmbientes || data.ambientesEquipamentos || [],
+    ),
   };
 }
 
@@ -606,7 +698,11 @@ function applyStoredChecklistState() {
     card.classList.toggle("needs-adjustment", needsAdjustment);
 
     if (status) {
-      status.textContent = needsAdjustment ? "Precisa de ajuste" : "OK";
+      status.textContent = needsAdjustment
+        ? "Precisa de ajuste"
+        : item.resultado === "ok"
+          ? "OK"
+          : "Pendente";
     }
 
     if (observationGroup) {
@@ -617,6 +713,8 @@ function applyStoredChecklistState() {
       observation.value = String(item.observacao || "").trim();
     }
   });
+
+  updateAllEnvironmentChecklistStatuses();
 }
 
 async function loadExistingInspection(inspectionId) {
@@ -660,11 +758,25 @@ async function loadExistingInspection(inspectionId) {
 
   checklistItems = Array.isArray(inspection.checklist)
     ? inspection.checklist.map((item) => ({
+        ambienteId: String(item.ambienteId || "sem-ambiente-definido").trim(),
+
+        ambienteNome: String(
+          item.ambienteNome || "Sem ambiente definido",
+        ).trim(),
+
+        categoriaAmbiente: String(
+          item.categoriaAmbiente || "Cadastro anterior",
+        ).trim(),
+
         equipamentoId: String(item.equipamentoId || "").trim(),
 
         nome: String(item.nome || "").trim() || "Equipamento sem nome",
 
         categoria: String(item.categoria || "").trim() || "Outros equipamentos",
+
+        quantidade: Math.max(1, Number(item.quantidade) || 1),
+
+        localizacao: String(item.localizacao || "").trim(),
 
         resultado: String(item.resultado || "").trim(),
 
@@ -994,6 +1106,124 @@ function createChecklistOption(index, value, label) {
   return option;
 }
 
+function groupChecklistItemsByEnvironment() {
+  const environments = new Map();
+
+  checklistItems.forEach((item, index) => {
+    const environmentId =
+      String(item.ambienteId || "sem-ambiente-definido").trim() ||
+      "sem-ambiente-definido";
+
+    if (!environments.has(environmentId)) {
+      environments.set(environmentId, {
+        ambienteId: environmentId,
+
+        ambienteNome:
+          String(item.ambienteNome || "Sem ambiente definido").trim() ||
+          "Sem ambiente definido",
+
+        categoriaAmbiente:
+          String(item.categoriaAmbiente || "Outros ambientes").trim() ||
+          "Outros ambientes",
+
+        itens: [],
+      });
+    }
+
+    environments.get(environmentId).itens.push({
+      item,
+
+      index,
+    });
+  });
+
+  return Array.from(environments.values());
+}
+
+function updateEnvironmentChecklistStatus(environmentCard) {
+  if (!environmentCard) {
+    return;
+  }
+
+  const itemCards = Array.from(
+    environmentCard.querySelectorAll(".inspection-checklist-item[data-index]"),
+  );
+
+  const items = itemCards
+    .map((card) => checklistItems[Number(card.dataset.index)])
+    .filter(Boolean);
+
+  const totalItems = items.length;
+
+  const evaluatedItems = items.filter((item) => Boolean(item.resultado)).length;
+
+  const adjustmentItems = items.filter(
+    (item) => item.resultado === "precisa-ajuste",
+  ).length;
+
+  const pendingObservations = items.filter(
+    (item) =>
+      item.resultado === "precisa-ajuste" &&
+      !String(item.observacao || "").trim(),
+  ).length;
+
+  const status = environmentCard.querySelector(
+    ".inspection-environment-card__status",
+  );
+
+  environmentCard.classList.remove("is-ok", "needs-adjustment", "is-pending");
+
+  if (pendingObservations > 0) {
+    environmentCard.classList.add("is-pending");
+
+    if (status) {
+      status.textContent = "Observação pendente";
+    }
+
+    return;
+  }
+
+  if (evaluatedItems < totalItems) {
+    environmentCard.classList.add("is-pending");
+
+    if (status) {
+      status.textContent =
+        evaluatedItems === 0
+          ? "Pendente"
+          : `${evaluatedItems} de ${totalItems}`;
+    }
+
+    return;
+  }
+
+  if (adjustmentItems > 0) {
+    environmentCard.classList.add("needs-adjustment");
+
+    if (status) {
+      status.textContent =
+        adjustmentItems === 1
+          ? "1 com ajuste"
+          : `${adjustmentItems} com ajuste`;
+    }
+
+    return;
+  }
+
+  environmentCard.classList.add("is-ok");
+
+  if (status) {
+    status.textContent = "Tudo OK";
+  }
+}
+
+function updateAllEnvironmentChecklistStatuses() {
+  checklistList
+    .querySelectorAll(".inspection-environment-card")
+    .forEach((environmentCard) => {
+      updateEnvironmentChecklistStatus(environmentCard);
+    });
+}
+
 function renderChecklist() {
   checklistList.innerHTML = "";
 
@@ -1005,118 +1235,210 @@ function renderChecklist() {
     return;
   }
 
-  checklistItems.forEach((item, index) => {
-    const card = document.createElement("article");
+  const environments = groupChecklistItemsByEnvironment();
 
-    card.className = "inspection-checklist-item";
+  environments.forEach((environment, environmentIndex) => {
+    const environmentCard = document.createElement("article");
 
-    card.dataset.index = String(index);
+    environmentCard.className = "inspection-environment-card is-pending";
 
-    const heading = document.createElement("div");
+    environmentCard.dataset.environmentId = environment.ambienteId;
 
-    heading.className = "inspection-checklist-item__heading";
+    const environmentHeading = document.createElement("div");
 
-    const identification = document.createElement("div");
+    environmentHeading.className = "inspection-environment-card__heading";
 
-    const category = document.createElement("span");
+    const environmentIdentification = document.createElement("div");
 
-    category.textContent = item.categoria;
+    environmentIdentification.className =
+      "inspection-environment-card__identification";
 
-    const title = document.createElement("strong");
+    const totalUnits = environment.itens.reduce(
+      (total, { item }) => total + Math.max(1, Number(item.quantidade) || 1),
+      0,
+    );
 
-    title.textContent = item.nome;
+    const environmentMeta = document.createElement("span");
 
-    identification.append(category, title);
+    environmentMeta.className = "inspection-environment-card__meta";
 
-    const headingActions = document.createElement("div");
+    environmentMeta.textContent = [
+      environment.categoriaAmbiente,
+      environment.itens.length === 1
+        ? "1 equipamento"
+        : `${environment.itens.length} equipamentos`,
+      totalUnits === 1 ? "1 unidade" : `${totalUnits} unidades`,
+    ]
+      .filter(Boolean)
+      .join(" • ");
 
-    headingActions.className = "inspection-checklist-item__heading-actions";
+    const environmentTitle = document.createElement("strong");
 
-    const status = document.createElement("small");
+    environmentTitle.className = "inspection-environment-card__title";
 
-    status.className = "inspection-checklist-item__status";
+    environmentTitle.textContent = environment.ambienteNome;
 
-    status.textContent = "Pendente";
+    environmentIdentification.append(environmentMeta, environmentTitle);
 
-    const toggleButton = document.createElement("button");
+    const environmentActions = document.createElement("div");
 
-    toggleButton.type = "button";
+    environmentActions.className = "inspection-environment-card__actions";
 
-    toggleButton.className = "inspection-checklist-item__toggle";
+    const environmentStatus = document.createElement("small");
 
-    toggleButton.setAttribute("aria-expanded", "false");
+    environmentStatus.className = "inspection-environment-card__status";
 
-    toggleButton.setAttribute("aria-label", `Abrir detalhes de ${item.nome}`);
+    environmentStatus.textContent = "Pendente";
 
-    toggleButton.innerHTML = `
+    const environmentToggle = document.createElement("button");
+
+    environmentToggle.type = "button";
+
+    environmentToggle.className = "inspection-environment-card__toggle";
+
+    environmentToggle.setAttribute("aria-expanded", "false");
+
+    environmentToggle.setAttribute(
+      "aria-label",
+      `Abrir ambiente ${environment.ambienteNome}`,
+    );
+
+    const environmentBodyId = `inspection-environment-${environmentIndex}`;
+
+    environmentToggle.setAttribute("aria-controls", environmentBodyId);
+
+    environmentToggle.innerHTML = `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="m6 9 6 6 6-6"></path>
       </svg>
     `;
 
-    headingActions.append(status, toggleButton);
+    environmentActions.append(environmentStatus, environmentToggle);
 
-    heading.append(identification, headingActions);
+    environmentHeading.append(environmentIdentification, environmentActions);
 
-    const options = document.createElement("div");
+    const environmentBody = document.createElement("div");
 
-    options.className = "inspection-checklist-item__options";
+    environmentBody.className = "inspection-environment-card__body";
 
-    options.append(
-      createChecklistOption(index, "ok", "Está OK"),
+    environmentBody.id = environmentBodyId;
 
-      createChecklistOption(index, "precisa-ajuste", "Precisa de ajuste"),
-    );
+    environmentBody.hidden = true;
 
-    const observationGroup = document.createElement("label");
+    environment.itens.forEach(({ item, index }) => {
+      const card = document.createElement("article");
 
-    observationGroup.className = "inspection-checklist-observation";
+      card.className = "inspection-checklist-item";
 
-    observationGroup.hidden = true;
+      card.dataset.index = String(index);
 
-    const observationLabel = document.createElement("span");
+      const heading = document.createElement("div");
 
-    observationLabel.textContent = "Observação do ajuste";
+      heading.className = "inspection-checklist-item__heading";
 
-    const observation = document.createElement("textarea");
+      const identification = document.createElement("div");
 
-    observation.rows = 3;
+      const category = document.createElement("span");
 
-    observation.maxLength = 600;
+      category.textContent = [
+        item.categoria,
+        `Quantidade: ${Math.max(1, Number(item.quantidade) || 1)}`,
+      ]
+        .filter(Boolean)
+        .join(" • ");
 
-    observation.placeholder =
-      "Descreva o problema encontrado e o ajuste necessário.";
+      const title = document.createElement("strong");
 
-    observation.dataset.checklistObservation = "true";
+      title.textContent = item.nome;
 
-    observation.dataset.index = String(index);
+      identification.append(category, title);
 
-    observationGroup.append(observationLabel, observation);
+      if (item.localizacao) {
+        const location = document.createElement("p");
 
-    const details = document.createElement("div");
+        location.className = "inspection-checklist-item__location";
 
-    details.className = "inspection-checklist-item__details";
+        location.textContent = `Localização: ${item.localizacao}`;
 
-    details.hidden = true;
+        identification.appendChild(location);
+      }
 
-    details.append(options, observationGroup);
+      const headingActions = document.createElement("div");
 
-    toggleButton.addEventListener("click", () => {
-      const willOpen = details.hidden;
+      headingActions.className = "inspection-checklist-item__heading-actions";
+
+      const status = document.createElement("small");
+
+      status.className = "inspection-checklist-item__status";
+
+      status.textContent = "Pendente";
+
+      headingActions.appendChild(status);
+
+      heading.append(identification, headingActions);
+
+      const options = document.createElement("div");
+
+      options.className = "inspection-checklist-item__options";
+
+      options.append(
+        createChecklistOption(index, "ok", "Está OK"),
+
+        createChecklistOption(index, "precisa-ajuste", "Precisa de ajuste"),
+      );
+
+      const observationGroup = document.createElement("label");
+
+      observationGroup.className = "inspection-checklist-observation";
+
+      observationGroup.hidden = true;
+
+      const observationLabel = document.createElement("span");
+
+      observationLabel.textContent = "Observação do ajuste";
+
+      const observation = document.createElement("textarea");
+
+      observation.rows = 3;
+
+      observation.maxLength = 600;
+
+      observation.placeholder =
+        "Ex.: 2 dos 3 equipamentos estão danificados, vencidos ou não funcionaram durante o teste.";
+
+      observation.dataset.checklistObservation = "true";
+
+      observation.dataset.index = String(index);
+
+      observationGroup.append(observationLabel, observation);
+
+      const details = document.createElement("div");
+
+      details.className = "inspection-checklist-item__details";
+
+      details.append(options, observationGroup);
+
+      card.append(heading, details);
+
+      environmentBody.appendChild(card);
+    });
+
+    environmentToggle.addEventListener("click", () => {
+      const willOpen = environmentBody.hidden;
 
       checklistList
-        .querySelectorAll(".inspection-checklist-item__details")
-        .forEach((otherDetails) => {
-          if (otherDetails === details) {
+        .querySelectorAll(".inspection-environment-card__body")
+        .forEach((otherBody) => {
+          if (otherBody === environmentBody) {
             return;
           }
 
-          otherDetails.hidden = true;
+          otherBody.hidden = true;
 
-          const otherCard = otherDetails.closest(".inspection-checklist-item");
+          const otherCard = otherBody.closest(".inspection-environment-card");
 
           const otherToggle = otherCard?.querySelector(
-            ".inspection-checklist-item__toggle",
+            ".inspection-environment-card__toggle",
           );
 
           if (otherToggle) {
@@ -1126,26 +1448,28 @@ function renderChecklist() {
           }
         });
 
-      details.hidden = !willOpen;
+      environmentBody.hidden = !willOpen;
 
-      toggleButton.classList.toggle("is-open", willOpen);
+      environmentToggle.classList.toggle("is-open", willOpen);
 
-      toggleButton.setAttribute("aria-expanded", String(willOpen));
+      environmentToggle.setAttribute("aria-expanded", String(willOpen));
 
-      toggleButton.setAttribute(
+      environmentToggle.setAttribute(
         "aria-label",
-        `${willOpen ? "Fechar" : "Abrir"} detalhes de ${item.nome}`,
+        `${willOpen ? "Fechar" : "Abrir"} ambiente ${environment.ambienteNome}`,
       );
     });
 
-    card.append(heading, details);
+    environmentCard.append(environmentHeading, environmentBody);
 
-    checklistList.appendChild(card);
+    checklistList.appendChild(environmentCard);
   });
 
   checklistEmpty.hidden = true;
 
   checklistList.hidden = false;
+
+  updateAllEnvironmentChecklistStatuses();
 
   updateInspectionSummary();
 
@@ -1153,6 +1477,45 @@ function renderChecklist() {
 }
 
 function loadChecklistFromCondominium() {
+  const structure = Array.isArray(selectedCondominium?.estruturaAmbientes)
+    ? selectedCondominium.estruturaAmbientes
+    : [];
+
+  if (structure.length > 0) {
+    checklistItems = structure.flatMap((environment) => {
+      const equipment = Array.isArray(environment.equipamentos)
+        ? environment.equipamentos
+        : [];
+
+      return equipment.map((item) => ({
+        ambienteId: environment.ambienteId || "",
+
+        ambienteNome: environment.ambienteNome || "Sem ambiente definido",
+
+        categoriaAmbiente: environment.categoria || "Outros ambientes",
+
+        equipamentoId: item.equipamentoId || "",
+
+        nome:
+          item.equipamentoNome || item.equipamentoId || "Equipamento sem nome",
+
+        categoria: item.categoria || "Outros equipamentos",
+
+        quantidade: Math.max(1, Number(item.quantidade) || 1),
+
+        localizacao: String(item.observacao || "").trim(),
+
+        resultado: "",
+
+        observacao: "",
+      }));
+    });
+
+    renderChecklist();
+
+    return;
+  }
+
   const equipmentIds = Array.isArray(selectedCondominium?.equipamentos)
     ? selectedCondominium.equipamentos
     : [];
@@ -1163,11 +1526,21 @@ function loadChecklistFromCondominium() {
     const catalogItem = equipmentCatalog[normalizedId];
 
     return {
+      ambienteId: "sem-ambiente-definido",
+
+      ambienteNome: "Sem ambiente definido",
+
+      categoriaAmbiente: "Cadastro anterior",
+
       equipamentoId: normalizedId,
 
       nome: catalogItem?.nome || normalizedId || "Equipamento sem nome",
 
       categoria: catalogItem?.categoria || "Outros equipamentos",
+
+      quantidade: 1,
+
+      localizacao: "",
 
       resultado: "",
 
@@ -1227,6 +1600,10 @@ function handleChecklistChange(event) {
     item.observacao = "";
   }
 
+  updateEnvironmentChecklistStatus(
+    card.closest(".inspection-environment-card"),
+  );
+
   updateInspectionSummary();
 
   updateProgress();
@@ -1248,6 +1625,12 @@ function handleChecklistObservation(event) {
   }
 
   checklistItems[index].observacao = field.value.trim();
+
+  const card = field.closest(".inspection-checklist-item");
+
+  updateEnvironmentChecklistStatus(
+    card?.closest(".inspection-environment-card"),
+  );
 
   updateInspectionSummary();
 
@@ -1605,12 +1988,48 @@ function buildInspectionData({ id, numero, codigo }) {
       email: creatorEmail,
     },
 
+    estruturaAmbientesSnapshot: normalizeCondominiumStructure(
+      selectedCondominium.estruturaAmbientes,
+    ).map((environment) => ({
+      ambienteId: environment.ambienteId,
+
+      ambienteNome: environment.ambienteNome,
+
+      categoria: environment.categoria,
+
+      observacao: environment.observacao,
+
+      legado: environment.legado,
+
+      equipamentos: environment.equipamentos.map((item) => ({
+        equipamentoId: item.equipamentoId,
+
+        equipamentoNome: item.equipamentoNome,
+
+        categoria: item.categoria,
+
+        quantidade: item.quantidade,
+
+        observacao: item.observacao,
+      })),
+    })),
+
     checklist: checklistItems.map((item) => ({
+      ambienteId: item.ambienteId || "",
+
+      ambienteNome: item.ambienteNome || "",
+
+      categoriaAmbiente: item.categoriaAmbiente || "",
+
       equipamentoId: item.equipamentoId || "",
 
       nome: item.nome || "",
 
       categoria: item.categoria || "",
+
+      quantidade: Math.max(1, Number(item.quantidade) || 1),
+
+      localizacao: String(item.localizacao || "").trim(),
 
       resultado: item.resultado || "",
 
@@ -1893,15 +2312,20 @@ async function handleSubmit(event) {
       return;
     }
 
-    showFeedback(`${savedInspection.codigo} criada e validada com sucesso!`);
+    showFeedback(
+      `${savedInspection.codigo} criada e validada! Abrindo a vistoria...`,
+    );
 
-    if (inspectionOriginFromURL === "condominio" && condominiumIdFromURL) {
-      window.setTimeout(() => {
-        window.location.href = "condominios.html?perfil=admin";
-      }, 900);
+    window.setTimeout(() => {
+      const parameters = new URLSearchParams({
+        vistoria: savedInspection.id,
+        modo: "consulta",
+      });
 
-      return;
-    }
+      window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+    }, 900);
+
+    return;
   } catch (error) {
     console.error("[Nova Vistoria] Não foi possível salvar:", error);
 
@@ -2188,30 +2612,212 @@ function addInspectionPdfTextBlock(pdf, y, label, value, code) {
   return y + blockHeight + 5;
 }
 
-function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
+function isLegacyInspectionPdfItem(item = {}) {
+  const environmentId = String(item.ambienteId || "").trim();
+
+  const environmentCategory = normalizeInspectionText(item.categoriaAmbiente);
+
+  return (
+    !environmentId ||
+    environmentId === "sem-ambiente-definido" ||
+    environmentCategory === "cadastro anterior"
+  );
+}
+
+function buildInspectionPdfChecklistBlocks(checklist = []) {
+  const blocks = [];
+
+  const environmentBlocks = new Map();
+
+  checklist.forEach((item, index) => {
+    if (isLegacyInspectionPdfItem(item)) {
+      blocks.push({
+        tipo: "equipamento",
+
+        item,
+
+        index,
+      });
+
+      return;
+    }
+
+    const environmentId = String(item.ambienteId || "").trim();
+
+    if (!environmentBlocks.has(environmentId)) {
+      const block = {
+        tipo: "ambiente",
+
+        ambiente: {
+          ambienteId: environmentId,
+
+          ambienteNome:
+            String(item.ambienteNome || "Ambiente").trim() || "Ambiente",
+
+          categoriaAmbiente:
+            String(item.categoriaAmbiente || "Outros ambientes").trim() ||
+            "Outros ambientes",
+
+          itens: [],
+        },
+      };
+
+      environmentBlocks.set(environmentId, block);
+
+      blocks.push(block);
+    }
+
+    environmentBlocks.get(environmentId).ambiente.itens.push({
+      item,
+
+      index,
+    });
+  });
+
+  return blocks;
+}
+
+function addInspectionPdfEnvironmentHeader(pdf, y, environment, code) {
   const pageWidth = pdf.internal.pageSize.getWidth();
 
   const contentWidth = pageWidth - 32;
 
-  const observationMaxWidth = contentWidth - 24;
+  const items = Array.isArray(environment.itens) ? environment.itens : [];
 
-  const observationLineHeight = 4.2;
+  const totalUnits = items.reduce(
+    (total, { item }) => total + Math.max(1, Number(item.quantidade) || 1),
+    0,
+  );
+
+  const adjustmentItems = items.filter(
+    ({ item }) => item.resultado === "precisa-ajuste",
+  ).length;
+
+  const environmentName = sanitizeInspectionPdfText(
+    environment.ambienteNome || "Sem ambiente definido",
+  );
+
+  const environmentMeta = sanitizeInspectionPdfText(
+    [
+      environment.categoriaAmbiente || "Outros ambientes",
+
+      items.length === 1 ? "1 equipamento" : `${items.length} equipamentos`,
+
+      totalUnits === 1 ? "1 unidade" : `${totalUnits} unidades`,
+    ].join(" | "),
+  );
+
+  const statusText =
+    adjustmentItems === 0
+      ? "TUDO OK"
+      : adjustmentItems === 1
+        ? "1 COM AJUSTE"
+        : `${adjustmentItems} COM AJUSTE`;
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  const metaLines = pdf.splitTextToSize(environmentMeta, contentWidth - 58);
+
+  pdf.setFontSize(11);
+
+  const nameLines = pdf.splitTextToSize(environmentName, contentWidth - 58);
+
+  const metaHeight = Math.max(1, metaLines.length) * 3.5;
+
+  const nameHeight = Math.max(1, nameLines.length) * 4.8;
+
+  const blockHeight = Math.max(23, 12 + metaHeight + nameHeight);
+
+  y = ensureInspectionPdfSpace(pdf, y, blockHeight + 6, code);
+
+  pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
+
+  pdf.setDrawColor(...INSPECTION_PDF_COLORS.border);
+
+  pdf.setLineWidth(0.35);
+
+  pdf.roundedRect(16, y, contentWidth, blockHeight, 3, 3, "FD");
+
+  pdf.setFillColor(
+    ...(adjustmentItems > 0
+      ? INSPECTION_PDF_COLORS.gold
+      : INSPECTION_PDF_COLORS.green),
+  );
+
+  pdf.roundedRect(16, y, 4, blockHeight, 1, 1, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  pdf.text(metaLines, 24, y + 7);
+
+  pdf.setFontSize(11);
+
+  pdf.text(nameLines, 24, y + 12 + metaHeight);
+
+  pdf.setFillColor(
+    ...(adjustmentItems > 0
+      ? INSPECTION_PDF_COLORS.gold
+      : INSPECTION_PDF_COLORS.green),
+  );
+
+  pdf.roundedRect(pageWidth - 59, y + 6, 37, 9, 2, 2, "F");
+
+  pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(adjustmentItems > 0 ? 5.8 : 6.5);
+
+  pdf.text(statusText, pageWidth - 40.5, y + 11.8, {
+    align: "center",
+  });
+
+  return y + blockHeight + 5;
+}
+
+function addInspectionPdfChecklistItem(
+  pdf,
+  y,
+  item,
+  index,
+  code,
+  environment = null,
+) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const textWidth = contentWidth - 24;
 
   const needsAdjustment = item.resultado === "precisa-ajuste";
 
   const statusText = needsAdjustment ? "PRECISA DE AJUSTE" : "OK";
 
+  const quantity = Math.max(1, Number(item.quantidade) || 1);
+
   const name = sanitizeInspectionPdfText(
     `${index + 1}. ${item.nome || "Equipamento"}`,
   );
 
-  const category = sanitizeInspectionPdfText(
-    item.categoria || "Outros equipamentos",
+  const equipmentMeta = sanitizeInspectionPdfText(
+    `${item.categoria || "Outros equipamentos"} | Quantidade: ${quantity}`,
   );
+
+  const location = sanitizeInspectionPdfText(item.localizacao || "");
 
   const observation = sanitizeInspectionPdfText(item.observacao || "");
 
   pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  const metaLines = pdf.splitTextToSize(equipmentMeta, contentWidth - 54);
 
   pdf.setFontSize(9);
 
@@ -2221,23 +2827,46 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   pdf.setFontSize(8.5);
 
-  const observationLines = observation
-    ? observation
+  const locationLines = location
+    ? location
         .split("\n")
         .flatMap((paragraph) =>
-          pdf.splitTextToSize(paragraph.trim(), observationMaxWidth),
+          pdf.splitTextToSize(paragraph.trim(), textWidth),
         )
         .filter((line) => String(line || "").trim())
     : [];
 
-  const blockHeight =
-    18 +
-    nameLines.length * 4.4 +
-    (observationLines.length > 0
-      ? 8 + observationLines.length * observationLineHeight
-      : 0);
+  const observationLines = observation
+    ? observation
+        .split("\n")
+        .flatMap((paragraph) =>
+          pdf.splitTextToSize(paragraph.trim(), textWidth),
+        )
+        .filter((line) => String(line || "").trim())
+    : [];
 
-  y = ensureInspectionPdfSpace(pdf, y, blockHeight + 5, code);
+  const metaHeight = Math.max(1, metaLines.length) * 3.5;
+
+  const nameHeight = Math.max(1, nameLines.length) * 4.4;
+
+  const locationHeight =
+    locationLines.length > 0 ? 8 + locationLines.length * 4.2 : 0;
+
+  const observationHeight =
+    observationLines.length > 0 ? 8 + observationLines.length * 4.2 : 0;
+
+  const blockHeight =
+    14 + metaHeight + nameHeight + locationHeight + observationHeight;
+
+  if (y + blockHeight + 5 > 278) {
+    pdf.addPage();
+
+    y = drawInspectionPdfHeader(pdf, code, true);
+
+    if (environment) {
+      y = addInspectionPdfEnvironmentHeader(pdf, y, environment, code);
+    }
+  }
 
   pdf.setFillColor(
     ...(needsAdjustment
@@ -2261,7 +2890,9 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   pdf.setFontSize(7);
 
-  pdf.text(category.toUpperCase(), 22, y + 6);
+  pdf.text(metaLines, 22, y + 6);
+
+  const nameY = y + 8 + metaHeight;
 
   pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
 
@@ -2269,7 +2900,7 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   pdf.setFontSize(9);
 
-  pdf.text(nameLines, 22, y + 12);
+  pdf.text(nameLines, 22, nameY);
 
   pdf.setFillColor(
     ...(needsAdjustment
@@ -2289,16 +2920,16 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
     align: "center",
   });
 
-  if (observationLines.length > 0) {
-    const observationY = y + 14 + nameLines.length * 4.4;
+  let contentY = nameY + nameHeight + 1;
 
+  if (locationLines.length > 0) {
     pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
 
     pdf.setFont("helvetica", "bold");
 
     pdf.setFontSize(7);
 
-    pdf.text("OBSERVAÇÃO", 22, observationY);
+    pdf.text("LOCALIZAÇÃO", 22, contentY + 3);
 
     pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
 
@@ -2306,8 +2937,31 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
     pdf.setFontSize(8.5);
 
-    pdf.text(observationLines, 22, observationY + 5, {
-      maxWidth: observationMaxWidth,
+    pdf.text(locationLines, 22, contentY + 8, {
+      maxWidth: textWidth,
+      lineHeightFactor: 1.15,
+    });
+
+    contentY += locationHeight;
+  }
+
+  if (observationLines.length > 0) {
+    pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+    pdf.setFont("helvetica", "bold");
+
+    pdf.setFontSize(7);
+
+    pdf.text("OBSERVAÇÃO DO AJUSTE", 22, contentY + 3);
+
+    pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(8.5);
+
+    pdf.text(observationLines, 22, contentY + 8, {
+      maxWidth: textWidth,
       lineHeightFactor: 1.15,
     });
   }
@@ -2521,6 +3175,8 @@ function createInspectionPdf() {
     code,
   );
 
+  const checklistBlocks = buildInspectionPdfChecklistBlocks(checklist);
+
   y = addInspectionPdfSectionTitle(pdf, y, "Checklist de equipamentos", code);
 
   if (checklist.length === 0) {
@@ -2532,8 +3188,35 @@ function createInspectionPdf() {
       code,
     );
   } else {
-    checklist.forEach((item, index) => {
-      y = addInspectionPdfChecklistItem(pdf, y, item, index, code);
+    checklistBlocks.forEach((block) => {
+      if (block.tipo === "equipamento") {
+        y = addInspectionPdfChecklistItem(
+          pdf,
+          y,
+          block.item,
+          block.index,
+          code,
+        );
+
+        return;
+      }
+
+      const environment = block.ambiente;
+
+      y = ensureInspectionPdfSpace(pdf, y, 58, code);
+
+      y = addInspectionPdfEnvironmentHeader(pdf, y, environment, code);
+
+      environment.itens.forEach(({ item, index }) => {
+        y = addInspectionPdfChecklistItem(
+          pdf,
+          y,
+          item,
+          index,
+          code,
+          environment,
+        );
+      });
     });
   }
 

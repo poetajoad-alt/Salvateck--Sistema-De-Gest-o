@@ -154,7 +154,157 @@ const equipamentoFiltroConfig = {
   gerador: "Gerador",
   "sistema-incendio": "Sistema de incêndio",
 };
+const equipamentosAntigosConfig = {
+  portaria: {
+    nome: "Portaria",
+    categoria: "Segurança e acesso",
+  },
 
+  "portao-automatico": {
+    nome: "Portão automático",
+    categoria: "Segurança e acesso",
+  },
+
+  interfone: {
+    nome: "Interfone",
+    categoria: "Segurança e acesso",
+  },
+
+  cftv: {
+    nome: "Câmeras e CFTV",
+    categoria: "Segurança e acesso",
+  },
+
+  "controle-acesso": {
+    nome: "Controle de acesso",
+    categoria: "Segurança e acesso",
+  },
+
+  "quadro-eletrico": {
+    nome: "Quadros elétricos",
+    categoria: "Sistema elétrico",
+  },
+
+  "iluminacao-emergencia": {
+    nome: "Iluminação de emergência",
+    categoria: "Sistema elétrico",
+  },
+
+  gerador: {
+    nome: "Gerador",
+    categoria: "Sistema elétrico",
+  },
+
+  spda: {
+    nome: "SPDA e para-raios",
+    categoria: "Sistema elétrico",
+  },
+
+  bombas: {
+    nome: "Bombas",
+    categoria: "Sistema hidráulico",
+  },
+
+  "reservatorio-superior": {
+    nome: "Reservatório superior",
+    categoria: "Sistema hidráulico",
+  },
+
+  "reservatorio-inferior": {
+    nome: "Reservatório inferior",
+    categoria: "Sistema hidráulico",
+  },
+
+  "rede-hidraulica": {
+    nome: "Rede hidráulica",
+    categoria: "Sistema hidráulico",
+  },
+
+  extintores: {
+    nome: "Extintores",
+    categoria: "Combate a incêndio",
+  },
+
+  hidrantes: {
+    nome: "Hidrantes",
+    categoria: "Combate a incêndio",
+  },
+
+  "alarme-incendio": {
+    nome: "Alarme de incêndio",
+    categoria: "Combate a incêndio",
+  },
+
+  "sinalizacao-emergencia": {
+    nome: "Sinalização de emergência",
+    categoria: "Combate a incêndio",
+  },
+
+  "elevador-social": {
+    nome: "Elevador social",
+    categoria: "Transporte",
+  },
+
+  "elevador-servico": {
+    nome: "Elevador de serviço",
+    categoria: "Transporte",
+  },
+
+  "plataforma-acessibilidade": {
+    nome: "Plataforma de acessibilidade",
+    categoria: "Transporte",
+  },
+
+  piscina: {
+    nome: "Piscina",
+    categoria: "Áreas comuns",
+  },
+
+  playground: {
+    nome: "Playground",
+    categoria: "Áreas comuns",
+  },
+
+  academia: {
+    nome: "Academia",
+    categoria: "Áreas comuns",
+  },
+
+  "salao-festas": {
+    nome: "Salão de festas",
+    categoria: "Áreas comuns",
+  },
+
+  garagem: {
+    nome: "Garagem",
+    categoria: "Áreas comuns",
+  },
+
+  jardim: {
+    nome: "Jardins",
+    categoria: "Áreas comuns",
+  },
+
+  fachada: {
+    nome: "Fachada",
+    categoria: "Estrutura predial",
+  },
+
+  cobertura: {
+    nome: "Cobertura e telhado",
+    categoria: "Estrutura predial",
+  },
+
+  escadas: {
+    nome: "Escadas e corrimãos",
+    categoria: "Estrutura predial",
+  },
+
+  "casa-maquinas": {
+    nome: "Casa de máquinas",
+    categoria: "Estrutura predial",
+  },
+};
 const documentoFiltroConfig = {
   regular: "Documentação regular",
   pendente: "Documentação pendente",
@@ -364,6 +514,90 @@ const selectedEquipmentCount = document.getElementById(
 const equipmentGroups = document.querySelectorAll(".equipment-group");
 
 /* =========================================
+   NOVA ESTRUTURA DE AMBIENTES E EQUIPAMENTOS
+========================================= */
+
+const legacyEquipmentNotice = document.getElementById(
+  "legacy-equipment-notice",
+);
+
+const addCondominiumEnvironmentButton = document.getElementById(
+  "add-condominium-environment-button",
+);
+
+const condominiumEnvironmentEditor = document.getElementById(
+  "condominium-environment-editor",
+);
+
+const condominiumEnvironmentEditorEyebrow = document.getElementById(
+  "condominium-environment-editor-eyebrow",
+);
+
+const condominiumEnvironmentEditorTitle = document.getElementById(
+  "condominium-environment-editor-title",
+);
+
+const closeCondominiumEnvironmentEditorButton = document.getElementById(
+  "close-condominium-environment-editor-button",
+);
+
+const condominiumEnvironmentEditIndex = document.getElementById(
+  "condominium-environment-edit-index",
+);
+
+const condominiumEnvironmentSelect = document.getElementById(
+  "condominium-environment-select",
+);
+
+const condominiumEnvironmentSelectHelp = document.getElementById(
+  "condominium-environment-select-help",
+);
+
+const environmentEquipmentSelectedCount = document.getElementById(
+  "environment-equipment-selected-count",
+);
+
+const environmentEquipmentSearch = document.getElementById(
+  "environment-equipment-search",
+);
+
+const environmentEquipmentOptions = document.getElementById(
+  "environment-equipment-options",
+);
+
+const environmentEquipmentEmpty = document.getElementById(
+  "environment-equipment-empty",
+);
+
+const cancelCondominiumEnvironmentButton = document.getElementById(
+  "cancel-condominium-environment-button",
+);
+
+const saveCondominiumEnvironmentButton = document.getElementById(
+  "save-condominium-environment-button",
+);
+
+const condominiumEnvironmentsList = document.getElementById(
+  "condominium-environments-list",
+);
+
+const condominiumEnvironmentsEmpty = document.getElementById(
+  "condominium-environments-empty",
+);
+
+const condominiumEnvironmentTemplate = document.getElementById(
+  "condominium-environment-template",
+);
+
+const condominiumEnvironmentEquipmentTemplate = document.getElementById(
+  "condominium-environment-equipment-template",
+);
+
+const environmentEquipmentOptionTemplate = document.getElementById(
+  "environment-equipment-option-template",
+);
+
+/* =========================================
    DOCUMENTOS E HISTÓRICO
 ========================================= */
 
@@ -390,6 +624,14 @@ let condominios = [];
 let clientes = [];
 
 let ordens = [];
+
+let ambientesCatalogo = [];
+
+let equipamentosCatalogo = [];
+
+let ambienteEmEdicaoIndex = null;
+
+let equipamentosTemporariosDoEditor = [];
 
 let abaAtual = "todos";
 
@@ -666,11 +908,265 @@ function normalizarHistorico(historico) {
       origemFirestore: false,
     }));
 }
+function mapearAmbienteDoCatalogo(ambienteSnapshot) {
+  const dados = ambienteSnapshot.data();
 
+  return {
+    id: ambienteSnapshot.id,
+
+    codigo: String(dados.codigo || "").trim(),
+
+    nome: String(dados.nome || "").trim() || "Ambiente sem nome",
+
+    categoria: String(dados.categoria || "").trim() || "Outros ambientes",
+
+    descricao: String(dados.descricao || "").trim(),
+
+    status:
+      String(dados.status || "").trim() === "inativo" ? "inativo" : "ativo",
+  };
+}
+
+function mapearEquipamentoDoCatalogo(equipamentoSnapshot) {
+  const dados = equipamentoSnapshot.data();
+
+  return {
+    id: equipamentoSnapshot.id,
+
+    codigo: String(dados.codigo || "").trim(),
+
+    nome: String(dados.nome || "").trim() || "Equipamento sem nome",
+
+    categoria: String(dados.categoria || "").trim() || "Outros equipamentos",
+
+    descricao: String(dados.descricao || "").trim(),
+
+    orientacaoVistoria: String(dados.orientacaoVistoria || "").trim(),
+
+    status:
+      String(dados.status || "").trim() === "inativo" ? "inativo" : "ativo",
+  };
+}
+
+function obterAmbienteDoCatalogoPorId(ambienteId) {
+  return (
+    ambientesCatalogo.find((ambiente) => ambiente.id === ambienteId) || null
+  );
+}
+
+function obterEquipamentoDoCatalogoPorId(equipamentoId) {
+  return (
+    equipamentosCatalogo.find(
+      (equipamento) => equipamento.id === equipamentoId,
+    ) || null
+  );
+}
+
+function normalizarEquipamentoDaEstrutura(valor) {
+  const dados =
+    valor && typeof valor === "object"
+      ? valor
+      : {
+          equipamentoId: valor,
+        };
+
+  const equipamentoId = String(
+    dados.equipamentoId || dados.equipmentId || dados.id || dados.codigo || "",
+  ).trim();
+
+  if (!equipamentoId) {
+    return null;
+  }
+
+  const equipamentoCatalogo = obterEquipamentoDoCatalogoPorId(equipamentoId);
+
+  const equipamentoAntigo = equipamentosAntigosConfig[equipamentoId] || null;
+
+  return {
+    equipamentoId,
+
+    equipamentoNome: String(
+      dados.equipamentoNome ||
+        dados.nome ||
+        equipamentoCatalogo?.nome ||
+        equipamentoAntigo?.nome ||
+        equipamentoId,
+    ).trim(),
+
+    categoria: String(
+      dados.categoria ||
+        equipamentoCatalogo?.categoria ||
+        equipamentoAntigo?.categoria ||
+        "Outros equipamentos",
+    ).trim(),
+
+    quantidade: Math.max(1, Number(dados.quantidade) || 1),
+
+    observacao: String(
+      dados.observacao || dados.localizacao || dados.notas || "",
+    ).trim(),
+  };
+}
+
+function normalizarEstruturaDeAmbientes(estrutura) {
+  if (!Array.isArray(estrutura)) {
+    return [];
+  }
+
+  return estrutura
+    .map((valor) => {
+      if (!valor || typeof valor !== "object") {
+        return null;
+      }
+
+      const ambienteId = String(
+        valor.ambienteId ||
+          valor.environmentId ||
+          valor.id ||
+          valor.codigo ||
+          "",
+      ).trim();
+
+      if (!ambienteId) {
+        return null;
+      }
+
+      const ambienteCatalogo = obterAmbienteDoCatalogoPorId(ambienteId);
+
+      const equipamentosOriginais = Array.isArray(valor.equipamentos)
+        ? valor.equipamentos
+        : Array.isArray(valor.equipamentosIds)
+          ? valor.equipamentosIds
+          : Array.isArray(valor.equipmentIds)
+            ? valor.equipmentIds
+            : [];
+
+      const equipamentos = equipamentosOriginais
+        .map(normalizarEquipamentoDaEstrutura)
+        .filter(Boolean);
+
+      const legado =
+        Boolean(valor.legado) || ambienteId === "sem-ambiente-definido";
+
+      return {
+        ambienteId,
+
+        ambienteNome: String(
+          valor.ambienteNome ||
+            valor.nome ||
+            ambienteCatalogo?.nome ||
+            (legado ? "Sem ambiente definido" : ambienteId),
+        ).trim(),
+
+        categoria: String(
+          valor.categoria ||
+            ambienteCatalogo?.categoria ||
+            (legado ? "Cadastro anterior" : "Outros ambientes"),
+        ).trim(),
+
+        observacao: String(
+          valor.observacao || valor.observacoes || valor.notas || "",
+        ).trim(),
+
+        legado,
+
+        equipamentos,
+      };
+    })
+    .filter(Boolean);
+}
+
+function obterEquipamentosIdsDaEstrutura(estruturaAmbientes = []) {
+  if (!Array.isArray(estruturaAmbientes)) {
+    return [];
+  }
+
+  return normalizarListaDeIds(
+    estruturaAmbientes.flatMap((ambiente) =>
+      Array.isArray(ambiente.equipamentos)
+        ? ambiente.equipamentos.map((equipamento) => equipamento.equipamentoId)
+        : [],
+    ),
+  );
+}
+
+function prepararEstruturaComCompatibilidade(
+  estruturaOriginal,
+  equipamentosAntigos,
+) {
+  const estruturaAmbientes = normalizarEstruturaDeAmbientes(estruturaOriginal);
+
+  const idsJaOrganizados = new Set(
+    obterEquipamentosIdsDaEstrutura(estruturaAmbientes),
+  );
+
+  const idsSemAmbiente = normalizarListaDeIds(equipamentosAntigos).filter(
+    (equipamentoId) => !idsJaOrganizados.has(equipamentoId),
+  );
+
+  if (idsSemAmbiente.length === 0) {
+    return estruturaAmbientes;
+  }
+
+  let ambienteLegado =
+    estruturaAmbientes.find(
+      (ambiente) =>
+        ambiente.legado === true ||
+        ambiente.ambienteId === "sem-ambiente-definido",
+    ) || null;
+
+  if (!ambienteLegado) {
+    ambienteLegado = {
+      ambienteId: "sem-ambiente-definido",
+
+      ambienteNome: "Sem ambiente definido",
+
+      categoria: "Cadastro anterior",
+
+      observacao: "Equipamentos preservados do cadastro anterior.",
+
+      legado: true,
+
+      equipamentos: [],
+    };
+
+    estruturaAmbientes.unshift(ambienteLegado);
+  }
+
+  const idsDoAmbienteLegado = new Set(
+    ambienteLegado.equipamentos.map((equipamento) => equipamento.equipamentoId),
+  );
+
+  idsSemAmbiente.forEach((equipamentoId) => {
+    if (idsDoAmbienteLegado.has(equipamentoId)) {
+      return;
+    }
+
+    const equipamento = normalizarEquipamentoDaEstrutura(equipamentoId);
+
+    if (equipamento) {
+      ambienteLegado.equipamentos.push(equipamento);
+    }
+  });
+
+  return estruturaAmbientes;
+}
 function mapearCondominioDoFirestore(condominioSnapshot) {
   const dados = condominioSnapshot.data();
 
   const endereco = dados.endereco || {};
+
+  const equipamentosAntigos = normalizarListaDeIds(dados.equipamentos);
+
+  const estruturaAmbientes = prepararEstruturaComCompatibilidade(
+    dados.estruturaAmbientes || dados.ambientesEquipamentos || [],
+    equipamentosAntigos,
+  );
+
+  const equipamentos = normalizarListaDeIds([
+    ...equipamentosAntigos,
+    ...obterEquipamentosIdsDaEstrutura(estruturaAmbientes),
+  ]);
 
   return {
     id: condominioSnapshot.id,
@@ -726,7 +1222,9 @@ function mapearCondominioDoFirestore(condominioSnapshot) {
 
     clientesIds: normalizarListaDeIds(dados.clientesIds),
 
-    equipamentos: Array.isArray(dados.equipamentos) ? dados.equipamentos : [],
+    equipamentos,
+
+    estruturaAmbientes,
 
     documentos: Array.isArray(dados.documentos)
       ? dados.documentos.map((documento) => ({
@@ -837,12 +1335,60 @@ async function carregarDadosDeCondominiosDoFirestore() {
 
   const resultados = await Promise.allSettled([
     getDocs(collection(db, "condominios")),
+
     getDocs(clientesQuery),
+
     getDocs(collection(db, "ordens")),
+
+    getDocs(collection(db, "ambientes")),
+
+    getDocs(collection(db, "equipamentos")),
   ]);
 
-  const [resultadoCondominios, resultadoClientes, resultadoOrdens] = resultados;
+  const [
+    resultadoCondominios,
+    resultadoClientes,
+    resultadoOrdens,
+    resultadoAmbientes,
+    resultadoEquipamentos,
+  ] = resultados;
+  /* =========================================
+     CATÁLOGO DE AMBIENTES
+  ========================================= */
 
+  ambientesCatalogo = [];
+
+  if (resultadoAmbientes.status === "fulfilled") {
+    ambientesCatalogo = resultadoAmbientes.value.docs
+      .map(mapearAmbienteDoCatalogo)
+      .sort((ambienteA, ambienteB) =>
+        ambienteA.nome.localeCompare(ambienteB.nome, "pt-BR"),
+      );
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar o catálogo de ambientes:",
+      resultadoAmbientes.reason,
+    );
+  }
+
+  /* =========================================
+     CATÁLOGO DE EQUIPAMENTOS
+  ========================================= */
+
+  equipamentosCatalogo = [];
+
+  if (resultadoEquipamentos.status === "fulfilled") {
+    equipamentosCatalogo = resultadoEquipamentos.value.docs
+      .map(mapearEquipamentoDoCatalogo)
+      .sort((equipamentoA, equipamentoB) =>
+        equipamentoA.nome.localeCompare(equipamentoB.nome, "pt-BR"),
+      );
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar o catálogo de equipamentos:",
+      resultadoEquipamentos.reason,
+    );
+  }
   /* =========================================
      CONDOMÍNIOS
   ========================================= */
@@ -932,7 +1478,11 @@ async function carregarDadosDeCondominiosDoFirestore() {
   aplicarOrdensAosCondominios();
 
   console.info(
-    `[Condomínios] ${condominios.length} condomínio(s), ${clientes.length} cliente(s) e ${ordens.length} ordem(ns) carregados.`,
+    `[Condomínios] ${condominios.length} condomínio(s), ` +
+      `${clientes.length} cliente(s), ` +
+      `${ordens.length} ordem(ns), ` +
+      `${ambientesCatalogo.length} ambiente(s) e ` +
+      `${equipamentosCatalogo.length} equipamento(s) carregados.`,
   );
 }
 
@@ -1097,11 +1647,67 @@ function popularOpcoesDeClientes() {
 
   popularSelectDeClientesVinculaveis();
 }
+function prepararEstruturaParaPersistencia(estrutura = []) {
+  return normalizarEstruturaDeAmbientes(estrutura)
+    .map((ambiente) => ({
+      ambienteId: String(ambiente.ambienteId || "").trim(),
 
+      ambienteNome: String(ambiente.ambienteNome || "Ambiente sem nome").trim(),
+
+      categoria: String(ambiente.categoria || "Outros ambientes").trim(),
+
+      observacao: String(ambiente.observacao || "").trim(),
+
+      legado: Boolean(ambiente.legado),
+
+      equipamentos: Array.isArray(ambiente.equipamentos)
+        ? ambiente.equipamentos
+            .map((equipamento) => ({
+              equipamentoId: String(equipamento.equipamentoId || "").trim(),
+
+              equipamentoNome: String(
+                equipamento.equipamentoNome ||
+                  equipamento.equipamentoId ||
+                  "Equipamento sem nome",
+              ).trim(),
+
+              categoria: String(
+                equipamento.categoria || "Outros equipamentos",
+              ).trim(),
+
+              quantidade: Math.max(1, Number(equipamento.quantidade) || 1),
+
+              observacao: String(equipamento.observacao || "").trim(),
+            }))
+            .filter((equipamento) => equipamento.equipamentoId)
+        : [],
+    }))
+    .filter((ambiente) => ambiente.ambienteId);
+}
 function montarDadosDoCondominio(condominio, novoCadastro) {
   const historicoPersistido = condominio.historico
     .filter((registro) => !registro.origemFirestore)
     .map(({ origemFirestore, ...registro }) => registro);
+
+  const estruturaAmbientes = prepararEstruturaParaPersistencia(
+    condominio.estruturaAmbientes,
+  );
+
+  const equipamentosDaEstrutura =
+    obterEquipamentosIdsDaEstrutura(estruturaAmbientes);
+
+  /*
+    Quando existe nova estrutura, ela passa
+    a ser a fonte principal dos equipamentos.
+
+    Caso um cadastro antigo seja salvo antes
+    de a estrutura ser preparada, o array
+    antigo continua preservado.
+  */
+  const equipamentos =
+    estruturaAmbientes.length > 0
+      ? equipamentosDaEstrutura
+      : normalizarListaDeIds(condominio.equipamentos);
 
   const dados = {
     id: condominio.id,
@@ -1130,7 +1736,17 @@ function montarDadosDoCondominio(condominio, novoCadastro) {
 
     clientesIds: obterClientesIdsDosVinculos(condominio),
 
-    equipamentos: [...condominio.equipamentos],
+    /*
+      Estrutura nova.
+    */
+    estruturaAmbientes,
+
+    /*
+      Campo antigo mantido durante toda
+      a migração para não quebrar vistorias,
+      filtros ou outras telas existentes.
+    */
+    equipamentos,
 
     documentos: condominio.documentos.map((documento) => ({
       ...documento,
@@ -2230,6 +2846,8 @@ function criarCondominioVazio() {
 
     equipamentos: [],
 
+    estruturaAmbientes: [],
+
     documentos: [],
 
     historico: [],
@@ -2279,7 +2897,7 @@ function preencherFormulario(condominio) {
 
   renderizarClientesVinculados();
 
-  atualizarContagemEquipamentos();
+  renderizarEstruturaDeAmbientes();
 
   renderizarDocumentos();
 
@@ -2330,9 +2948,15 @@ function coletarDadosDoFormulario() {
 
   condominioRascunho.observacoes = condominiumNotes.value.trim();
 
-  condominioRascunho.equipamentos = Array.from(equipmentInputs)
-    .filter((input) => input.checked)
-    .map((input) => input.value);
+  condominioRascunho.estruturaAmbientes = prepararEstruturaParaPersistencia(
+    obterEstruturaDoCondominioRascunho(),
+  );
+
+  condominioRascunho.equipamentos = obterEquipamentosIdsDaEstrutura(
+    condominioRascunho.estruturaAmbientes,
+  );
+
+  sincronizarEquipamentosAntigosComEstrutura();
 
   condominioRascunho.atualizadoEm = obterDataISO();
 }
@@ -2659,29 +3283,736 @@ function vincularCliente() {
 }
 
 /* =========================================
-   EQUIPAMENTOS
+   AMBIENTES E EQUIPAMENTOS
 ========================================= */
 
+function obterEstruturaDoCondominioRascunho() {
+  if (!condominioRascunho) {
+    return [];
+  }
+
+  if (!Array.isArray(condominioRascunho.estruturaAmbientes)) {
+    condominioRascunho.estruturaAmbientes = prepararEstruturaComCompatibilidade(
+      [],
+      condominioRascunho.equipamentos,
+    );
+  }
+
+  return condominioRascunho.estruturaAmbientes;
+}
+
+function obterEquipamentosDisponiveisParaEstrutura(idsSelecionados = []) {
+  const equipamentosPorId = new Map();
+
+  Object.entries(equipamentosAntigosConfig).forEach(
+    ([equipamentoId, configuracao]) => {
+      equipamentosPorId.set(equipamentoId, {
+        id: equipamentoId,
+
+        nome: configuracao.nome,
+
+        categoria: configuracao.categoria,
+
+        descricao: "",
+
+        status: "ativo",
+      });
+    },
+  );
+
+  equipamentosCatalogo.forEach((equipamento) => {
+    equipamentosPorId.set(equipamento.id, {
+      ...equipamento,
+    });
+  });
+
+  const selecionados = new Set(
+    idsSelecionados.map((id) => String(id || "").trim()),
+  );
+
+  return Array.from(equipamentosPorId.values())
+    .filter(
+      (equipamento) =>
+        equipamento.status === "ativo" || selecionados.has(equipamento.id),
+    )
+    .sort((equipamentoA, equipamentoB) =>
+      equipamentoA.nome.localeCompare(equipamentoB.nome, "pt-BR"),
+    );
+}
+
+function sincronizarEquipamentosAntigosComEstrutura() {
+  if (!condominioRascunho) {
+    return;
+  }
+
+  const equipamentosIds = obterEquipamentosIdsDaEstrutura(
+    obterEstruturaDoCondominioRascunho(),
+  );
+
+  condominioRascunho.equipamentos = equipamentosIds;
+
+  const equipamentosSelecionados = new Set(equipamentosIds);
+
+  equipmentInputs.forEach((input) => {
+    input.checked = equipamentosSelecionados.has(input.value);
+  });
+}
+
 function atualizarContagemEquipamentos() {
-  const selecionados = Array.from(equipmentInputs).filter(
-    (input) => input.checked,
+  if (!condominioRascunho) {
+    selectedEquipmentCount.textContent = "0 equipamentos";
+
+    return;
+  }
+
+  const equipamentosIds = obterEquipamentosIdsDaEstrutura(
+    obterEstruturaDoCondominioRascunho(),
   );
 
   selectedEquipmentCount.textContent = formatarQuantidade(
-    selecionados.length,
+    equipamentosIds.length,
+    "equipamento",
+    "equipamentos",
+  );
+}
+
+function atualizarContagemDoEditorDeEquipamentos() {
+  environmentEquipmentSelectedCount.textContent = formatarQuantidade(
+    equipamentosTemporariosDoEditor.length,
     "selecionado",
     "selecionados",
   );
+}
 
-  equipmentGroups.forEach((group) => {
-    const quantidade = group.querySelectorAll(
-      'input[name="equipment"]:checked',
-    ).length;
+function atualizarEquipamentoTemporario(equipamentoId, alteracoes = {}) {
+  const indice = equipamentosTemporariosDoEditor.findIndex(
+    (equipamento) => equipamento.equipamentoId === equipamentoId,
+  );
 
-    const count = group.querySelector(".equipment-group__count");
+  if (indice < 0) {
+    return;
+  }
 
-    count.textContent = String(quantidade);
+  equipamentosTemporariosDoEditor[indice] = {
+    ...equipamentosTemporariosDoEditor[indice],
+    ...alteracoes,
+  };
+}
+
+function criarEquipamentoTemporario(equipamento, dadosAnteriores = null) {
+  return {
+    equipamentoId: equipamento.id,
+
+    equipamentoNome: dadosAnteriores?.equipamentoNome || equipamento.nome,
+
+    categoria:
+      dadosAnteriores?.categoria ||
+      equipamento.categoria ||
+      "Outros equipamentos",
+
+    quantidade: Math.max(1, Number(dadosAnteriores?.quantidade) || 1),
+
+    observacao: String(dadosAnteriores?.observacao || "").trim(),
+  };
+}
+
+function popularSelectDeAmbientesDaEstrutura(ambienteSelecionadoId = "") {
+  condominiumEnvironmentSelect.innerHTML = "";
+
+  condominiumEnvironmentSelect.appendChild(
+    criarOpcao("", "Selecione um ambiente"),
+  );
+
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  const ambientesJaAdicionados = new Set(
+    estrutura
+      .map((ambiente, index) => {
+        if (index === ambienteEmEdicaoIndex) {
+          return "";
+        }
+
+        if (ambiente.legado) {
+          return "";
+        }
+
+        return ambiente.ambienteId;
+      })
+      .filter(Boolean),
+  );
+
+  const ambientesDisponiveis = ambientesCatalogo
+    .filter(
+      (ambiente) =>
+        ambiente.status === "ativo" || ambiente.id === ambienteSelecionadoId,
+    )
+    .sort((ambienteA, ambienteB) =>
+      ambienteA.nome.localeCompare(ambienteB.nome, "pt-BR"),
+    );
+
+  ambientesDisponiveis.forEach((ambiente) => {
+    const option = criarOpcao(ambiente.id, ambiente.nome);
+
+    if (ambientesJaAdicionados.has(ambiente.id)) {
+      option.disabled = true;
+
+      option.textContent = `${ambiente.nome} — já adicionado`;
+    }
+
+    condominiumEnvironmentSelect.appendChild(option);
   });
+
+  condominiumEnvironmentSelect.value = ambienteSelecionadoId;
+
+  const possuiAmbientes = ambientesDisponiveis.length > 0;
+
+  condominiumEnvironmentSelectHelp.textContent = possuiAmbientes
+    ? "Ambientes já adicionados ao condomínio ficam indisponíveis nesta lista."
+    : "Nenhum ambiente ativo foi cadastrado no catálogo.";
+}
+
+function renderizarOpcoesDeEquipamentosDoEditor() {
+  environmentEquipmentOptions.innerHTML = "";
+
+  const termo = normalizarTexto(environmentEquipmentSearch.value);
+
+  const idsSelecionados = equipamentosTemporariosDoEditor.map(
+    (equipamento) => equipamento.equipamentoId,
+  );
+
+  const equipamentosDisponiveis = obterEquipamentosDisponiveisParaEstrutura(
+    idsSelecionados,
+  ).filter((equipamento) => {
+    if (!termo) {
+      return true;
+    }
+
+    const conteudo = normalizarTexto(
+      [equipamento.nome, equipamento.categoria, equipamento.descricao].join(
+        " ",
+      ),
+    );
+
+    return conteudo.includes(termo);
+  });
+
+  equipamentosDisponiveis.forEach((equipamento) => {
+    const fragmento =
+      environmentEquipmentOptionTemplate.content.cloneNode(true);
+
+    const option = fragmento.querySelector(".environment-equipment-option");
+
+    const checkbox = fragmento.querySelector(
+      'input[name="environment-equipment"]',
+    );
+
+    const name = fragmento.querySelector(".environment-equipment-option__name");
+
+    const category = fragmento.querySelector(
+      ".environment-equipment-option__category",
+    );
+
+    const details = fragmento.querySelector(
+      ".environment-equipment-option__details",
+    );
+
+    const quantity = fragmento.querySelector(
+      ".environment-equipment-option__quantity",
+    );
+
+    const decreaseButton = fragmento.querySelector(
+      ".environment-equipment-option__step-button--decrease",
+    );
+
+    const increaseButton = fragmento.querySelector(
+      ".environment-equipment-option__step-button--increase",
+    );
+
+    const observation = fragmento.querySelector(
+      ".environment-equipment-option__observation",
+    );
+
+    const dadosSelecionados =
+      equipamentosTemporariosDoEditor.find(
+        (item) => item.equipamentoId === equipamento.id,
+      ) || null;
+
+    option.dataset.equipmentId = equipamento.id;
+
+    checkbox.value = equipamento.id;
+
+    checkbox.checked = Boolean(dadosSelecionados);
+
+    name.textContent = equipamento.nome;
+
+    category.textContent = equipamento.categoria || "Outros equipamentos";
+
+    quantity.value = Math.max(1, Number(dadosSelecionados?.quantidade) || 1);
+
+    observation.value = dadosSelecionados?.observacao || "";
+
+    details.hidden = !checkbox.checked;
+
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        const jaSelecionado = equipamentosTemporariosDoEditor.some(
+          (item) => item.equipamentoId === equipamento.id,
+        );
+
+        if (!jaSelecionado) {
+          equipamentosTemporariosDoEditor.push(
+            criarEquipamentoTemporario(equipamento, {
+              quantidade: quantity.value,
+              observacao: observation.value,
+            }),
+          );
+        }
+      } else {
+        equipamentosTemporariosDoEditor =
+          equipamentosTemporariosDoEditor.filter(
+            (item) => item.equipamentoId !== equipamento.id,
+          );
+      }
+
+      details.hidden = !checkbox.checked;
+
+      atualizarContagemDoEditorDeEquipamentos();
+    });
+
+    function aplicarQuantidade(novoValor) {
+      const quantidade = Math.max(1, Number.parseInt(novoValor, 10) || 1);
+
+      quantity.value = String(quantidade);
+
+      decreaseButton.disabled = quantidade <= 1;
+
+      atualizarEquipamentoTemporario(equipamento.id, {
+        quantidade,
+      });
+    }
+
+    decreaseButton.disabled = Number(quantity.value) <= 1;
+
+    quantity.addEventListener("input", () => {
+      const valorDigitado = quantity.value.trim();
+
+      if (!valorDigitado) {
+        return;
+      }
+
+      const quantidade = Math.max(1, Number.parseInt(valorDigitado, 10) || 1);
+
+      decreaseButton.disabled = quantidade <= 1;
+
+      atualizarEquipamentoTemporario(equipamento.id, {
+        quantidade,
+      });
+    });
+
+    quantity.addEventListener("blur", () => {
+      aplicarQuantidade(quantity.value);
+    });
+
+    decreaseButton.addEventListener("click", () => {
+      aplicarQuantidade((Number.parseInt(quantity.value, 10) || 1) - 1);
+    });
+
+    increaseButton.addEventListener("click", () => {
+      aplicarQuantidade((Number.parseInt(quantity.value, 10) || 1) + 1);
+    });
+
+    observation.addEventListener("input", () => {
+      atualizarEquipamentoTemporario(equipamento.id, {
+        observacao: observation.value.trim(),
+      });
+    });
+
+    environmentEquipmentOptions.appendChild(fragmento);
+  });
+
+  const listaVazia = equipamentosDisponiveis.length === 0;
+
+  environmentEquipmentOptions.hidden = listaVazia;
+
+  environmentEquipmentEmpty.hidden = !listaVazia;
+
+  atualizarContagemDoEditorDeEquipamentos();
+}
+
+function fecharEditorDeAmbiente() {
+  condominiumEnvironmentEditor.hidden = true;
+
+  condominiumEnvironmentEditIndex.value = "";
+
+  condominiumEnvironmentSelect.value = "";
+
+  environmentEquipmentSearch.value = "";
+
+  environmentEquipmentOptions.innerHTML = "";
+
+  equipamentosTemporariosDoEditor = [];
+
+  ambienteEmEdicaoIndex = null;
+}
+
+function abrirEditorDeAmbiente(index = null) {
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  const ambiente = Number.isInteger(index) ? estrutura[index] : null;
+
+  if (ambiente?.legado) {
+    mostrarFeedback(
+      "Adicione um ambiente para organizar os equipamentos anteriores.",
+    );
+
+    return;
+  }
+
+  ambienteEmEdicaoIndex = Number.isInteger(index) ? index : null;
+
+  condominiumEnvironmentEditIndex.value = Number.isInteger(index)
+    ? String(index)
+    : "";
+
+  condominiumEnvironmentEditorEyebrow.textContent = ambiente
+    ? "Editar estrutura"
+    : "Estrutura do condomínio";
+
+  condominiumEnvironmentEditorTitle.textContent = ambiente
+    ? `Editar ${ambiente.ambienteNome}`
+    : "Adicionar ambiente";
+
+  saveCondominiumEnvironmentButton.textContent = ambiente
+    ? "Salvar alterações"
+    : "Adicionar ambiente";
+
+  equipamentosTemporariosDoEditor = Array.isArray(ambiente?.equipamentos)
+    ? ambiente.equipamentos.map((equipamento) => ({
+        ...equipamento,
+      }))
+    : [];
+
+  popularSelectDeAmbientesDaEstrutura(ambiente?.ambienteId || "");
+
+  environmentEquipmentSearch.value = "";
+
+  renderizarOpcoesDeEquipamentosDoEditor();
+
+  condominiumEnvironmentEditor.hidden = false;
+
+  condominiumEnvironmentEditor.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+
+  window.setTimeout(() => {
+    condominiumEnvironmentSelect.focus();
+  }, 50);
+}
+
+function removerEquipamentosDoAmbienteLegado(equipamentosIds) {
+  const idsOrganizados = new Set(equipamentosIds);
+
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  estrutura.forEach((ambiente) => {
+    if (!ambiente.legado) {
+      return;
+    }
+
+    ambiente.equipamentos = ambiente.equipamentos.filter(
+      (equipamento) => !idsOrganizados.has(equipamento.equipamentoId),
+    );
+  });
+
+  condominioRascunho.estruturaAmbientes = estrutura.filter(
+    (ambiente) => !ambiente.legado || ambiente.equipamentos.length > 0,
+  );
+}
+
+function salvarAmbienteNoRascunho() {
+  if (!condominioRascunho) {
+    return;
+  }
+
+  const ambienteId = condominiumEnvironmentSelect.value;
+
+  if (!ambienteId) {
+    mostrarFeedback("Selecione o ambiente.");
+
+    condominiumEnvironmentSelect.focus();
+
+    return;
+  }
+
+  const ambienteCatalogo = obterAmbienteDoCatalogoPorId(ambienteId);
+
+  if (!ambienteCatalogo) {
+    mostrarFeedback("O ambiente selecionado não foi encontrado no catálogo.");
+
+    return;
+  }
+
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  const ambienteDuplicado = estrutura.some((ambiente, index) => {
+    if (index === ambienteEmEdicaoIndex) {
+      return false;
+    }
+
+    return !ambiente.legado && ambiente.ambienteId === ambienteId;
+  });
+
+  if (ambienteDuplicado) {
+    mostrarFeedback("Este ambiente já foi adicionado ao condomínio.");
+
+    return;
+  }
+
+  const novoAmbiente = {
+    ambienteId: ambienteCatalogo.id,
+
+    ambienteNome: ambienteCatalogo.nome,
+
+    categoria: ambienteCatalogo.categoria || "Outros ambientes",
+
+    observacao: "",
+
+    legado: false,
+
+    equipamentos: equipamentosTemporariosDoEditor.map((equipamento) => ({
+      equipamentoId: equipamento.equipamentoId,
+
+      equipamentoNome: equipamento.equipamentoNome,
+
+      categoria: equipamento.categoria,
+
+      quantidade: Math.max(1, Number(equipamento.quantidade) || 1),
+
+      observacao: String(equipamento.observacao || "").trim(),
+    })),
+  };
+
+  if (Number.isInteger(ambienteEmEdicaoIndex)) {
+    estrutura[ambienteEmEdicaoIndex] = novoAmbiente;
+  } else {
+    estrutura.push(novoAmbiente);
+  }
+
+  removerEquipamentosDoAmbienteLegado(
+    novoAmbiente.equipamentos.map((equipamento) => equipamento.equipamentoId),
+  );
+
+  sincronizarEquipamentosAntigosComEstrutura();
+
+  renderizarEstruturaDeAmbientes();
+
+  fecharEditorDeAmbiente();
+
+  mostrarFeedback(
+    Number.isInteger(ambienteEmEdicaoIndex)
+      ? "Ambiente atualizado."
+      : "Ambiente adicionado ao condomínio.",
+  );
+}
+
+function removerAmbienteDoRascunho(index) {
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  const ambiente = estrutura[index];
+
+  if (!ambiente) {
+    return;
+  }
+
+  if (ambiente.legado) {
+    mostrarFeedback(
+      "Os equipamentos anteriores precisam ser organizados antes de serem removidos.",
+    );
+
+    return;
+  }
+
+  const confirmou = window.confirm(
+    `Deseja remover o ambiente "${ambiente.ambienteNome}" e seus equipamentos deste condomínio?\n\nO catálogo geral não será alterado.`,
+  );
+
+  if (!confirmou) {
+    return;
+  }
+
+  estrutura.splice(index, 1);
+
+  sincronizarEquipamentosAntigosComEstrutura();
+
+  renderizarEstruturaDeAmbientes();
+
+  mostrarFeedback("Ambiente removido do condomínio.");
+}
+
+function criarCardDeAmbienteDoCondominio(ambiente, index) {
+  const fragmento = condominiumEnvironmentTemplate.content.cloneNode(true);
+
+  const card = fragmento.querySelector(".condominium-environment-card");
+
+  const name = fragmento.querySelector(".condominium-environment-card__name");
+
+  const category = fragmento.querySelector(
+    ".condominium-environment-card__category",
+  );
+
+  const count = fragmento.querySelector(".condominium-environment-card__count");
+
+  const legacyBadge = fragmento.querySelector(
+    ".condominium-environment-card__legacy",
+  );
+
+  const toggle = fragmento.querySelector(
+    ".condominium-environment-card__toggle",
+  );
+
+  const details = fragmento.querySelector(
+    ".condominium-environment-card__details",
+  );
+
+  const equipmentList = fragmento.querySelector(
+    ".condominium-environment-card__equipment-list",
+  );
+
+  const removeButton = fragmento.querySelector(
+    '[data-environment-action="remove"]',
+  );
+
+  const editButton = fragmento.querySelector(
+    '[data-environment-action="edit"]',
+  );
+
+  const equipamentos = Array.isArray(ambiente.equipamentos)
+    ? ambiente.equipamentos
+    : [];
+
+  const quantidadeTotal = equipamentos.reduce(
+    (total, equipamento) =>
+      total + Math.max(1, Number(equipamento.quantidade) || 1),
+    0,
+  );
+
+  card.dataset.environmentIndex = String(index);
+
+  card.classList.toggle("is-legacy", Boolean(ambiente.legado));
+
+  name.textContent = ambiente.ambienteNome || "Ambiente sem nome";
+
+  category.textContent = ambiente.categoria || "Outros ambientes";
+
+  count.textContent = formatarQuantidade(
+    quantidadeTotal,
+    "equipamento",
+    "equipamentos",
+  );
+
+  legacyBadge.hidden = !ambiente.legado;
+
+  equipamentos.forEach((equipamento) => {
+    const equipamentoFragmento =
+      condominiumEnvironmentEquipmentTemplate.content.cloneNode(true);
+
+    const equipmentName = equipamentoFragmento.querySelector(
+      ".condominium-environment-equipment__name",
+    );
+
+    const equipmentCategory = equipamentoFragmento.querySelector(
+      ".condominium-environment-equipment__category",
+    );
+
+    const equipmentQuantity = equipamentoFragmento.querySelector(
+      ".condominium-environment-equipment__quantity strong",
+    );
+
+    const equipmentObservation = equipamentoFragmento.querySelector(
+      ".condominium-environment-equipment__observation",
+    );
+
+    equipmentName.textContent =
+      equipamento.equipamentoNome || equipamento.equipamentoId;
+
+    equipmentCategory.textContent =
+      equipamento.categoria || "Outros equipamentos";
+
+    equipmentQuantity.textContent = String(
+      Math.max(1, Number(equipamento.quantidade) || 1),
+    );
+
+    const observacao = String(equipamento.observacao || "").trim();
+
+    equipmentObservation.textContent = observacao;
+
+    equipmentObservation.hidden = !observacao;
+
+    equipmentList.appendChild(equipamentoFragmento);
+  });
+
+  toggle.addEventListener("click", () => {
+    const abrir = details.hidden;
+
+    details.hidden = !abrir;
+
+    toggle.setAttribute("aria-expanded", String(abrir));
+  });
+
+  if (ambiente.legado) {
+    removeButton.hidden = true;
+
+    editButton.hidden = true;
+  } else {
+    removeButton.addEventListener("click", () => {
+      removerAmbienteDoRascunho(index);
+    });
+
+    editButton.addEventListener("click", () => {
+      abrirEditorDeAmbiente(index);
+    });
+  }
+
+  return fragmento;
+}
+
+function renderizarEstruturaDeAmbientes() {
+  condominiumEnvironmentsList.innerHTML = "";
+
+  if (!condominioRascunho) {
+    condominiumEnvironmentsEmpty.hidden = false;
+
+    legacyEquipmentNotice.hidden = true;
+
+    atualizarContagemEquipamentos();
+
+    return;
+  }
+
+  const estrutura = obterEstruturaDoCondominioRascunho();
+
+  estrutura.forEach((ambiente, index) => {
+    condominiumEnvironmentsList.appendChild(
+      criarCardDeAmbienteDoCondominio(ambiente, index),
+    );
+  });
+
+  const listaVazia = estrutura.length === 0;
+
+  condominiumEnvironmentsList.hidden = listaVazia;
+
+  condominiumEnvironmentsEmpty.hidden = !listaVazia;
+
+  const possuiEquipamentosAnteriores = estrutura.some(
+    (ambiente) => ambiente.legado && ambiente.equipamentos.length > 0,
+  );
+
+  legacyEquipmentNotice.hidden = !possuiEquipamentosAnteriores;
+
+  sincronizarEquipamentosAntigosComEstrutura();
+
+  atualizarContagemEquipamentos();
 }
 
 /* =========================================
@@ -2906,10 +4237,29 @@ linkedClientSearch.addEventListener(
   popularSelectDeClientesVinculaveis,
 );
 
-equipmentInputs.forEach((input) => {
-  input.addEventListener("change", atualizarContagemEquipamentos);
+addCondominiumEnvironmentButton.addEventListener("click", () => {
+  abrirEditorDeAmbiente();
 });
 
+closeCondominiumEnvironmentEditorButton.addEventListener(
+  "click",
+  fecharEditorDeAmbiente,
+);
+
+cancelCondominiumEnvironmentButton.addEventListener(
+  "click",
+  fecharEditorDeAmbiente,
+);
+
+saveCondominiumEnvironmentButton.addEventListener(
+  "click",
+  salvarAmbienteNoRascunho,
+);
+
+environmentEquipmentSearch.addEventListener(
+  "input",
+  renderizarOpcoesDeEquipamentosDoEditor,
+);
 addDocumentButton.addEventListener("click", adicionarDocumento);
 
 condominiumDocument.addEventListener("input", () => {
@@ -2933,6 +4283,12 @@ document.addEventListener("keydown", (event) => {
     fecharFiltros();
 
     openFilterButton.focus();
+
+    return;
+  }
+
+  if (!condominiumEnvironmentEditor.hidden) {
+    fecharEditorDeAmbiente();
 
     return;
   }

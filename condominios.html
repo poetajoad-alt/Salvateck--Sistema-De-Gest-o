@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/condominios.css" />
+  <link rel="stylesheet" href="css/condominios.css?v=1.0.3" />
 </head>
 
 <body data-page="condominios" data-profile="admin" data-allowed-roles="admin">
@@ -624,7 +624,7 @@
         </button>
 
         <button type="button" class="condominium-modal__tab" data-modal-tab="equipment" aria-pressed="false">
-          Equipamentos
+          Ambientes e Equipamentos
         </button>
 
         <button type="button" class="condominium-modal__tab" data-modal-tab="documents" aria-pressed="false">
@@ -1028,8 +1028,8 @@
         </section>
 
         <!-- =====================================
-             EQUIPAMENTOS
-        ====================================== -->
+     AMBIENTES E EQUIPAMENTOS
+====================================== -->
 
         <section class="modal-tab-panel" data-modal-panel="equipment" hidden>
 
@@ -1042,532 +1042,275 @@
               </p>
 
               <h3>
-                Equipamentos e áreas aplicáveis
+                Ambientes e equipamentos
               </h3>
 
             </div>
 
             <span class="modal-section-heading__count" id="selected-equipment-count">
-              0 selecionados
+              0 equipamentos
             </span>
 
           </div>
 
           <p class="modal-section-description">
-            Selecione somente os itens existentes no condomínio. As futuras vistorias utilizarão essa seleção para gerar o checklist aplicável.
+            Monte a estrutura real do condomínio selecionando os ambientes e,
+            dentro de cada ambiente, os equipamentos existentes. Essa estrutura
+            será utilizada automaticamente nas próximas vistorias.
           </p>
 
-          <div class="equipment-groups">
+          <!-- =====================================
+       AVISO DE CADASTRO ANTERIOR
+  ====================================== -->
 
-            <!-- Segurança e acesso -->
+          <div class="legacy-equipment-notice" id="legacy-equipment-notice" hidden>
 
-            <details class="equipment-group" open>
+            <span class="legacy-equipment-notice__icon">
 
-              <summary>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 9v4"></path>
+                <path d="M12 17h.01"></path>
+                <path d="M10.3 3.6 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"></path>
+              </svg>
 
-                <div>
+            </span>
 
-                  <strong>
-                    Segurança e acesso
-                  </strong>
+            <div>
 
-                  <span>
-                    Portaria, portões e monitoramento
-                  </span>
+              <strong>
+                Equipamentos anteriores preservados
+              </strong>
 
-                </div>
+              <p>
+                Este condomínio possui equipamentos cadastrados antes da criação
+                dos ambientes. Eles continuam salvos e aparecem em
+                “Sem ambiente definido” até serem organizados.
+              </p>
 
-                <span class="equipment-group__count">
-                  0
-                </span>
+            </div>
 
-              </summary>
+          </div>
 
-              <div class="equipment-options">
+          <!-- =====================================
+       AÇÕES
+  ====================================== -->
 
-                <label class="equipment-option">
+          <div class="condominium-structure-actions">
 
-                  <input type="checkbox" name="equipment" value="portaria" />
+            <button type="button" class="add-environment-button" id="add-condominium-environment-button">
 
-                  <span>
-                    Portaria
-                  </span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+              </svg>
 
-                </label>
+              <span>
+                Adicionar ambiente
+              </span>
 
-                <label class="equipment-option">
+            </button>
 
-                  <input type="checkbox" name="equipment" value="portao-automatico" />
+            <a href="ambientes-e-equipamentos.html?perfil=admin" class="manage-catalog-link">
+              Gerenciar catálogo
+            </a>
 
-                  <span>
-                    Portão automático
-                  </span>
+          </div>
 
-                </label>
+          <!-- =====================================
+       EDITOR DO AMBIENTE
+  ====================================== -->
 
-                <label class="equipment-option">
+          <section class="condominium-environment-editor" id="condominium-environment-editor" hidden>
 
-                  <input type="checkbox" name="equipment" value="interfone" />
+            <div class="condominium-environment-editor__header">
 
-                  <span>
-                    Interfone
-                  </span>
+              <div>
 
-                </label>
+                <p id="condominium-environment-editor-eyebrow">
+                  Estrutura do condomínio
+                </p>
 
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="cftv" />
-
-                  <span>
-                    Câmeras e CFTV
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="controle-acesso" />
-
-                  <span>
-                    Controle de acesso
-                  </span>
-
-                </label>
+                <h4 id="condominium-environment-editor-title">
+                  Adicionar ambiente
+                </h4>
 
               </div>
 
-            </details>
+              <button type="button" class="condominium-environment-editor__close" id="close-condominium-environment-editor-button" aria-label="Fechar edição do ambiente">
+                ×
+              </button>
 
-            <!-- Elétrica -->
+            </div>
 
-            <details class="equipment-group">
+            <input type="hidden" id="condominium-environment-edit-index" value="" />
 
-              <summary>
+            <label class="modal-field">
 
-                <div>
+              <span>
+                Ambiente
+              </span>
 
-                  <strong>
-                    Sistema elétrico
-                  </strong>
+              <select id="condominium-environment-select">
 
-                  <span>
-                    Quadros, iluminação e geração
-                  </span>
+                <option value="">
+                  Selecione um ambiente
+                </option>
 
-                </div>
+              </select>
 
-                <span class="equipment-group__count">
-                  0
-                </span>
+            </label>
 
-              </summary>
+            <p class="condominium-environment-editor__help" id="condominium-environment-select-help">
+              Ambientes já adicionados ao condomínio ficam indisponíveis nesta lista.
+            </p>
 
-              <div class="equipment-options">
+            <div class="condominium-environment-equipment-heading">
 
-                <label class="equipment-option">
+              <div>
 
-                  <input type="checkbox" name="equipment" value="quadro-eletrico" />
+                <p>
+                  Equipamentos disponíveis
+                </p>
 
-                  <span>
-                    Quadros elétricos
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="iluminacao-emergencia" />
-
-                  <span>
-                    Iluminação de emergência
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="gerador" />
-
-                  <span>
-                    Gerador
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="spda" />
-
-                  <span>
-                    SPDA e para-raios
-                  </span>
-
-                </label>
+                <h4>
+                  Selecione os itens existentes neste ambiente
+                </h4>
 
               </div>
 
-            </details>
+              <span id="environment-equipment-selected-count">
+                0 selecionados
+              </span>
 
-            <!-- Hidráulica -->
+            </div>
 
-            <details class="equipment-group">
+            <label class="environment-equipment-search">
 
-              <summary>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-4-4"></path>
+              </svg>
 
-                <div>
+              <input type="search" id="environment-equipment-search" placeholder="Pesquisar equipamento" autocomplete="off" />
 
-                  <strong>
-                    Sistema hidráulico
-                  </strong>
+            </label>
 
-                  <span>
-                    Bombas, reservatórios e redes
-                  </span>
+            <div class="environment-equipment-options" id="environment-equipment-options"></div>
 
-                </div>
+            <div class="modal-empty-state" id="environment-equipment-empty" hidden>
 
-                <span class="equipment-group__count">
-                  0
-                </span>
+              <strong>
+                Nenhum equipamento disponível
+              </strong>
 
-              </summary>
+              <p>
+                Cadastre equipamentos ativos na página Ambientes e Equipamentos.
+              </p>
 
-              <div class="equipment-options">
+            </div>
 
-                <label class="equipment-option">
+            <div class="condominium-environment-editor__actions">
 
-                  <input type="checkbox" name="equipment" value="bombas" />
+              <button type="button" class="modal-button modal-button--secondary" id="cancel-condominium-environment-button">
+                Cancelar
+              </button>
 
-                  <span>
-                    Bombas
-                  </span>
+              <button type="button" class="modal-button modal-button--primary" id="save-condominium-environment-button">
+                Adicionar ambiente
+              </button>
 
-                </label>
+            </div>
 
-                <label class="equipment-option">
+          </section>
 
-                  <input type="checkbox" name="equipment" value="reservatorio-superior" />
+          <!-- =====================================
+       ESTRUTURA DO CONDOMÍNIO
+  ====================================== -->
 
-                  <span>
-                    Reservatório superior
-                  </span>
+          <div class="condominium-environments-list" id="condominium-environments-list"></div>
 
-                </label>
+          <div class="modal-empty-state" id="condominium-environments-empty">
 
-                <label class="equipment-option">
+            <strong>
+              Nenhum ambiente adicionado
+            </strong>
 
-                  <input type="checkbox" name="equipment" value="reservatorio-inferior" />
+            <p>
+              Adicione o primeiro ambiente e selecione os equipamentos existentes
+              nele. Os equipamentos antigos serão preservados automaticamente.
+            </p>
 
-                  <span>
-                    Reservatório inferior
-                  </span>
+          </div>
 
-                </label>
+          <!-- =====================================
+       CAMPOS ANTIGOS PRESERVADOS
 
-                <label class="equipment-option">
+       Estes checkboxes permanecem escondidos
+       durante a migração para impedir a perda
+       dos equipamentos já cadastrados.
+  ====================================== -->
 
-                  <input type="checkbox" name="equipment" value="rede-hidraulica" />
+          <div id="legacy-equipment-inputs" hidden>
 
-                  <span>
-                    Rede hidráulica
-                  </span>
+            <input type="checkbox" name="equipment" value="portaria" />
 
-                </label>
+            <input type="checkbox" name="equipment" value="portao-automatico" />
 
-              </div>
+            <input type="checkbox" name="equipment" value="interfone" />
 
-            </details>
+            <input type="checkbox" name="equipment" value="cftv" />
 
-            <!-- Combate a incêndio -->
+            <input type="checkbox" name="equipment" value="controle-acesso" />
 
-            <details class="equipment-group">
+            <input type="checkbox" name="equipment" value="quadro-eletrico" />
 
-              <summary>
+            <input type="checkbox" name="equipment" value="iluminacao-emergencia" />
 
-                <div>
+            <input type="checkbox" name="equipment" value="gerador" />
 
-                  <strong>
-                    Combate a incêndio
-                  </strong>
+            <input type="checkbox" name="equipment" value="spda" />
 
-                  <span>
-                    Equipamentos e sinalização
-                  </span>
+            <input type="checkbox" name="equipment" value="bombas" />
 
-                </div>
+            <input type="checkbox" name="equipment" value="reservatorio-superior" />
 
-                <span class="equipment-group__count">
-                  0
-                </span>
+            <input type="checkbox" name="equipment" value="reservatorio-inferior" />
 
-              </summary>
+            <input type="checkbox" name="equipment" value="rede-hidraulica" />
 
-              <div class="equipment-options">
+            <input type="checkbox" name="equipment" value="extintores" />
 
-                <label class="equipment-option">
+            <input type="checkbox" name="equipment" value="hidrantes" />
 
-                  <input type="checkbox" name="equipment" value="extintores" />
+            <input type="checkbox" name="equipment" value="alarme-incendio" />
 
-                  <span>
-                    Extintores
-                  </span>
+            <input type="checkbox" name="equipment" value="sinalizacao-emergencia" />
 
-                </label>
+            <input type="checkbox" name="equipment" value="elevador-social" />
 
-                <label class="equipment-option">
+            <input type="checkbox" name="equipment" value="elevador-servico" />
 
-                  <input type="checkbox" name="equipment" value="hidrantes" />
+            <input type="checkbox" name="equipment" value="plataforma-acessibilidade" />
 
-                  <span>
-                    Hidrantes
-                  </span>
+            <input type="checkbox" name="equipment" value="piscina" />
 
-                </label>
+            <input type="checkbox" name="equipment" value="playground" />
 
-                <label class="equipment-option">
+            <input type="checkbox" name="equipment" value="academia" />
 
-                  <input type="checkbox" name="equipment" value="alarme-incendio" />
+            <input type="checkbox" name="equipment" value="salao-festas" />
 
-                  <span>
-                    Alarme de incêndio
-                  </span>
+            <input type="checkbox" name="equipment" value="garagem" />
 
-                </label>
+            <input type="checkbox" name="equipment" value="jardim" />
 
-                <label class="equipment-option">
+            <input type="checkbox" name="equipment" value="fachada" />
 
-                  <input type="checkbox" name="equipment" value="sinalizacao-emergencia" />
+            <input type="checkbox" name="equipment" value="cobertura" />
 
-                  <span>
-                    Sinalização de emergência
-                  </span>
+            <input type="checkbox" name="equipment" value="escadas" />
 
-                </label>
-
-              </div>
-
-            </details>
-
-            <!-- Transporte -->
-
-            <details class="equipment-group">
-
-              <summary>
-
-                <div>
-
-                  <strong>
-                    Transporte
-                  </strong>
-
-                  <span>
-                    Elevadores e plataformas
-                  </span>
-
-                </div>
-
-                <span class="equipment-group__count">
-                  0
-                </span>
-
-              </summary>
-
-              <div class="equipment-options">
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="elevador-social" />
-
-                  <span>
-                    Elevador social
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="elevador-servico" />
-
-                  <span>
-                    Elevador de serviço
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="plataforma-acessibilidade" />
-
-                  <span>
-                    Plataforma de acessibilidade
-                  </span>
-
-                </label>
-
-              </div>
-
-            </details>
-
-            <!-- Áreas comuns -->
-
-            <details class="equipment-group">
-
-              <summary>
-
-                <div>
-
-                  <strong>
-                    Áreas comuns
-                  </strong>
-
-                  <span>
-                    Lazer, convivência e circulação
-                  </span>
-
-                </div>
-
-                <span class="equipment-group__count">
-                  0
-                </span>
-
-              </summary>
-
-              <div class="equipment-options">
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="piscina" />
-
-                  <span>
-                    Piscina
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="playground" />
-
-                  <span>
-                    Playground
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="academia" />
-
-                  <span>
-                    Academia
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="salao-festas" />
-
-                  <span>
-                    Salão de festas
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="garagem" />
-
-                  <span>
-                    Garagem
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="jardim" />
-
-                  <span>
-                    Jardins
-                  </span>
-
-                </label>
-
-              </div>
-
-            </details>
-
-            <!-- Estrutura predial -->
-
-            <details class="equipment-group">
-
-              <summary>
-
-                <div>
-
-                  <strong>
-                    Estrutura predial
-                  </strong>
-
-                  <span>
-                    Fachadas, coberturas e áreas técnicas
-                  </span>
-
-                </div>
-
-                <span class="equipment-group__count">
-                  0
-                </span>
-
-              </summary>
-
-              <div class="equipment-options">
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="fachada" />
-
-                  <span>
-                    Fachada
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="cobertura" />
-
-                  <span>
-                    Cobertura e telhado
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="escadas" />
-
-                  <span>
-                    Escadas e corrimãos
-                  </span>
-
-                </label>
-
-                <label class="equipment-option">
-
-                  <input type="checkbox" name="equipment" value="casa-maquinas" />
-
-                  <span>
-                    Casa de máquinas
-                  </span>
-
-                </label>
-
-              </div>
-
-            </details>
+            <input type="checkbox" name="equipment" value="casa-maquinas" />
 
           </div>
 
@@ -1716,7 +1459,170 @@
     </article>
 
   </template>
+  <!-- =====================================
+     TEMPLATE DO AMBIENTE DO CONDOMÍNIO
+====================================== -->
 
+  <template id="condominium-environment-template">
+
+    <article class="condominium-environment-card">
+
+      <header class="condominium-environment-card__header">
+
+        <span class="condominium-environment-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V5h10v16"></path>
+            <path d="M15 9h4v12"></path>
+            <path d="M8 9h4M8 13h4M8 17h4"></path>
+          </svg>
+
+        </span>
+
+        <div class="condominium-environment-card__copy">
+
+          <div class="condominium-environment-card__top">
+
+            <strong class="condominium-environment-card__name"></strong>
+
+            <span class="condominium-environment-card__legacy" hidden>
+              Cadastro anterior
+            </span>
+
+          </div>
+
+          <span class="condominium-environment-card__category"></span>
+
+          <small class="condominium-environment-card__count"></small>
+
+        </div>
+
+        <button type="button" class="condominium-environment-card__toggle" aria-expanded="false" aria-label="Mostrar equipamentos do ambiente">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </header>
+
+      <div class="condominium-environment-card__details" hidden>
+
+        <div class="condominium-environment-card__equipment-list"></div>
+
+        <div class="condominium-environment-card__actions">
+
+          <button type="button" class="condominium-environment-card__button condominium-environment-card__button--secondary" data-environment-action="remove">
+            Remover ambiente
+          </button>
+
+          <button type="button" class="condominium-environment-card__button condominium-environment-card__button--primary" data-environment-action="edit">
+            Editar ambiente
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+     TEMPLATE DO EQUIPAMENTO DO AMBIENTE
+====================================== -->
+
+  <template id="condominium-environment-equipment-template">
+
+    <article class="condominium-environment-equipment">
+
+      <div class="condominium-environment-equipment__copy">
+
+        <strong class="condominium-environment-equipment__name"></strong>
+
+        <span class="condominium-environment-equipment__category"></span>
+
+      </div>
+
+      <div class="condominium-environment-equipment__quantity">
+
+        <span>
+          Quantidade
+        </span>
+
+        <strong></strong>
+
+      </div>
+
+      <p class="condominium-environment-equipment__observation" hidden></p>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+     TEMPLATE DE SELEÇÃO DO EQUIPAMENTO
+====================================== -->
+
+  <template id="environment-equipment-option-template">
+
+    <article class="environment-equipment-option">
+
+      <label class="environment-equipment-option__selection">
+
+        <input type="checkbox" name="environment-equipment" />
+
+        <span class="environment-equipment-option__copy">
+
+          <strong class="environment-equipment-option__name"></strong>
+
+          <small class="environment-equipment-option__category"></small>
+
+        </span>
+
+      </label>
+
+      <div class="environment-equipment-option__details" hidden>
+
+        <label>
+
+          <span>
+            Quantidade
+          </span>
+
+          <div class="environment-equipment-option__stepper">
+
+            <button type="button" class="environment-equipment-option__step-button environment-equipment-option__step-button--decrease" aria-label="Diminuir quantidade">
+              −
+            </button>
+
+            <input type="number" class="environment-equipment-option__quantity" min="1" step="1" value="1" inputmode="numeric" />
+
+            <button type="button" class="environment-equipment-option__step-button environment-equipment-option__step-button--increase" aria-label="Aumentar quantidade">
+              +
+            </button>
+
+          </div>
+
+        </label>
+
+        <label>
+
+          <span>
+            Localização ou observação
+          </span>
+
+          <input type="text" class="environment-equipment-option__observation" maxlength="300" placeholder="Ex.: Próximo à entrada principal" />
+
+        </label>
+
+      </div>
+
+    </article>
+
+  </template>
   <!-- =====================================
        TEMPLATE DO DOCUMENTO
   ====================================== -->
@@ -1762,7 +1668,7 @@
   </div>
 
   <script type="module" src="js/auth-guard.js"></script>
-  <script src="js/condominios.js"></script>
+  <script src="js/condominios.js?v=1.0.3"></script>
 
 </body>
 

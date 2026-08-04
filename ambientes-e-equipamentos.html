@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Cadastro de ambientes e equipamentos da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Ambientes e Equipamentos | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+
+  <link rel="stylesheet" href="css/ambientes-e-equipamentos.css?v=1.0.0" />
+</head>
+
+<body data-page="ambientes-e-equipamentos" data-profile="admin" data-allowed-roles="admin">
+
+  <main class="catalog-shell">
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="catalog-header">
+
+      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="catalog-header__content">
+
+        <p class="catalog-header__eyebrow">
+          Sistema de Gestão
+        </p>
+
+        <h1>
+          Ambientes e Equipamentos
+        </h1>
+
+      </div>
+
+      <div class="catalog-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="catalog-intro">
+
+      <div class="catalog-intro__copy">
+
+        <span class="catalog-intro__badge">
+          Cadastros técnicos
+        </span>
+
+        <h2>
+          Crie a estrutura usada nos condomínios e nas vistorias
+        </h2>
+
+        <p>
+          Cadastre os ambientes e equipamentos disponíveis no sistema.
+          Depois, cada condomínio poderá selecionar somente os itens existentes
+          em sua estrutura.
+        </p>
+
+      </div>
+
+      <button type="button" class="new-catalog-button" id="new-catalog-button">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span id="new-catalog-button-label">
+          Novo ambiente
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="catalog-overview" aria-label="Resumo dos ambientes e equipamentos">
+
+      <button type="button" class="overview-item is-active" data-overview-target="ambientes" aria-pressed="true">
+
+        <span>
+          Ambientes
+        </span>
+
+        <strong id="summary-environments">
+          0
+        </strong>
+
+      </button>
+
+      <button type="button" class="overview-item" data-overview-target="equipamentos" aria-pressed="false">
+
+        <span>
+          Equipamentos
+        </span>
+
+        <strong id="summary-equipment">
+          0
+        </strong>
+
+      </button>
+
+      <button type="button" class="overview-item" data-overview-target="ativos" aria-pressed="false">
+
+        <span>
+          Ativos
+        </span>
+
+        <strong id="summary-active">
+          0
+        </strong>
+
+      </button>
+
+      <button type="button" class="overview-item" data-overview-target="inativos" aria-pressed="false">
+
+        <span>
+          Inativos
+        </span>
+
+        <strong id="summary-inactive">
+          0
+        </strong>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         ABAS PRINCIPAIS
+    ====================================== -->
+
+    <nav class="catalog-tabs" aria-label="Alternar entre ambientes e equipamentos">
+
+      <button type="button" class="catalog-tab is-active" data-catalog-tab="ambientes" aria-pressed="true">
+        Ambientes
+      </button>
+
+      <button type="button" class="catalog-tab" data-catalog-tab="equipamentos" aria-pressed="false">
+        Equipamentos
+      </button>
+
+    </nav>
+
+    <!-- =====================================
+         PESQUISA E FILTROS
+    ====================================== -->
+
+    <section class="catalog-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="catalog-search" type="search" placeholder="Pesquisar ambiente" autocomplete="off" aria-label="Pesquisar ambientes e equipamentos" />
+
+      </label>
+
+      <button type="button" class="filter-button" id="open-filter-button" aria-expanded="false" aria-controls="filter-panel">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span class="filter-button__count" id="active-filter-count" hidden>
+          0
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS ATIVOS
+    ====================================== -->
+
+    <div class="active-filters" id="active-filters-list" aria-label="Filtros ativos" hidden></div>
+
+    <!-- =====================================
+         PAINEL DE FILTROS
+    ====================================== -->
+
+    <section class="filter-panel" id="filter-panel" hidden>
+
+      <div class="filter-panel__header">
+
+        <div>
+
+          <p>
+            Refine a listagem
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+
+        </div>
+
+        <button type="button" class="filter-panel__close" id="close-filter-button" aria-label="Fechar filtros">
+          ×
+        </button>
+
+      </div>
+
+      <div class="filter-grid">
+
+        <label class="filter-group">
+
+          <span class="filter-group__label">
+            Situação
+          </span>
+
+          <select id="status-filter" class="filter-select">
+
+            <option value="">
+              Todas as situações
+            </option>
+
+            <option value="ativo">
+              Ativo
+            </option>
+
+            <option value="inativo">
+              Inativo
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="filter-group">
+
+          <span class="filter-group__label">
+            Categoria
+          </span>
+
+          <select id="category-filter" class="filter-select">
+
+            <option value="">
+              Todas as categorias
+            </option>
+
+          </select>
+
+        </label>
+
+      </div>
+
+      <div class="filter-panel__actions">
+
+        <button type="button" class="filter-action filter-action--secondary" id="clear-filters-button">
+          Limpar filtros
+        </button>
+
+        <button type="button" class="filter-action filter-action--primary" id="apply-filters-button">
+          Aplicar
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CONTEÚDO: AMBIENTES
+    ====================================== -->
+
+    <section class="catalog-content is-active" data-catalog-panel="ambientes">
+
+      <div class="catalog-content__heading">
+
+        <div>
+
+          <p>
+            Organização dos locais
+          </p>
+
+          <h2>
+            Ambientes cadastrados
+          </h2>
+
+        </div>
+
+        <span class="catalog-content__count" id="environment-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="catalog-list" id="environment-list" aria-live="polite"></div>
+
+      <div class="empty-state" id="environment-empty" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V5h10v16"></path>
+            <path d="M15 9h4v12"></path>
+            <path d="M8 9h4M8 13h4M8 17h4"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum ambiente encontrado
+        </h3>
+
+        <p>
+          Cadastre locais como hall de entrada, garagem, cobertura,
+          casa de máquinas ou áreas comuns.
+        </p>
+
+        <button type="button" class="empty-state__button" data-empty-action="ambiente">
+          Cadastrar ambiente
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         CONTEÚDO: EQUIPAMENTOS
+    ====================================== -->
+
+    <section class="catalog-content" data-catalog-panel="equipamentos" hidden>
+
+      <div class="catalog-content__heading">
+
+        <div>
+
+          <p>
+            Itens avaliados
+          </p>
+
+          <h2>
+            Equipamentos cadastrados
+          </h2>
+
+        </div>
+
+        <span class="catalog-content__count" id="equipment-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="catalog-list" id="equipment-list" aria-live="polite"></div>
+
+      <div class="empty-state" id="equipment-empty" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.1 2.1-3-3z"></path>
+          </svg>
+
+        </span>
+
+        <h3>
+          Nenhum equipamento encontrado
+        </h3>
+
+        <p>
+          Cadastre os equipamentos que poderão ser associados aos ambientes
+          dos condomínios e avaliados nas vistorias.
+        </p>
+
+        <button type="button" class="empty-state__button" data-empty-action="equipamento">
+          Cadastrar equipamento
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO AMBIENTE
+  ====================================== -->
+
+  <template id="environment-card-template">
+
+    <article class="catalog-card catalog-card--environment">
+
+      <div class="catalog-card__summary">
+
+        <span class="catalog-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V5h10v16"></path>
+            <path d="M15 9h4v12"></path>
+            <path d="M8 9h4M8 13h4M8 17h4"></path>
+          </svg>
+
+        </span>
+
+        <div class="catalog-card__content">
+
+          <div class="catalog-card__top">
+
+            <span class="catalog-card__code"></span>
+
+            <span class="catalog-card__status"></span>
+
+          </div>
+
+          <h3 class="catalog-card__name"></h3>
+
+          <p class="catalog-card__description"></p>
+
+          <div class="catalog-card__indicators">
+
+            <span class="catalog-card__category"></span>
+
+            <span class="catalog-card__usage-count"></span>
+
+          </div>
+
+        </div>
+
+        <button type="button" class="catalog-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do ambiente">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <div class="catalog-card__details" hidden>
+
+        <div class="catalog-card__information">
+
+          <div class="catalog-card__information-item">
+
+            <span>
+              Categoria
+            </span>
+
+            <strong class="catalog-card__detail-category"></strong>
+
+          </div>
+
+          <div class="catalog-card__information-item">
+
+            <span>
+              Condomínios utilizando
+            </span>
+
+            <strong class="catalog-card__detail-usage"></strong>
+
+          </div>
+
+          <div class="catalog-card__information-item
+            catalog-card__information-item--wide">
+
+            <span>
+              Observações
+            </span>
+
+            <strong class="catalog-card__notes"></strong>
+
+          </div>
+
+        </div>
+
+        <div class="catalog-card__actions">
+
+          <button type="button" class="catalog-card__button catalog-card__button--secondary" data-catalog-action="status">
+            Desativar
+          </button>
+
+          <button type="button" class="catalog-card__button catalog-card__button--primary" data-catalog-action="edit">
+            Editar ambiente
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO EQUIPAMENTO
+  ====================================== -->
+
+  <template id="equipment-card-template">
+
+    <article class="catalog-card catalog-card--equipment">
+
+      <div class="catalog-card__summary">
+
+        <span class="catalog-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.1 2.1-3-3z"></path>
+          </svg>
+
+        </span>
+
+        <div class="catalog-card__content">
+
+          <div class="catalog-card__top">
+
+            <span class="catalog-card__code"></span>
+
+            <span class="catalog-card__status"></span>
+
+          </div>
+
+          <h3 class="catalog-card__name"></h3>
+
+          <p class="catalog-card__description"></p>
+
+          <div class="catalog-card__indicators">
+
+            <span class="catalog-card__category"></span>
+
+            <span class="catalog-card__usage-count"></span>
+
+          </div>
+
+        </div>
+
+        <button type="button" class="catalog-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do equipamento">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <div class="catalog-card__details" hidden>
+
+        <div class="catalog-card__information">
+
+          <div class="catalog-card__information-item">
+
+            <span>
+              Categoria técnica
+            </span>
+
+            <strong class="catalog-card__detail-category"></strong>
+
+          </div>
+
+          <div class="catalog-card__information-item">
+
+            <span>
+              Condomínios utilizando
+            </span>
+
+            <strong class="catalog-card__detail-usage"></strong>
+
+          </div>
+
+          <div class="catalog-card__information-item
+            catalog-card__information-item--wide">
+
+            <span>
+              Orientação para vistoria
+            </span>
+
+            <strong class="catalog-card__inspection-guidance"></strong>
+
+          </div>
+
+        </div>
+
+        <div class="catalog-card__actions">
+
+          <button type="button" class="catalog-card__button catalog-card__button--secondary" data-catalog-action="status">
+            Desativar
+          </button>
+
+          <button type="button" class="catalog-card__button catalog-card__button--primary" data-catalog-action="edit">
+            Editar equipamento
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       MODAL DE CADASTRO
+  ====================================== -->
+
+  <div class="modal-backdrop" id="catalog-modal" hidden>
+
+    <section class="catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+
+      <header class="catalog-modal__header">
+
+        <div>
+
+          <p id="catalog-modal-eyebrow">
+            Cadastro técnico
+          </p>
+
+          <h2 id="catalog-modal-title">
+            Novo ambiente
+          </h2>
+
+        </div>
+
+        <button type="button" class="catalog-modal__close" id="close-catalog-modal-button" aria-label="Fechar cadastro">
+          ×
+        </button>
+
+      </header>
+
+      <form id="catalog-form">
+
+        <input type="hidden" id="catalog-record-id" />
+
+        <input type="hidden" id="catalog-record-type" value="ambiente" />
+
+        <!-- =====================================
+             CAMPOS COMUNS
+        ====================================== -->
+
+        <section class="catalog-modal__section">
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Identificação
+              </p>
+
+              <h3>
+                Dados principais
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field modal-field--wide">
+
+              <span id="catalog-name-label">
+                Nome do ambiente
+              </span>
+
+              <input type="text" id="catalog-name" placeholder="Ex.: Hall de entrada" maxlength="100" required />
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Código
+              </span>
+
+              <input type="text" id="catalog-code" placeholder="Gerado automaticamente" readonly />
+
+            </label>
+
+          </div>
+
+          <div class="modal-grid">
+
+            <label class="modal-field">
+
+              <span>
+                Categoria
+              </span>
+
+              <select id="catalog-category" required>
+
+                <option value="">
+                  Selecione a categoria
+                </option>
+
+              </select>
+
+            </label>
+
+            <label class="modal-field">
+
+              <span>
+                Situação
+              </span>
+
+              <select id="catalog-status">
+
+                <option value="ativo">
+                  Ativo
+                </option>
+
+                <option value="inativo">
+                  Inativo
+                </option>
+
+              </select>
+
+            </label>
+
+          </div>
+
+          <label class="modal-field modal-field--spaced">
+
+            <span>
+              Descrição
+            </span>
+
+            <textarea id="catalog-description" rows="3" maxlength="400" placeholder="Descreva a finalidade e onde este cadastro é utilizado."></textarea>
+
+          </label>
+
+        </section>
+
+        <!-- =====================================
+             CAMPOS DO AMBIENTE
+        ====================================== -->
+
+        <section class="catalog-modal__section" id="environment-fields" data-record-fields="ambiente">
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Organização
+              </p>
+
+              <h3>
+                Informações do ambiente
+              </h3>
+
+            </div>
+
+          </div>
+
+          <label class="modal-field">
+
+            <span>
+              Observações do ambiente
+            </span>
+
+            <textarea id="environment-notes" rows="4" maxlength="600" placeholder="Ex.: Ambiente localizado no térreo, próximo à portaria."></textarea>
+
+          </label>
+
+        </section>
+
+        <!-- =====================================
+             CAMPOS DO EQUIPAMENTO
+        ====================================== -->
+
+        <section class="catalog-modal__section" id="equipment-fields" data-record-fields="equipamento" hidden>
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Aplicação técnica
+              </p>
+
+              <h3>
+                Informações do equipamento
+              </h3>
+
+            </div>
+
+          </div>
+
+          <label class="modal-field">
+
+            <span>
+              Orientação para vistoria
+            </span>
+
+            <textarea id="equipment-inspection-guidance" rows="4" maxlength="600" placeholder="Ex.: Verificar funcionamento, fixação, sinais de desgaste e necessidade de manutenção."></textarea>
+
+          </label>
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Sugestões
+              </p>
+
+              <h3>
+                Ambientes recomendados
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="recommended-environments-count">
+              0 selecionados
+            </span>
+
+          </div>
+
+          <p class="modal-section-description">
+            Esta seleção serve apenas como recomendação. No condomínio,
+            o equipamento poderá ser vinculado a qualquer ambiente ativo.
+          </p>
+
+          <div class="recommended-environments" id="recommended-environments-list"></div>
+
+          <div class="modal-empty-state" id="recommended-environments-empty" hidden>
+
+            <strong>
+              Nenhum ambiente ativo cadastrado
+            </strong>
+
+            <p>
+              Cadastre pelo menos um ambiente antes de definir recomendações.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             AÇÕES
+        ====================================== -->
+
+        <div class="catalog-modal__actions">
+
+          <button type="button" class="modal-button modal-button--secondary" id="cancel-catalog-button">
+            Cancelar
+          </button>
+
+          <button type="submit" class="modal-button modal-button--primary" id="save-catalog-button">
+            Salvar ambiente
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       TEMPLATE DE AMBIENTE RECOMENDADO
+  ====================================== -->
+
+  <template id="recommended-environment-template">
+
+    <label class="recommended-environment-option">
+
+      <input type="checkbox" name="recommended-environment" />
+
+      <span class="recommended-environment-option__content">
+
+        <strong class="recommended-environment-option__name"></strong>
+
+        <small class="recommended-environment-option__category"></small>
+
+      </span>
+
+    </label>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <script type="module" src="js/ambientes-e-equipamentos.js?v=1.0.0"></script>
+
+</body>
+
+</html>

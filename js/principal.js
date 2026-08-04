@@ -98,7 +98,13 @@ const profileConfig = {
         target: "condominios.html?perfil=admin",
         icon: "building",
       },
-
+      {
+        title: "Ambientes e Equipamentos",
+        description:
+          "Cadastre os ambientes e equipamentos utilizados nos condomínios e vistorias.",
+        target: "ambientes-e-equipamentos.html?perfil=admin",
+        icon: "tools",
+      },
       {
         title: "Funcionários",
         description: "Área preparada para a futura gestão da equipe.",

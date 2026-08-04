@@ -87,8 +87,197 @@
 
 .inspection-checklist {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin-top: 22px;
+}
+
+/* =========================================
+   CARD DO AMBIENTE
+========================================= */
+
+.inspection-environment-card {
+  overflow: hidden;
+
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.14);
+  border-radius: 20px;
+
+  box-shadow: 0 8px 22px rgba(13, 56, 97, 0.08);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.inspection-environment-card.is-pending {
+  border-color: rgba(13, 56, 97, 0.22);
+}
+
+.inspection-environment-card.is-ok {
+  border-color: rgba(36, 139, 88, 0.48);
+
+  box-shadow: 0 8px 22px rgba(36, 139, 88, 0.1);
+}
+
+.inspection-environment-card.needs-adjustment {
+  border-color: rgba(221, 154, 23, 0.62);
+
+  box-shadow: 0 8px 22px rgba(221, 154, 23, 0.12);
+}
+
+.inspection-environment-card__heading {
+  min-height: 82px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  padding: 17px 18px;
+
+  color: #ffffff;
+  background-color: #0d3861;
+
+  border-left: 5px solid #dd9a17;
+}
+
+.inspection-environment-card.is-ok .inspection-environment-card__heading {
+  border-left-color: #248b58;
+}
+
+.inspection-environment-card.needs-adjustment
+  .inspection-environment-card__heading {
+  border-left-color: #dd9a17;
+}
+
+.inspection-environment-card__identification {
+  min-width: 0;
+
+  display: grid;
+  gap: 5px;
+}
+
+.inspection-environment-card__meta {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+
+  color: rgba(249, 249, 249, 0.68);
+}
+
+.inspection-environment-card__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+
+  color: #ffffff;
+}
+
+.inspection-environment-card__actions {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.inspection-environment-card__status {
+  min-height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 5px 10px;
+
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border-radius: 999px;
+}
+
+.inspection-environment-card.is-ok .inspection-environment-card__status {
+  color: #ffffff;
+  background-color: #248b58;
+}
+
+.inspection-environment-card.needs-adjustment
+  .inspection-environment-card__status {
+  color: #0d3861;
+  background-color: #dd9a17;
+}
+
+.inspection-environment-card__toggle {
+  width: 40px;
+  height: 40px;
+
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 1px solid rgba(249, 249, 249, 0.28);
+  border-radius: 50%;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.inspection-environment-card__toggle:hover {
+  background-color: #e7a51d;
+}
+
+.inspection-environment-card__toggle svg {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  transition: transform 0.2s ease;
+}
+
+.inspection-environment-card__toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.inspection-environment-card__body {
+  display: grid;
+  gap: 12px;
+
+  padding: 15px;
+
+  background-color: #eef1f3;
+}
+
+.inspection-environment-card__body[hidden] {
+  display: none;
+}
+
+.inspection-environment-card__body .inspection-checklist-item {
+  padding: 16px;
+
+  border-radius: 15px;
+
+  box-shadow: 0 5px 14px rgba(13, 56, 97, 0.06);
 }
 
 .inspection-checklist-item {
@@ -137,6 +326,16 @@
 .inspection-checklist-item__heading strong {
   color: #0d3861;
   font-size: 1rem;
+}
+
+.inspection-checklist-item__location {
+  margin: 2px 0 0;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  color: #68717c;
 }
 
 .inspection-checklist-item__heading
@@ -639,6 +838,41 @@ body.inspection-pdf-modal-open {
 }
 
 @media (max-width: 640px) {
+  .inspection-environment-card__heading {
+    min-height: 0;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+
+    padding: 15px;
+  }
+
+  .inspection-environment-card__actions {
+    display: grid;
+    justify-items: end;
+    gap: 7px;
+  }
+
+  .inspection-environment-card__status {
+    max-width: 118px;
+
+    overflow: hidden;
+
+    font-size: 0.6rem;
+    text-overflow: ellipsis;
+  }
+
+  .inspection-environment-card__body {
+    gap: 10px;
+
+    padding: 11px;
+  }
+
+  .inspection-environment-card__body .inspection-checklist-item {
+    padding: 14px;
+  }
   .inspection-checklist-item__heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
