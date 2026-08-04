@@ -1979,7 +1979,11 @@ const INSPECTION_PDF_COLORS = {
 
 function sanitizeInspectionPdfText(value) {
   return String(value ?? "")
-    .replace(/\r\n/g, "\n")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .replace(/[\u200b-\u200d\uFEFF]/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
     .replace(/[–—]/g, "-")
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
@@ -2189,6 +2193,10 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   const contentWidth = pageWidth - 32;
 
+  const observationMaxWidth = contentWidth - 24;
+
+  const observationLineHeight = 4.2;
+
   const needsAdjustment = item.resultado === "precisa-ajuste";
 
   const statusText = needsAdjustment ? "PRECISA DE AJUSTE" : "OK";
@@ -2203,16 +2211,31 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   const observation = sanitizeInspectionPdfText(item.observacao || "");
 
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9);
+
   const nameLines = pdf.splitTextToSize(name, contentWidth - 54);
 
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(8.5);
+
   const observationLines = observation
-    ? pdf.splitTextToSize(observation, contentWidth - 12)
+    ? observation
+        .split("\n")
+        .flatMap((paragraph) =>
+          pdf.splitTextToSize(paragraph.trim(), observationMaxWidth),
+        )
+        .filter((line) => String(line || "").trim())
     : [];
 
   const blockHeight =
     18 +
     nameLines.length * 4.4 +
-    (observationLines.length > 0 ? 8 + observationLines.length * 4.2 : 0);
+    (observationLines.length > 0
+      ? 8 + observationLines.length * observationLineHeight
+      : 0);
 
   y = ensureInspectionPdfSpace(pdf, y, blockHeight + 5, code);
 
@@ -2242,6 +2265,8 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
   pdf.setTextColor(...INSPECTION_PDF_COLORS.navy);
 
+  pdf.setFont("helvetica", "bold");
+
   pdf.setFontSize(9);
 
   pdf.text(nameLines, 22, y + 12);
@@ -2255,6 +2280,8 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
   pdf.roundedRect(pageWidth - 57, y + 5, 35, 8, 2, 2, "F");
 
   pdf.setTextColor(...INSPECTION_PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
 
   pdf.setFontSize(needsAdjustment ? 6.2 : 7);
 
@@ -2279,7 +2306,10 @@ function addInspectionPdfChecklistItem(pdf, y, item, index, code) {
 
     pdf.setFontSize(8.5);
 
-    pdf.text(observationLines, 22, observationY + 5);
+    pdf.text(observationLines, 22, observationY + 5, {
+      maxWidth: observationMaxWidth,
+      lineHeightFactor: 1.15,
+    });
   }
 
   return y + blockHeight + 5;
@@ -2569,15 +2599,15 @@ function setInspectionPdfBusy(isBusy) {
 
     exportInspectionPdfButton.textContent = isBusy
       ? "Gerando PDF..."
-      : "Exportar PDF";
+      : "Compartilhar PDF";
   }
 
   if (confirmInspectionPdfButton) {
     confirmInspectionPdfButton.disabled = isBusy;
 
     confirmInspectionPdfButton.textContent = isBusy
-      ? "Gerando PDF..."
-      : "Baixar PDF da vistoria";
+      ? "Preparando PDF..."
+      : "Compartilhar PDF da vistoria";
   }
 }
 
@@ -2602,7 +2632,7 @@ function handleInspectionPdfError(error) {
   showFeedback("Não foi possível gerar o PDF da vistoria.", "error");
 }
 
-function downloadInspectionPdf() {
+async function shareInspectionPdf() {
   if (generatingInspectionPdf) {
     return;
   }
@@ -2612,11 +2642,53 @@ function downloadInspectionPdf() {
   try {
     const pdf = createInspectionPdf();
 
-    pdf.save(getInspectionPdfFileName());
+    const fileName = getInspectionPdfFileName();
+
+    const pdfBlob = pdf.output("blob");
+
+    const pdfFile = new File([pdfBlob], fileName, {
+      type: "application/pdf",
+
+      lastModified: Date.now(),
+    });
+
+    const shareData = {
+      files: [pdfFile],
+    };
+
+    const canShareFile =
+      typeof navigator.share === "function" &&
+      (typeof navigator.canShare !== "function" ||
+        navigator.canShare(shareData));
+
+    if (canShareFile) {
+      try {
+        await navigator.share(shareData);
+
+        closeInspectionPdfModal();
+
+        showFeedback("PDF da vistoria compartilhado com sucesso!");
+
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+
+        console.warn(
+          "[PDF Vistoria] O compartilhamento direto não foi concluído:",
+          error,
+        );
+      }
+    }
+
+    pdf.save(fileName);
 
     closeInspectionPdfModal();
 
-    showFeedback("PDF da vistoria baixado com sucesso!");
+    showFeedback(
+      "O compartilhamento direto não está disponível. O PDF foi baixado.",
+    );
   } catch (error) {
     handleInspectionPdfError(error);
   } finally {
@@ -2794,7 +2866,7 @@ closeInspectionPdfModalButtons.forEach((button) => {
   button.addEventListener("click", closeInspectionPdfModal);
 });
 
-confirmInspectionPdfButton?.addEventListener("click", downloadInspectionPdf);
+confirmInspectionPdfButton?.addEventListener("click", shareInspectionPdf);
 
 document.addEventListener("keydown", (event) => {
   if (
