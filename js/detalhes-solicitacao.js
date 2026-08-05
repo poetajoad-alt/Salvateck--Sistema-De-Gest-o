@@ -3,11 +3,19 @@ import "./auth-guard.js";
 import {
   doc,
   getDoc,
+  updateDoc,
   writeBatch,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-import { db } from "./firebase-config.js";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+
+import { db, storage } from "./firebase-config.js";
 
 /* =========================================
    CONFIGURAÇÕES
@@ -179,6 +187,42 @@ const confirmedScheduleMessage = document.getElementById(
 const requestPhotos = document.getElementById("request-photos");
 
 const photosEmpty = document.getElementById("photos-empty");
+
+const photoLimitSummary = document.getElementById("photo-limit-summary");
+
+const photoManagement = document.getElementById("photo-management");
+
+const photoAvailableSlots = document.getElementById("photo-available-slots");
+
+const additionalPhotosInput = document.getElementById(
+  "additional-photos-input",
+);
+
+const additionalPhotoUploadLabel = additionalPhotosInput?.closest(
+  ".additional-photo-upload",
+);
+
+const additionalPhotoStatus = document.getElementById(
+  "additional-photo-status",
+);
+
+const additionalPhotoCount = document.getElementById("additional-photo-count");
+
+const additionalPhotoProcessing = document.getElementById(
+  "additional-photo-processing",
+);
+
+const additionalPhotoError = document.getElementById("additional-photo-error");
+
+const additionalPhotoPreview = document.getElementById(
+  "additional-photo-preview",
+);
+
+const uploadAdditionalPhotosButton = document.getElementById(
+  "upload-additional-photos-button",
+);
+
+const photoLockedMessage = document.getElementById("photo-locked-message");
 
 /* Observações */
 
@@ -414,9 +458,39 @@ let modalCallback = null;
 let feedbackTimeout;
 
 let savingChanges = false;
+
 let generatingFinalPdf = false;
 
 let finalPdfLogoPromise = null;
+
+let selectedAdditionalPhotos = [];
+
+let processingAdditionalPhotos = false;
+
+let uploadingAdditionalPhotos = false;
+
+let photoActionInProgress = false;
+
+let photoRenderVersion = 0;
+
+const maxOrderPhotos = 6;
+
+const maxOriginalPhotoSize = 10 * 1024 * 1024;
+
+const targetCompressedPhotoSize = 1 * 1024 * 1024;
+
+const maxCompressedPhotoSize = 2 * 1024 * 1024;
+
+const maxPhotoDimension = 1920;
+
+const acceptedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const statusesThatAllowPhotos = new Set([
+  "nova-solicitacao",
+  "em-analise",
+  "aguardando-confirmacao",
+  "agendada",
+]);
 
 /* =========================================
    AUXILIARES
@@ -895,11 +969,74 @@ function normalizeOrder(snapshot) {
 
     proposta: order.proposta || null,
 
-    fotos: servicePhotos.filter(
-      (photo) => typeof photo === "string" && photo.trim(),
-    ),
+    fotos: servicePhotos
+      .map((photo, index) => {
+        if (typeof photo === "string") {
+          const url = photo.trim();
 
-    quantidadeFotos: Number(order.quantidadeFotos || 0),
+          if (!url) {
+            return null;
+          }
+
+          return {
+            url,
+
+            storagePath: "",
+
+            nome: `foto-${index + 1}`,
+
+            posicao: index + 1,
+
+            tamanho: 0,
+
+            enviadoPorUid: "",
+
+            enviadoPorPerfil: "",
+
+            enviadoEm: "",
+          };
+        }
+
+        if (!photo || typeof photo !== "object") {
+          return null;
+        }
+
+        const storagePath = String(photo.storagePath || "").trim();
+
+        const url = String(
+          photo.url || photo.downloadURL || photo.downloadUrl || "",
+        ).trim();
+
+        if (!storagePath && !url) {
+          return null;
+        }
+
+        return {
+          ...photo,
+
+          storagePath,
+
+          url,
+
+          nome: String(
+            photo.nome || photo.nomeOriginal || `foto-${index + 1}`,
+          ).trim(),
+
+          posicao: Number(photo.posicao || index + 1),
+
+          tamanho: Number(photo.tamanho || 0),
+
+          enviadoPorUid: String(photo.enviadoPorUid || "").trim(),
+
+          enviadoPorPerfil: String(photo.enviadoPorPerfil || "").trim(),
+
+          enviadoEm: photo.enviadoEm || "",
+        };
+      })
+      .filter(Boolean)
+      .sort((photoA, photoB) => photoA.posicao - photoB.posicao),
+
+    quantidadeFotos: Number(order.quantidadeFotos || servicePhotos.length || 0),
 
     observacaoInternaPublica: String(observations.interna || "").trim(),
 
@@ -1282,10 +1419,79 @@ function renderConfirmedSchedule() {
    FOTOS
 ========================================= */
 
-function openPhoto(photo) {
+function formatPhotoSize(size) {
+  const value = Number(size || 0);
+
+  if (value < 1024) {
+    return `${value} bytes`;
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function createCompressedPhotoName(originalName) {
+  const baseName = String(originalName || "imagem")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return `${baseName || "imagem"}.webp`;
+}
+
+function orderAllowsPhotoChanges() {
+  if (!currentRequest) {
+    return false;
+  }
+
+  return (
+    statusesThatAllowPhotos.has(currentRequest.status) &&
+    !currentRequest.documentoFinal
+  );
+}
+
+function getStoredPhotos() {
+  return Array.isArray(currentRequest?.fotos) ? currentRequest.fotos : [];
+}
+
+function getAvailablePhotoSlots() {
+  return Math.max(0, maxOrderPhotos - getStoredPhotos().length);
+}
+
+function serializePhotoForFirestore(photo) {
+  return {
+    storagePath: String(photo?.storagePath || "").trim(),
+
+    nome: String(photo?.nome || "imagem.webp").trim(),
+
+    contentType: String(photo?.contentType || "image/webp").trim(),
+
+    tamanho: Number(photo?.tamanho || 0),
+
+    posicao: Number(photo?.posicao || 0),
+
+    enviadoPorUid: String(photo?.enviadoPorUid || "").trim(),
+
+    enviadoPorPerfil: String(photo?.enviadoPorPerfil || "").trim(),
+
+    enviadoEm: photo?.enviadoEm || "",
+  };
+}
+
+function openPhoto(photoUrl) {
+  const finalUrl = String(photoUrl || "").trim();
+
+  if (!finalUrl) {
+    return;
+  }
+
   const link = document.createElement("a");
 
-  link.href = photo;
+  link.href = finalUrl;
 
   link.target = "_blank";
 
@@ -1298,38 +1504,919 @@ function openPhoto(photo) {
   link.remove();
 }
 
-function renderPhotos() {
-  requestPhotos.innerHTML = "";
+async function getPhotoViewUrl(photo) {
+  const storagePath = String(photo?.storagePath || "").trim();
 
-  const photos = currentRequest.fotos || [];
+  if (!storagePath) {
+    throw new Error("PHOTO_STORAGE_PATH_NOT_FOUND");
+  }
 
-  const noPhotos = photos.length === 0;
+  return getDownloadURL(ref(storage, storagePath));
+}
 
-  requestPhotos.hidden = noPhotos;
+function setAdditionalPhotoStatus({
+  countText = "",
+  processingText = "",
+  state = "",
+  errorMessage = "",
+} = {}) {
+  if (additionalPhotoCount && countText) {
+    additionalPhotoCount.textContent = countText;
+  }
 
-  photosEmpty.hidden = !noPhotos;
+  if (additionalPhotoProcessing && processingText) {
+    additionalPhotoProcessing.textContent = processingText;
+  }
 
-  photos.forEach((photo, index) => {
-    const button = document.createElement("button");
+  if (additionalPhotoStatus) {
+    additionalPhotoStatus.classList.remove(
+      "is-processing",
+      "is-success",
+      "is-error",
+    );
 
-    button.type = "button";
+    if (state) {
+      additionalPhotoStatus.classList.add(state);
+    }
+  }
 
-    button.className = "request-photo";
+  if (additionalPhotoError) {
+    additionalPhotoError.textContent =
+      errorMessage || "Não foi possível preparar as imagens selecionadas.";
 
-    button.setAttribute("aria-label", `Ampliar foto ${index + 1}`);
+    additionalPhotoError.hidden = !errorMessage;
+  }
+}
+
+function updateAdditionalPhotoButton() {
+  const availableSlots = getAvailablePhotoSlots();
+
+  const disabled =
+    selectedAdditionalPhotos.length === 0 ||
+    processingAdditionalPhotos ||
+    uploadingAdditionalPhotos ||
+    !orderAllowsPhotoChanges() ||
+    availableSlots <= 0;
+
+  uploadAdditionalPhotosButton.disabled = disabled;
+
+  additionalPhotosInput.disabled =
+    processingAdditionalPhotos ||
+    uploadingAdditionalPhotos ||
+    !orderAllowsPhotoChanges() ||
+    availableSlots <= 0;
+
+  additionalPhotoUploadLabel?.classList.toggle(
+    "is-disabled",
+    additionalPhotosInput.disabled,
+  );
+}
+
+function clearAdditionalPhotoSelection() {
+  selectedAdditionalPhotos = [];
+
+  additionalPhotosInput.value = "";
+
+  additionalPhotoPreview.innerHTML = "";
+
+  setAdditionalPhotoStatus({
+    countText: "Nenhuma nova imagem selecionada",
+    processingText: "Compressão automática para WebP",
+  });
+
+  updateAdditionalPhotoButton();
+}
+
+function renderPhotoManagement() {
+  const storedPhotos = getStoredPhotos();
+
+  const quantity = storedPhotos.length;
+
+  const availableSlots = getAvailablePhotoSlots();
+
+  const allowsChanges = orderAllowsPhotoChanges();
+
+  photoLimitSummary.textContent =
+    quantity === 1 ? "1 de 6 imagens" : `${quantity} de 6 imagens`;
+
+  photoAvailableSlots.textContent =
+    availableSlots === 1
+      ? "1 nova imagem disponível"
+      : `${availableSlots} novas imagens disponíveis`;
+
+  const canAddPhotos = allowsChanges && availableSlots > 0;
+
+  photoManagement.hidden = !canAddPhotos;
+
+  photoLockedMessage.hidden = canAddPhotos;
+
+  if (!canAddPhotos) {
+    if (currentRequest.status === "concluida") {
+      photoLockedMessage.textContent =
+        "Esta ordem foi concluída e não permite novas imagens ou exclusões.";
+    } else if (currentRequest.status === "cancelada") {
+      photoLockedMessage.textContent =
+        "Esta ordem foi cancelada e não permite novas imagens ou exclusões.";
+    } else if (currentRequest.status === "recusada") {
+      photoLockedMessage.textContent =
+        "Esta solicitação foi encerrada e não permite alterações nas imagens.";
+    } else if (availableSlots <= 0) {
+      photoLockedMessage.textContent =
+        "O limite de 6 imagens desta ordem de serviço foi atingido.";
+    } else {
+      photoLockedMessage.textContent = "Esta ordem não permite novas imagens.";
+    }
+
+    if (selectedAdditionalPhotos.length > 0) {
+      clearAdditionalPhotoSelection();
+    }
+  }
+
+  updateAdditionalPhotoButton();
+}
+
+function loadPhotoImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      reject(new Error("PHOTO_DECODE_FAILED"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+function canvasToWebpBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("PHOTO_COMPRESSION_FAILED"));
+
+          return;
+        }
+
+        resolve(blob);
+      },
+      "image/webp",
+      quality,
+    );
+  });
+}
+
+async function compressAdditionalPhoto(file) {
+  const image = await loadPhotoImage(file);
+
+  const originalWidth = Number(image.naturalWidth || image.width || 0);
+
+  const originalHeight = Number(image.naturalHeight || image.height || 0);
+
+  if (!originalWidth || !originalHeight) {
+    throw new Error("PHOTO_INVALID_DIMENSIONS");
+  }
+
+  const largestDimension = Math.max(originalWidth, originalHeight);
+
+  const initialScale =
+    largestDimension > maxPhotoDimension
+      ? maxPhotoDimension / largestDimension
+      : 1;
+
+  let finalWidth = Math.max(1, Math.round(originalWidth * initialScale));
+
+  let finalHeight = Math.max(1, Math.round(originalHeight * initialScale));
+
+  const canvas = document.createElement("canvas");
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+  });
+
+  if (!context) {
+    throw new Error("PHOTO_CANVAS_UNAVAILABLE");
+  }
+
+  let compressedBlob = null;
+
+  let quality = 0.86;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    canvas.width = finalWidth;
+
+    canvas.height = finalHeight;
+
+    context.fillStyle = "#ffffff";
+
+    context.fillRect(0, 0, finalWidth, finalHeight);
+
+    context.drawImage(image, 0, 0, finalWidth, finalHeight);
+
+    compressedBlob = await canvasToWebpBlob(canvas, quality);
+
+    if (compressedBlob.size <= targetCompressedPhotoSize) {
+      break;
+    }
+
+    if (quality > 0.58) {
+      quality -= 0.07;
+    } else {
+      finalWidth = Math.max(320, Math.round(finalWidth * 0.88));
+
+      finalHeight = Math.max(320, Math.round(finalHeight * 0.88));
+    }
+  }
+
+  if (!compressedBlob || compressedBlob.size > maxCompressedPhotoSize) {
+    throw new Error("PHOTO_STILL_TOO_LARGE");
+  }
+
+  return new File([compressedBlob], createCompressedPhotoName(file.name), {
+    type: "image/webp",
+
+    lastModified: file.lastModified || Date.now(),
+  });
+}
+
+function renderAdditionalPhotoPreview() {
+  additionalPhotoPreview.innerHTML = "";
+
+  selectedAdditionalPhotos.forEach((photoEntry, index) => {
+    const previewItem = document.createElement("div");
+
+    previewItem.className = "additional-photo-preview__item";
 
     const image = document.createElement("img");
 
-    image.src = photo;
+    image.alt = `Pré-visualização da nova imagem ${index + 1}`;
 
-    image.alt = `Foto ${index + 1} da solicitação`;
+    const objectUrl = URL.createObjectURL(photoEntry.file);
 
-    button.appendChild(image);
+    image.src = objectUrl;
 
-    button.addEventListener("click", () => openPhoto(photo));
+    image.addEventListener(
+      "load",
+      () => {
+        URL.revokeObjectURL(objectUrl);
+      },
+      {
+        once: true,
+      },
+    );
 
-    requestPhotos.appendChild(button);
+    const removeButton = document.createElement("button");
+
+    removeButton.type = "button";
+
+    removeButton.className = "additional-photo-preview__remove";
+
+    removeButton.textContent = "×";
+
+    removeButton.setAttribute("aria-label", `Remover nova imagem ${index + 1}`);
+
+    removeButton.addEventListener("click", () => {
+      if (processingAdditionalPhotos || uploadingAdditionalPhotos) {
+        return;
+      }
+
+      selectedAdditionalPhotos.splice(index, 1);
+
+      renderAdditionalPhotoPreview();
+
+      if (selectedAdditionalPhotos.length === 0) {
+        setAdditionalPhotoStatus({
+          countText: "Nenhuma nova imagem selecionada",
+
+          processingText: "Compressão automática para WebP",
+        });
+      } else {
+        const totalSize = selectedAdditionalPhotos.reduce(
+          (total, entry) => total + Number(entry.file.size || 0),
+          0,
+        );
+
+        setAdditionalPhotoStatus({
+          countText:
+            selectedAdditionalPhotos.length === 1
+              ? "1 nova imagem preparada"
+              : `${selectedAdditionalPhotos.length} novas imagens preparadas`,
+
+          processingText: `Total comprimido: ${formatPhotoSize(totalSize)}`,
+
+          state: "is-success",
+        });
+      }
+
+      updateAdditionalPhotoButton();
+    });
+
+    previewItem.append(image, removeButton);
+
+    additionalPhotoPreview.appendChild(previewItem);
   });
+}
+
+async function handleAdditionalPhotoSelection() {
+  if (processingAdditionalPhotos || uploadingAdditionalPhotos) {
+    return;
+  }
+
+  const incomingFiles = Array.from(additionalPhotosInput.files || []);
+
+  additionalPhotosInput.value = "";
+
+  if (incomingFiles.length === 0) {
+    return;
+  }
+
+  const availableSlots =
+    getAvailablePhotoSlots() - selectedAdditionalPhotos.length;
+
+  if (availableSlots <= 0) {
+    showFeedback("O limite de 6 imagens desta ordem foi atingido.");
+
+    return;
+  }
+
+  processingAdditionalPhotos = true;
+
+  updateAdditionalPhotoButton();
+
+  setAdditionalPhotoStatus({
+    countText:
+      selectedAdditionalPhotos.length === 1
+        ? "1 nova imagem preparada"
+        : `${selectedAdditionalPhotos.length} novas imagens preparadas`,
+
+    processingText: "Validando e comprimindo imagens...",
+
+    state: "is-processing",
+  });
+
+  const filesToProcess = incomingFiles.slice(0, availableSlots);
+
+  const errors = [];
+
+  if (incomingFiles.length > availableSlots) {
+    errors.push(
+      `Somente ${availableSlots} imagem(ns) foram consideradas, pois o limite da OS é 6.`,
+    );
+  }
+
+  try {
+    for (const file of filesToProcess) {
+      if (!acceptedPhotoTypes.has(file.type)) {
+        errors.push(`${file.name}: formato não permitido.`);
+
+        continue;
+      }
+
+      if (file.size <= 0) {
+        errors.push(`${file.name}: arquivo vazio.`);
+
+        continue;
+      }
+
+      if (file.size > maxOriginalPhotoSize) {
+        errors.push(`${file.name}: o arquivo original ultrapassa 10 MB.`);
+
+        continue;
+      }
+
+      const signature = [file.name, file.size, file.lastModified].join("::");
+
+      const alreadySelected = selectedAdditionalPhotos.some(
+        (entry) => entry.signature === signature,
+      );
+
+      if (alreadySelected) {
+        errors.push(`${file.name}: esta imagem já foi selecionada.`);
+
+        continue;
+      }
+
+      try {
+        const compressedFile = await compressAdditionalPhoto(file);
+
+        selectedAdditionalPhotos.push({
+          file: compressedFile,
+
+          originalName: file.name,
+
+          originalSize: Number(file.size || 0),
+
+          signature,
+        });
+      } catch (error) {
+        console.error(
+          `[Detalhes] Não foi possível comprimir ${file.name}:`,
+          error,
+        );
+
+        errors.push(
+          `${file.name}: não foi possível reduzir a imagem para o limite permitido.`,
+        );
+      }
+    }
+  } finally {
+    processingAdditionalPhotos = false;
+
+    renderAdditionalPhotoPreview();
+
+    updateAdditionalPhotoButton();
+  }
+
+  const totalSize = selectedAdditionalPhotos.reduce(
+    (total, entry) => total + Number(entry.file.size || 0),
+    0,
+  );
+
+  if (errors.length > 0) {
+    setAdditionalPhotoStatus({
+      countText:
+        selectedAdditionalPhotos.length === 1
+          ? "1 nova imagem preparada"
+          : `${selectedAdditionalPhotos.length} novas imagens preparadas`,
+
+      processingText:
+        selectedAdditionalPhotos.length > 0
+          ? `Imagens válidas: ${formatPhotoSize(totalSize)}`
+          : "Nenhuma imagem válida foi adicionada.",
+
+      state: "is-error",
+
+      errorMessage: errors.join(" "),
+    });
+
+    showFeedback(errors[0]);
+
+    return;
+  }
+
+  setAdditionalPhotoStatus({
+    countText:
+      selectedAdditionalPhotos.length === 1
+        ? "1 nova imagem preparada"
+        : `${selectedAdditionalPhotos.length} novas imagens preparadas`,
+
+    processingText: `Compressão concluída: ${formatPhotoSize(totalSize)}`,
+
+    state: "is-success",
+  });
+}
+
+function getFreePhotoPositions() {
+  const occupiedPositions = new Set(
+    getStoredPhotos()
+      .map((photo) => Number(photo.posicao || 0))
+      .filter((position) => position >= 1 && position <= maxOrderPhotos),
+  );
+
+  const availablePositions = [];
+
+  for (let position = 1; position <= maxOrderPhotos; position += 1) {
+    if (!occupiedPositions.has(position)) {
+      availablePositions.push(position);
+    }
+  }
+
+  return availablePositions;
+}
+
+async function uploadAdditionalPhotos() {
+  if (
+    uploadingAdditionalPhotos ||
+    processingAdditionalPhotos ||
+    selectedAdditionalPhotos.length === 0
+  ) {
+    return;
+  }
+
+  if (!orderAllowsPhotoChanges()) {
+    showFeedback("Esta ordem não permite novas imagens.");
+
+    return;
+  }
+
+  const freePositions = getFreePhotoPositions();
+
+  if (selectedAdditionalPhotos.length > freePositions.length) {
+    showFeedback("A quantidade selecionada ultrapassa o limite de 6 imagens.");
+
+    return;
+  }
+
+  const orderId = String(currentRequest.documentId || "").trim();
+
+  if (!orderId) {
+    showFeedback("Não foi possível identificar a ordem de serviço.");
+
+    return;
+  }
+
+  uploadingAdditionalPhotos = true;
+
+  updateAdditionalPhotoButton();
+
+  const originalButtonText = uploadAdditionalPhotosButton.textContent;
+
+  uploadAdditionalPhotosButton.textContent = "Enviando imagens...";
+
+  const uploadedPhotos = [];
+
+  try {
+    for (let index = 0; index < selectedAdditionalPhotos.length; index += 1) {
+      const photoEntry = selectedAdditionalPhotos[index];
+
+      const position = freePositions[index];
+
+      const fileName = `foto-${position}.webp`;
+
+      const storagePath = `ordens/${orderId}/imagens/${fileName}`;
+
+      const storageReference = ref(storage, storagePath);
+
+      setAdditionalPhotoStatus({
+        countText: `${index + 1} de ${selectedAdditionalPhotos.length}`,
+
+        processingText: `Enviando imagem ${index + 1}...`,
+
+        state: "is-processing",
+      });
+
+      await uploadBytes(storageReference, photoEntry.file, {
+        contentType: "image/webp",
+
+        customMetadata: {
+          ordemId: orderId,
+
+          enviadoPorUid: currentSession.uid,
+
+          enviadoPorPerfil: currentSession.role,
+
+          nomeOriginal: photoEntry.originalName || photoEntry.file.name,
+        },
+      });
+
+      uploadedPhotos.push({
+        storageReference,
+
+        data: {
+          storagePath,
+
+          nome: photoEntry.originalName || photoEntry.file.name || fileName,
+
+          contentType: "image/webp",
+
+          tamanho: Number(photoEntry.file.size || 0),
+
+          posicao: position,
+
+          enviadoPorUid: currentSession.uid,
+
+          enviadoPorPerfil: currentSession.role,
+
+          enviadoEm: new Date().toISOString(),
+        },
+      });
+    }
+
+    const existingPhotos = getStoredPhotos().map(serializePhotoForFirestore);
+
+    const finalPhotos = [
+      ...existingPhotos,
+      ...uploadedPhotos.map((uploadedPhoto) => uploadedPhoto.data),
+    ].sort((photoA, photoB) => photoA.posicao - photoB.posicao);
+
+    await updateDoc(currentRequestReference, {
+      fotos: finalPhotos,
+
+      quantidadeFotos: finalPhotos.length,
+
+      atualizadoEm: serverTimestamp(),
+    });
+
+    selectedAdditionalPhotos = [];
+
+    additionalPhotosInput.value = "";
+
+    additionalPhotoPreview.innerHTML = "";
+
+    await loadRequest();
+
+    renderAll();
+
+    setAdditionalPhotoStatus({
+      countText:
+        uploadedPhotos.length === 1
+          ? "1 imagem enviada"
+          : `${uploadedPhotos.length} imagens enviadas`,
+
+      processingText: "Imagens armazenadas com sucesso.",
+
+      state: "is-success",
+    });
+
+    showFeedback(
+      uploadedPhotos.length === 1
+        ? "Imagem adicionada à ordem de serviço."
+        : "Imagens adicionadas à ordem de serviço.",
+    );
+  } catch (error) {
+    console.error("[Detalhes] Não foi possível enviar as imagens:", error);
+
+    await Promise.allSettled(
+      uploadedPhotos.map((photo) => deleteObject(photo.storageReference)),
+    );
+
+    setAdditionalPhotoStatus({
+      countText: "Upload não concluído",
+
+      processingText: "As novas imagens não foram vinculadas à OS.",
+
+      state: "is-error",
+
+      errorMessage: "Não foi possível enviar as imagens. Tente novamente.",
+    });
+
+    if (error.code === "permission-denied") {
+      showFeedback("O Firebase bloqueou o envio das imagens.");
+    } else {
+      showFeedback("Não foi possível enviar as imagens.");
+    }
+  } finally {
+    uploadingAdditionalPhotos = false;
+
+    uploadAdditionalPhotosButton.textContent = originalButtonText;
+
+    updateAdditionalPhotoButton();
+  }
+}
+
+function userCanDeletePhoto(photo) {
+  if (!orderAllowsPhotoChanges()) {
+    return false;
+  }
+
+  if (currentSession.role === "admin") {
+    return true;
+  }
+
+  return (
+    currentSession.role === "cliente" &&
+    String(photo?.enviadoPorUid || "").trim() === currentSession.uid
+  );
+}
+
+async function removeStoredPhoto(photo, photoCard) {
+  if (photoActionInProgress || !userCanDeletePhoto(photo)) {
+    return;
+  }
+
+  const storagePath = String(photo?.storagePath || "").trim();
+
+  if (!storagePath) {
+    showFeedback("Não foi possível identificar o arquivo da imagem.");
+
+    return;
+  }
+
+  const originalPhotos = getStoredPhotos().map(serializePhotoForFirestore);
+
+  const remainingPhotos = originalPhotos.filter(
+    (storedPhoto) => storedPhoto.storagePath !== storagePath,
+  );
+
+  photoActionInProgress = true;
+
+  photoCard?.classList.add("is-removing");
+
+  try {
+    await updateDoc(currentRequestReference, {
+      fotos: remainingPhotos,
+
+      quantidadeFotos: remainingPhotos.length,
+
+      atualizadoEm: serverTimestamp(),
+    });
+
+    try {
+      await deleteObject(ref(storage, storagePath));
+    } catch (storageError) {
+      if (storageError.code !== "storage/object-not-found") {
+        try {
+          await updateDoc(currentRequestReference, {
+            fotos: originalPhotos,
+
+            quantidadeFotos: originalPhotos.length,
+
+            atualizadoEm: serverTimestamp(),
+          });
+        } catch (rollbackError) {
+          console.error(
+            "[Detalhes] Não foi possível restaurar a imagem após a falha:",
+            rollbackError,
+          );
+        }
+
+        throw storageError;
+      }
+    }
+
+    await loadRequest();
+
+    renderAll();
+
+    showFeedback("Imagem removida da ordem de serviço.");
+  } catch (error) {
+    console.error("[Detalhes] Não foi possível remover a imagem:", error);
+
+    if (
+      error.code === "permission-denied" ||
+      error.code === "storage/unauthorized"
+    ) {
+      showFeedback("Você não possui permissão para remover esta imagem.");
+    } else {
+      showFeedback("Não foi possível remover a imagem.");
+    }
+
+    throw error;
+  } finally {
+    photoActionInProgress = false;
+
+    photoCard?.classList.remove("is-removing");
+  }
+}
+
+function confirmPhotoRemoval(photo, photoCard) {
+  if (!userCanDeletePhoto(photo)) {
+    return;
+  }
+
+  openModal({
+    title: "Remover imagem",
+
+    description:
+      "A imagem será excluída definitivamente desta ordem de serviço.",
+
+    confirmationText: "Remover imagem",
+
+    danger: true,
+
+    confirm: async () => {
+      await removeStoredPhoto(photo, photoCard);
+    },
+  });
+}
+
+function createStoredPhotoCard(photo, url, index) {
+  const card = document.createElement("article");
+
+  card.className = "request-photo";
+
+  card.setAttribute("role", "button");
+
+  card.setAttribute("tabindex", "0");
+
+  card.setAttribute("aria-label", `Ampliar foto ${index + 1}`);
+
+  const image = document.createElement("img");
+
+  image.src = url;
+
+  image.alt = photo.nome
+    ? `${photo.nome} — imagem da ordem de serviço`
+    : `Foto ${index + 1} da ordem de serviço`;
+
+  image.loading = "lazy";
+
+  card.appendChild(image);
+
+  const openStoredPhoto = () => {
+    openPhoto(url);
+  };
+
+  card.addEventListener("click", openStoredPhoto);
+
+  card.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+
+    openStoredPhoto();
+  });
+
+  if (userCanDeletePhoto(photo)) {
+    const removeButton = document.createElement("button");
+
+    removeButton.type = "button";
+
+    removeButton.className = "request-photo__remove";
+
+    removeButton.textContent = "×";
+
+    removeButton.setAttribute("aria-label", `Remover foto ${index + 1}`);
+
+    removeButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+
+      confirmPhotoRemoval(photo, card);
+    });
+
+    card.appendChild(removeButton);
+  }
+
+  return card;
+}
+
+async function renderPhotos() {
+  const currentRenderVersion = photoRenderVersion + 1;
+
+  photoRenderVersion = currentRenderVersion;
+
+  requestPhotos.innerHTML = "";
+
+  renderPhotoManagement();
+
+  const photos = getStoredPhotos();
+
+  if (photos.length === 0) {
+    requestPhotos.hidden = true;
+
+    photosEmpty.hidden = false;
+
+    photosEmpty.textContent = "Nenhuma foto foi adicionada nesta solicitação.";
+
+    return;
+  }
+
+  requestPhotos.hidden = true;
+
+  photosEmpty.hidden = false;
+
+  photosEmpty.textContent = "Carregando imagens...";
+
+  const resolvedPhotos = await Promise.all(
+    photos.map(async (photo, index) => {
+      try {
+        const url = await getPhotoViewUrl(photo);
+
+        return {
+          photo,
+
+          url,
+
+          index,
+        };
+      } catch (error) {
+        console.error(
+          `[Detalhes] Não foi possível carregar a foto ${index + 1}:`,
+          error,
+        );
+
+        return null;
+      }
+    }),
+  );
+
+  if (photoRenderVersion !== currentRenderVersion) {
+    return;
+  }
+
+  const availablePhotos = resolvedPhotos.filter(Boolean);
+
+  requestPhotos.innerHTML = "";
+
+  if (availablePhotos.length === 0) {
+    requestPhotos.hidden = true;
+
+    photosEmpty.hidden = false;
+
+    photosEmpty.textContent =
+      "Não foi possível carregar as imagens desta solicitação.";
+
+    return;
+  }
+
+  availablePhotos.forEach(({ photo, url, index }) => {
+    requestPhotos.appendChild(createStoredPhotoCard(photo, url, index));
+  });
+
+  requestPhotos.hidden = false;
+
+  photosEmpty.hidden = true;
 }
 
 /* =========================================
@@ -2082,6 +3169,265 @@ function addPdfTextBlock(pdf, currentY, label, text, documentData) {
   return y;
 }
 
+/* =========================================
+   IMAGENS NO PDF FINAL
+========================================= */
+
+function getPdfContainedImageSize(
+  originalWidth,
+  originalHeight,
+  maximumWidth,
+  maximumHeight,
+) {
+  const width = Number(originalWidth || 0);
+
+  const height = Number(originalHeight || 0);
+
+  if (!width || !height) {
+    throw new Error("PDF_PHOTO_INVALID_DIMENSIONS");
+  }
+
+  const scale = Math.min(maximumWidth / width, maximumHeight / height);
+
+  return {
+    width: width * scale,
+
+    height: height * scale,
+  };
+}
+
+async function convertOrderPhotoToPdfImage(photo) {
+  const photoUrl = await getPhotoViewUrl(photo);
+
+  const response = await fetch(photoUrl, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("PDF_PHOTO_DOWNLOAD_FAILED");
+  }
+
+  const blob = await response.blob();
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    const objectUrl = URL.createObjectURL(blob);
+
+    image.onload = () => {
+      try {
+        const originalWidth = Number(image.naturalWidth || image.width || 0);
+
+        const originalHeight = Number(image.naturalHeight || image.height || 0);
+
+        if (!originalWidth || !originalHeight) {
+          throw new Error("PDF_PHOTO_INVALID_DIMENSIONS");
+        }
+
+        const maximumCanvasDimension = 1600;
+
+        const largestDimension = Math.max(originalWidth, originalHeight);
+
+        const scale =
+          largestDimension > maximumCanvasDimension
+            ? maximumCanvasDimension / largestDimension
+            : 1;
+
+        const finalWidth = Math.max(1, Math.round(originalWidth * scale));
+
+        const finalHeight = Math.max(1, Math.round(originalHeight * scale));
+
+        const canvas = document.createElement("canvas");
+
+        canvas.width = finalWidth;
+
+        canvas.height = finalHeight;
+
+        const context = canvas.getContext("2d", {
+          alpha: false,
+        });
+
+        if (!context) {
+          throw new Error("PDF_PHOTO_CANVAS_UNAVAILABLE");
+        }
+
+        context.fillStyle = "#ffffff";
+
+        context.fillRect(0, 0, finalWidth, finalHeight);
+
+        context.drawImage(image, 0, 0, finalWidth, finalHeight);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.84);
+
+        resolve({
+          dataUrl,
+
+          width: finalWidth,
+
+          height: finalHeight,
+
+          nome: String(photo?.nome || "Imagem da ordem").trim(),
+
+          posicao: Number(photo?.posicao || 0),
+        });
+      } catch (error) {
+        reject(error);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      reject(new Error("PDF_PHOTO_DECODE_FAILED"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+async function loadFinalPdfPhotos() {
+  const photos = getStoredPhotos()
+    .filter((photo) => {
+      return Boolean(String(photo?.storagePath || "").trim());
+    })
+    .sort((photoA, photoB) => {
+      return Number(photoA?.posicao || 0) - Number(photoB?.posicao || 0);
+    })
+    .slice(0, maxOrderPhotos);
+
+  if (photos.length === 0) {
+    return [];
+  }
+
+  try {
+    return await Promise.all(
+      photos.map((photo) => convertOrderPhotoToPdfImage(photo)),
+    );
+  } catch (error) {
+    console.error(
+      "[PDF] Não foi possível preparar o registro fotográfico:",
+      error,
+    );
+
+    throw new Error("PDF_PHOTO_LOAD_FAILED");
+  }
+}
+
+function drawPdfPhotoCard(pdf, photo, { x, y, width, height, index, total }) {
+  pdf.setFillColor(...PDF_COLORS.white);
+
+  pdf.setDrawColor(...PDF_COLORS.border);
+
+  pdf.roundedRect(x, y, width, height, 3, 3, "FD");
+
+  const imageAreaX = x + 4;
+
+  const imageAreaY = y + 4;
+
+  const imageAreaWidth = width - 8;
+
+  const imageAreaHeight = height - 17;
+
+  const containedSize = getPdfContainedImageSize(
+    photo.width,
+    photo.height,
+    imageAreaWidth,
+    imageAreaHeight,
+  );
+
+  const imageX = imageAreaX + (imageAreaWidth - containedSize.width) / 2;
+
+  const imageY = imageAreaY + (imageAreaHeight - containedSize.height) / 2;
+
+  pdf.addImage(
+    photo.dataUrl,
+    "JPEG",
+    imageX,
+    imageY,
+    containedSize.width,
+    containedSize.height,
+  );
+
+  pdf.setDrawColor(...PDF_COLORS.border);
+
+  pdf.line(x + 4, y + height - 11, x + width - 4, y + height - 11);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7.5);
+
+  pdf.setTextColor(...PDF_COLORS.navy);
+
+  pdf.text(`Imagem ${index + 1} de ${total}`, x + 4, y + height - 5);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(6.5);
+
+  pdf.setTextColor(...PDF_COLORS.gray);
+
+  const photoName = sanitizePdfText(photo.nome);
+
+  if (photoName) {
+    const limitedName =
+      photoName.length > 34 ? `${photoName.slice(0, 31)}...` : photoName;
+
+    pdf.text(limitedName, x + width - 4, y + height - 5, {
+      align: "right",
+    });
+  }
+}
+
+async function addPdfPhotoGallery(pdf, currentY, documentData) {
+  const photos = await loadFinalPdfPhotos();
+
+  if (photos.length === 0) {
+    return currentY;
+  }
+
+  const columnGap = 6;
+
+  const cardWidth = (178 - columnGap) / 2;
+
+  const cardHeight = 66;
+
+  const rowGap = 5;
+
+  let y = ensurePdfSpace(pdf, currentY, 14 + cardHeight + rowGap, documentData);
+
+  y = addPdfSectionTitle(pdf, y, "Registro fotográfico", documentData);
+
+  for (let index = 0; index < photos.length; index += 2) {
+    y = ensurePdfSpace(pdf, y, cardHeight + rowGap, documentData);
+
+    const rowPhotos = photos.slice(index, index + 2);
+
+    rowPhotos.forEach((photo, columnIndex) => {
+      const x = 16 + columnIndex * (cardWidth + columnGap);
+
+      drawPdfPhotoCard(pdf, photo, {
+        x,
+
+        y,
+
+        width: cardWidth,
+
+        height: cardHeight,
+
+        index: index + columnIndex,
+
+        total: photos.length,
+      });
+    });
+
+    y += cardHeight + rowGap;
+  }
+
+  return y;
+}
+
 function addPdfConclusionNotice(pdf, currentY, documentData) {
   const y = ensurePdfSpace(pdf, currentY, 26, documentData);
 
@@ -2360,6 +3706,8 @@ async function createFinalDocumentPdf() {
     );
   }
 
+  y = await addPdfPhotoGallery(pdf, y, documentData);
+
   y = addPdfSectionTitle(pdf, y, "Comunicação do atendimento", documentData);
 
   y = addPdfTextBlock(
@@ -2422,6 +3770,14 @@ function handleFinalPdfError(error) {
 
   if (error.message === "JSPDF_NOT_LOADED") {
     showFeedback("A biblioteca de PDF não foi carregada. Atualize a página.");
+
+    return;
+  }
+
+  if (error.message === "PDF_PHOTO_LOAD_FAILED") {
+    showFeedback(
+      "Não foi possível carregar todas as imagens da OS. Tente gerar o PDF novamente.",
+    );
 
     return;
   }
@@ -3517,6 +4873,14 @@ function openClientRegistration() {
 /* =========================================
    EVENTOS
 ========================================= */
+
+additionalPhotosInput.addEventListener(
+  "change",
+  handleAdditionalPhotoSelection,
+);
+
+uploadAdditionalPhotosButton.addEventListener("click", uploadAdditionalPhotos);
+
 viewFinalDocumentButton.addEventListener("click", viewFinalDocumentPdf);
 
 downloadFinalDocumentButton.addEventListener("click", downloadFinalDocumentPdf);

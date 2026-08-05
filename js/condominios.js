@@ -13,6 +13,8 @@ const ABAS_PERMITIDAS = [
 ];
 
 let db;
+let storage;
+
 let collection;
 let doc;
 let getDocs;
@@ -22,15 +24,29 @@ let setDoc;
 let serverTimestamp;
 let runTransaction;
 
+let storageRef;
+let uploadBytesResumable;
+let getDownloadURL;
+let getBlob;
+let deleteObject;
+
 async function prepararFirebaseDeCondominios() {
-  const [firestoreModule, firebaseConfigModule] = await Promise.all([
-    import(
-      `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`
-    ),
-    import("./firebase-config.js"),
-  ]);
+  const [firestoreModule, storageModule, firebaseConfigModule] =
+    await Promise.all([
+      import(
+        `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`
+      ),
+
+      import(
+        `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-storage.js`
+      ),
+
+      import("./firebase-config.js"),
+    ]);
 
   db = firebaseConfigModule.db;
+
+  storage = firebaseConfigModule.storage;
 
   ({
     collection,
@@ -42,6 +58,14 @@ async function prepararFirebaseDeCondominios() {
     serverTimestamp,
     runTransaction,
   } = firestoreModule);
+
+  ({
+    ref: storageRef,
+    uploadBytesResumable,
+    getDownloadURL,
+    getBlob,
+    deleteObject,
+  } = storageModule);
 }
 
 async function aguardarSessaoDaPagina() {
@@ -603,6 +627,58 @@ const environmentEquipmentOptionTemplate = document.getElementById(
 
 const addDocumentButton = document.getElementById("add-document-button");
 
+const documentUploadPanel = document.getElementById("document-upload-panel");
+
+const closeDocumentUploadButton = document.getElementById(
+  "close-document-upload-button",
+);
+
+const documentUploadField = document.getElementById("document-upload-field");
+
+const condominiumDocumentFile = document.getElementById(
+  "condominium-document-file",
+);
+
+const documentSelectedFile = document.getElementById("document-selected-file");
+
+const documentSelectedFileName = document.getElementById(
+  "document-selected-file-name",
+);
+
+const documentSelectedFileSize = document.getElementById(
+  "document-selected-file-size",
+);
+
+const removeSelectedDocumentButton = document.getElementById(
+  "remove-selected-document-button",
+);
+
+const documentTitle = document.getElementById("document-title");
+
+const documentExpirationDate = document.getElementById(
+  "document-expiration-date",
+);
+
+const documentUploadStatus = document.getElementById("document-upload-status");
+
+const documentUploadStatusText = document.getElementById(
+  "document-upload-status-text",
+);
+
+const documentUploadProgress = document.getElementById(
+  "document-upload-progress",
+);
+
+const documentUploadError = document.getElementById("document-upload-error");
+
+const cancelDocumentUploadButton = document.getElementById(
+  "cancel-document-upload-button",
+);
+
+const uploadDocumentButton = document.getElementById("upload-document-button");
+
+const documentsLoading = document.getElementById("documents-loading");
+
 const documentsList = document.getElementById("documents-list");
 
 const documentsEmpty = document.getElementById("documents-empty");
@@ -650,6 +726,16 @@ let filtrosAplicados = {
 let condominioEmEdicaoId = null;
 
 let condominioRascunho = null;
+
+let sessaoAtual = null;
+
+let arquivoDocumentoSelecionado = null;
+
+let uploadDocumentoEmAndamento = false;
+
+let acaoDocumentoEmAndamento = false;
+
+const tamanhoMaximoDocumento = 10 * 1024 * 1024;
 
 let feedbackTimeout;
 
@@ -1227,15 +1313,44 @@ function mapearCondominioDoFirestore(condominioSnapshot) {
     estruturaAmbientes,
 
     documentos: Array.isArray(dados.documentos)
-      ? dados.documentos.map((documento) => ({
-          id: documento.id || gerarIdDocumento(),
+      ? dados.documentos
+          .filter((documento) => documento && typeof documento === "object")
+          .map((documento) => {
+            let enviadoEm = "";
 
-          nome: documento.nome || "Documento",
+            if (
+              documento.enviadoEm &&
+              typeof documento.enviadoEm.toDate === "function"
+            ) {
+              enviadoEm = documento.enviadoEm.toDate().toISOString();
+            } else {
+              enviadoEm = String(documento.enviadoEm || "").trim();
+            }
 
-          vencimento: converterDataDoFirestoreParaISO(documento.vencimento),
+            return {
+              id: String(documento.id || "").trim() || gerarIdDocumento(),
 
-          status: documento.status || "pendente",
-        }))
+              nome: String(documento.nome || "Documento").trim() || "Documento",
+
+              nomeOriginal: String(documento.nomeOriginal || "").trim(),
+
+              storagePath: String(documento.storagePath || "").trim(),
+
+              contentType: String(
+                documento.contentType || "application/pdf",
+              ).trim(),
+
+              tamanho: Math.max(0, Number(documento.tamanho) || 0),
+
+              vencimento: converterDataDoFirestoreParaISO(documento.vencimento),
+
+              status: documento.status || "regular",
+
+              enviadoPorUid: String(documento.enviadoPorUid || "").trim(),
+
+              enviadoEm,
+            };
+          })
       : [],
 
     historico: normalizarHistorico(dados.historico),
@@ -1837,19 +1952,19 @@ async function salvarCondominioNoFirestore(condominio, novoCadastro) {
 ========================================= */
 
 function atualizarStatusDocumento(documento) {
-  if (documento.status === "pendente") {
-    return "pendente";
-  }
-
-  if (!documento.vencimento) {
-    return "pendente";
+  if (!documento?.vencimento) {
+    return "regular";
   }
 
   const vencimento = criarDataLocal(documento.vencimento);
 
+  if (!vencimento || Number.isNaN(vencimento.getTime())) {
+    return "pendente";
+  }
+
   const hoje = obterInicioDoDia();
 
-  if (vencimento && vencimento < hoje) {
+  if (vencimento < hoje) {
     return "vencido";
   }
 
@@ -2968,6 +3083,12 @@ function abrirModalDeCondominio(condominio = null) {
     ? clonarDados(condominio)
     : criarCondominioVazio();
 
+  limparFormularioUploadDocumento();
+
+  documentUploadPanel.hidden = true;
+
+  addDocumentButton.setAttribute("aria-expanded", "false");
+
   linkedClientSearch.value = "";
 
   popularSelectDeClientesVinculaveis();
@@ -2994,6 +3115,16 @@ function abrirModalDeCondominio(condominio = null) {
 }
 
 function fecharModalDeCondominio() {
+  if (uploadDocumentoEmAndamento || acaoDocumentoEmAndamento) {
+    mostrarFeedback("Aguarde a operação do documento terminar.");
+
+    return;
+  }
+
+  fecharPainelUploadDocumento({
+    forcar: true,
+  });
+
   condominiumModal.hidden = true;
 
   document.body.classList.remove("modal-open");
@@ -3029,6 +3160,12 @@ async function salvarCondominio(event) {
   event.preventDefault();
 
   if (!condominioRascunho) {
+    return;
+  }
+
+  if (uploadDocumentoEmAndamento || acaoDocumentoEmAndamento) {
+    mostrarFeedback("Aguarde a operação do documento terminar.");
+
     return;
   }
 
@@ -4019,14 +4156,817 @@ function renderizarEstruturaDeAmbientes() {
    DOCUMENTOS
 ========================================= */
 
-function renderizarDocumentos() {
-  documentsList.innerHTML = "";
+function formatarTamanhoDocumento(tamanho) {
+  const valor = Math.max(0, Number(tamanho) || 0);
 
+  if (valor < 1024) {
+    return `${valor} bytes`;
+  }
+
+  if (valor < 1024 * 1024) {
+    return `${(valor / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(valor / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatarDataHoraDocumento(valor) {
+  if (!valor) {
+    return "";
+  }
+
+  const data =
+    typeof valor?.toDate === "function" ? valor.toDate() : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "";
+  }
+
+  return data.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function obterNomeDocumentoParaDownload(documento) {
+  const nomeBase = String(
+    documento?.nomeOriginal || documento?.nome || "documento.pdf",
+  )
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "-");
+
+  return /\.pdf$/i.test(nomeBase) ? nomeBase : `${nomeBase}.pdf`;
+}
+
+function prepararDocumentoParaPersistencia(documento) {
+  return {
+    id: String(documento?.id || gerarIdDocumento()).trim(),
+
+    nome: String(documento?.nome || "Documento").trim() || "Documento",
+
+    nomeOriginal: String(documento?.nomeOriginal || "").trim(),
+
+    storagePath: String(documento?.storagePath || "").trim(),
+
+    contentType: String(documento?.contentType || "application/pdf").trim(),
+
+    tamanho: Math.max(0, Number(documento?.tamanho) || 0),
+
+    vencimento: String(documento?.vencimento || "").trim(),
+
+    status: atualizarStatusDocumento(documento),
+
+    enviadoPorUid: String(documento?.enviadoPorUid || "").trim(),
+
+    enviadoEm: String(documento?.enviadoEm || "").trim(),
+  };
+}
+
+function prepararHistoricoParaPersistencia(historico) {
+  return (Array.isArray(historico) ? historico : [])
+    .filter(
+      (registro) =>
+        registro && typeof registro === "object" && !registro.origemFirestore,
+    )
+    .map(({ origemFirestore, ...registro }) => ({
+      ...registro,
+    }));
+}
+
+async function persistirDocumentosDoCondominio(documentos, historico) {
+  if (!condominioEmEdicaoId) {
+    throw new Error("CONDOMINIUM_NOT_SAVED");
+  }
+
+  await setDoc(
+    doc(db, "condominios", condominioEmEdicaoId),
+    {
+      documentos: documentos.map(prepararDocumentoParaPersistencia),
+
+      historico: prepararHistoricoParaPersistencia(historico),
+
+      atualizadoEm: serverTimestamp(),
+    },
+    {
+      merge: true,
+    },
+  );
+}
+
+function sincronizarDocumentosNoEstadoLocal(documentos, historico) {
   if (!condominioRascunho) {
     return;
   }
 
-  const documentos = condominioRascunho.documentos;
+  condominioRascunho.documentos = clonarDados(documentos);
+
+  condominioRascunho.historico = clonarDados(historico);
+
+  const condominioLocal = obterCondominioPorId(condominioEmEdicaoId);
+
+  if (condominioLocal) {
+    condominioLocal.documentos = clonarDados(documentos);
+
+    condominioLocal.historico = clonarDados(historico);
+  }
+
+  aplicarOrdensAosCondominios();
+
+  atualizarResumo();
+
+  renderizarCondominios();
+}
+
+function criarRegistroHistoricoDocumento({ titulo, descricao }) {
+  return {
+    id: gerarIdHistorico(),
+
+    tipo: "documento",
+
+    titulo,
+
+    descricao,
+
+    data: obterDataISO(),
+
+    origemFirestore: false,
+  };
+}
+
+function definirStatusUploadDocumento({
+  texto,
+  estado = "",
+  progresso = null,
+  erro = "",
+}) {
+  documentUploadStatus.classList.remove(
+    "is-processing",
+    "is-success",
+    "is-error",
+  );
+
+  if (estado) {
+    documentUploadStatus.classList.add(estado);
+  }
+
+  documentUploadStatusText.textContent =
+    texto || "Selecione um arquivo PDF para continuar.";
+
+  if (progresso === null) {
+    documentUploadProgress.hidden = true;
+
+    documentUploadProgress.value = 0;
+  } else {
+    const progressoFinal = Math.min(100, Math.max(0, Number(progresso) || 0));
+
+    documentUploadProgress.hidden = false;
+
+    documentUploadProgress.value = progressoFinal;
+
+    documentUploadProgress.textContent = `${Math.round(progressoFinal)}%`;
+  }
+
+  documentUploadError.textContent =
+    erro || "Não foi possível preparar o documento.";
+
+  documentUploadError.hidden = !erro;
+}
+
+function atualizarControlesDoDocumento() {
+  const possuiArquivo = Boolean(arquivoDocumentoSelecionado);
+
+  const possuiTitulo = Boolean(documentTitle.value.trim());
+
+  const bloqueado = uploadDocumentoEmAndamento || acaoDocumentoEmAndamento;
+
+  condominiumDocumentFile.disabled = bloqueado;
+
+  documentTitle.disabled = bloqueado;
+
+  documentExpirationDate.disabled = bloqueado;
+
+  removeSelectedDocumentButton.disabled = bloqueado;
+
+  closeDocumentUploadButton.disabled = bloqueado;
+
+  cancelDocumentUploadButton.disabled = bloqueado;
+
+  uploadDocumentButton.disabled =
+    bloqueado || !possuiArquivo || !possuiTitulo || !condominioEmEdicaoId;
+
+  addDocumentButton.disabled = bloqueado;
+
+  documentUploadField.classList.toggle("is-disabled", bloqueado);
+}
+
+function limparArquivoDocumentoSelecionado({ limparTitulo = false } = {}) {
+  arquivoDocumentoSelecionado = null;
+
+  condominiumDocumentFile.value = "";
+
+  documentSelectedFile.hidden = true;
+
+  documentSelectedFileName.textContent = "documento.pdf";
+
+  documentSelectedFileSize.textContent = "0 KB";
+
+  if (limparTitulo) {
+    documentTitle.value = "";
+  }
+
+  definirStatusUploadDocumento({
+    texto: "Selecione um arquivo PDF para continuar.",
+  });
+
+  atualizarControlesDoDocumento();
+}
+
+function limparFormularioUploadDocumento() {
+  arquivoDocumentoSelecionado = null;
+
+  condominiumDocumentFile.value = "";
+
+  documentTitle.value = "";
+
+  documentExpirationDate.value = "";
+
+  documentSelectedFile.hidden = true;
+
+  documentSelectedFileName.textContent = "documento.pdf";
+
+  documentSelectedFileSize.textContent = "0 KB";
+
+  definirStatusUploadDocumento({
+    texto: "Selecione um arquivo PDF para continuar.",
+  });
+
+  atualizarControlesDoDocumento();
+}
+
+function abrirPainelUploadDocumento() {
+  if (!condominioRascunho) {
+    return;
+  }
+
+  if (!condominioEmEdicaoId) {
+    mostrarFeedback("Salve o condomínio antes de adicionar documentos.");
+
+    return;
+  }
+
+  documentUploadPanel.hidden = false;
+
+  addDocumentButton.setAttribute("aria-expanded", "true");
+
+  documentUploadPanel.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+
+  window.setTimeout(() => {
+    condominiumDocumentFile.focus();
+  }, 50);
+}
+
+function fecharPainelUploadDocumento({ forcar = false } = {}) {
+  if (!forcar && (uploadDocumentoEmAndamento || acaoDocumentoEmAndamento)) {
+    mostrarFeedback("Aguarde a operação do documento terminar.");
+
+    return;
+  }
+
+  limparFormularioUploadDocumento();
+
+  documentUploadPanel.hidden = true;
+
+  addDocumentButton.setAttribute("aria-expanded", "false");
+
+  addDocumentButton.focus();
+}
+
+async function arquivoPossuiAssinaturaPdf(arquivo) {
+  try {
+    const buffer = await arquivo.slice(0, 5).arrayBuffer();
+
+    const bytes = new Uint8Array(buffer);
+
+    const assinatura = String.fromCharCode(...bytes);
+
+    return assinatura === "%PDF-";
+  } catch (error) {
+    console.error(
+      "[Condomínios] Não foi possível validar a assinatura do PDF:",
+      error,
+    );
+
+    return false;
+  }
+}
+
+async function selecionarArquivoDocumento() {
+  const arquivo = condominiumDocumentFile.files?.[0] || null;
+
+  if (!arquivo) {
+    limparArquivoDocumentoSelecionado();
+
+    return;
+  }
+
+  const extensaoPdf = /\.pdf$/i.test(arquivo.name);
+
+  const tipoPdf = arquivo.type === "application/pdf" || arquivo.type === "";
+
+  if (!extensaoPdf || !tipoPdf) {
+    limparArquivoDocumentoSelecionado();
+
+    definirStatusUploadDocumento({
+      texto: "Arquivo não aceito.",
+
+      estado: "is-error",
+
+      erro: "Selecione somente um arquivo no formato PDF.",
+    });
+
+    mostrarFeedback("O documento precisa estar no formato PDF.");
+
+    return;
+  }
+
+  if (arquivo.size <= 0 || arquivo.size > tamanhoMaximoDocumento) {
+    limparArquivoDocumentoSelecionado();
+
+    definirStatusUploadDocumento({
+      texto: "Arquivo fora do limite.",
+
+      estado: "is-error",
+
+      erro:
+        arquivo.size <= 0
+          ? "O arquivo selecionado está vazio."
+          : "O PDF ultrapassa o limite máximo de 10 MB.",
+    });
+
+    mostrarFeedback(
+      arquivo.size <= 0
+        ? "O PDF selecionado está vazio."
+        : "O PDF ultrapassa o limite de 10 MB.",
+    );
+
+    return;
+  }
+
+  definirStatusUploadDocumento({
+    texto: "Validando o conteúdo do arquivo...",
+
+    estado: "is-processing",
+  });
+
+  const assinaturaValida = await arquivoPossuiAssinaturaPdf(arquivo);
+
+  if (!assinaturaValida) {
+    limparArquivoDocumentoSelecionado();
+
+    definirStatusUploadDocumento({
+      texto: "Arquivo inválido.",
+
+      estado: "is-error",
+
+      erro: "O arquivo possui extensão PDF, mas seu conteúdo não foi reconhecido como PDF.",
+    });
+
+    mostrarFeedback("O arquivo selecionado não é um PDF válido.");
+
+    return;
+  }
+
+  arquivoDocumentoSelecionado = arquivo;
+
+  documentSelectedFile.hidden = false;
+
+  documentSelectedFileName.textContent = arquivo.name;
+
+  documentSelectedFileSize.textContent = formatarTamanhoDocumento(arquivo.size);
+
+  if (!documentTitle.value.trim()) {
+    documentTitle.value = arquivo.name
+      .replace(/\.pdf$/i, "")
+      .trim()
+      .slice(0, 160);
+  }
+
+  definirStatusUploadDocumento({
+    texto: "PDF validado e pronto para envio.",
+
+    estado: "is-success",
+  });
+
+  atualizarControlesDoDocumento();
+}
+
+function criarNomeArquivoPdfNoStorage(documentoId) {
+  return `documento-${String(documentoId).toLowerCase()}.pdf`;
+}
+
+async function enviarDocumentoDoCondominio() {
+  if (uploadDocumentoEmAndamento || acaoDocumentoEmAndamento) {
+    return;
+  }
+
+  if (!condominioEmEdicaoId) {
+    mostrarFeedback("Salve o condomínio antes de enviar documentos.");
+
+    return;
+  }
+
+  if (!arquivoDocumentoSelecionado) {
+    mostrarFeedback("Selecione o arquivo PDF.");
+
+    condominiumDocumentFile.focus();
+
+    return;
+  }
+
+  const nomeDocumento = documentTitle.value.trim();
+
+  if (!nomeDocumento) {
+    mostrarFeedback("Informe o nome do documento.");
+
+    documentTitle.focus();
+
+    return;
+  }
+
+  const uid = String(sessaoAtual?.uid || "").trim();
+
+  if (!uid) {
+    mostrarFeedback("Não foi possível identificar o administrador.");
+
+    return;
+  }
+
+  const documentoId = gerarIdDocumento();
+
+  const nomeArquivoStorage = criarNomeArquivoPdfNoStorage(documentoId);
+
+  const caminhoStorage =
+    `condominios/${condominioEmEdicaoId}/` + `documentos/${nomeArquivoStorage}`;
+
+  const referenciaDocumento = storageRef(storage, caminhoStorage);
+
+  const arquivoAtual = arquivoDocumentoSelecionado;
+
+  const vencimento = documentExpirationDate.value || "";
+
+  uploadDocumentoEmAndamento = true;
+
+  atualizarControlesDoDocumento();
+
+  const textoOriginalBotao = uploadDocumentButton.textContent;
+
+  uploadDocumentButton.textContent = "Enviando documento...";
+
+  let uploadConcluido = false;
+
+  try {
+    const tarefaUpload = uploadBytesResumable(
+      referenciaDocumento,
+      arquivoAtual,
+      {
+        contentType: "application/pdf",
+
+        customMetadata: {
+          condominioId: condominioEmEdicaoId,
+
+          enviadoPorUid: uid,
+
+          nomeOriginal: arquivoAtual.name,
+        },
+      },
+    );
+
+    await new Promise((resolve, reject) => {
+      tarefaUpload.on(
+        "state_changed",
+
+        (snapshot) => {
+          const total = snapshot.totalBytes || 1;
+
+          const progresso = (snapshot.bytesTransferred / total) * 100;
+
+          definirStatusUploadDocumento({
+            texto: `Enviando PDF: ${Math.round(progresso)}%`,
+
+            estado: "is-processing",
+
+            progresso,
+          });
+        },
+
+        reject,
+
+        resolve,
+      );
+    });
+
+    uploadConcluido = true;
+
+    const novoDocumento = {
+      id: documentoId,
+
+      nome: nomeDocumento,
+
+      nomeOriginal: arquivoAtual.name,
+
+      storagePath: caminhoStorage,
+
+      contentType: "application/pdf",
+
+      tamanho: arquivoAtual.size,
+
+      vencimento,
+
+      status: atualizarStatusDocumento({
+        vencimento,
+      }),
+
+      enviadoPorUid: uid,
+
+      enviadoEm: new Date().toISOString(),
+    };
+
+    const documentosAtualizados = [
+      ...(condominioRascunho.documentos || []),
+      novoDocumento,
+    ];
+
+    const novoHistorico = criarRegistroHistoricoDocumento({
+      titulo: "Documento adicionado",
+
+      descricao:
+        `${nomeDocumento} foi armazenado ` + "nos documentos do condomínio.",
+    });
+
+    const historicoAtualizado = [
+      novoHistorico,
+      ...(condominioRascunho.historico || []),
+    ];
+
+    await persistirDocumentosDoCondominio(
+      documentosAtualizados,
+      historicoAtualizado,
+    );
+
+    sincronizarDocumentosNoEstadoLocal(
+      documentosAtualizados,
+      historicoAtualizado,
+    );
+
+    renderizarDocumentos();
+
+    renderizarHistorico();
+
+    definirStatusUploadDocumento({
+      texto: "Documento enviado com sucesso.",
+
+      estado: "is-success",
+
+      progresso: 100,
+    });
+
+    mostrarFeedback("Documento adicionado ao condomínio.");
+
+    window.setTimeout(() => {
+      fecharPainelUploadDocumento({
+        forcar: true,
+      });
+    }, 350);
+  } catch (error) {
+    console.error("[Condomínios] Não foi possível enviar o documento:", error);
+
+    if (uploadConcluido) {
+      try {
+        await deleteObject(referenciaDocumento);
+      } catch (rollbackError) {
+        if (rollbackError?.code !== "storage/object-not-found") {
+          console.error(
+            "[Condomínios] Não foi possível remover o PDF após a falha do Firestore:",
+            rollbackError,
+          );
+        }
+      }
+    }
+
+    definirStatusUploadDocumento({
+      texto: "O envio do documento não foi concluído.",
+
+      estado: "is-error",
+
+      erro: "Não foi possível armazenar o PDF. Tente novamente.",
+    });
+
+    mostrarFeedback(
+      error?.code === "storage/unauthorized" ||
+        error?.code === "permission-denied"
+        ? "O Firebase bloqueou o envio do documento."
+        : "Não foi possível enviar o documento.",
+    );
+  } finally {
+    uploadDocumentoEmAndamento = false;
+
+    uploadDocumentButton.textContent = textoOriginalBotao;
+
+    atualizarControlesDoDocumento();
+  }
+}
+
+async function obterUrlDocumento(documento) {
+  const caminho = String(documento?.storagePath || "").trim();
+
+  if (!caminho) {
+    throw new Error("DOCUMENT_STORAGE_PATH_NOT_FOUND");
+  }
+
+  return getDownloadURL(storageRef(storage, caminho));
+}
+
+async function abrirDocumentoDoCondominio(documento) {
+  const novaJanela = window.open("", "_blank");
+
+  if (!novaJanela) {
+    mostrarFeedback("O navegador bloqueou a abertura do documento.");
+
+    return;
+  }
+
+  try {
+    const url = await obterUrlDocumento(documento);
+
+    novaJanela.opener = null;
+
+    novaJanela.location.href = url;
+  } catch (error) {
+    novaJanela.close();
+
+    console.error("[Condomínios] Não foi possível abrir o documento:", error);
+
+    mostrarFeedback("Não foi possível abrir o documento.");
+  }
+}
+
+async function baixarDocumentoDoCondominio(documento) {
+  const caminho = String(documento?.storagePath || "").trim();
+
+  if (!caminho) {
+    mostrarFeedback("O arquivo deste documento não foi encontrado.");
+
+    return;
+  }
+
+  try {
+    mostrarFeedback("Preparando o download do documento...");
+
+    const blob = await getBlob(
+      storageRef(storage, caminho),
+      tamanhoMaximoDocumento + 1024 * 1024,
+    );
+
+    const urlTemporaria = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = urlTemporaria;
+
+    link.download = obterNomeDocumentoParaDownload(documento);
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(urlTemporaria);
+    }, 1000);
+
+    mostrarFeedback("Download do documento iniciado.");
+  } catch (error) {
+    console.error("[Condomínios] Não foi possível baixar o documento:", error);
+
+    mostrarFeedback("Não foi possível baixar o documento.");
+  }
+}
+
+async function removerDocumentoDoCondominio(documento, card) {
+  if (acaoDocumentoEmAndamento || uploadDocumentoEmAndamento) {
+    return;
+  }
+
+  const confirmou = window.confirm(
+    `Deseja excluir o documento "${documento.nome}"?\n\n` +
+      "O PDF será removido definitivamente do Firebase Storage.",
+  );
+
+  if (!confirmou) {
+    return;
+  }
+
+  const documentosOriginais = [...(condominioRascunho.documentos || [])];
+
+  const historicoOriginal = [...(condominioRascunho.historico || [])];
+
+  const documentosAtualizados = documentosOriginais.filter(
+    (item) => item.id !== documento.id,
+  );
+
+  const novoHistorico = criarRegistroHistoricoDocumento({
+    titulo: "Documento excluído",
+
+    descricao:
+      `${documento.nome} foi removido ` + "dos documentos do condomínio.",
+  });
+
+  const historicoAtualizado = [novoHistorico, ...historicoOriginal];
+
+  const caminhoStorage = String(documento.storagePath || "").trim();
+
+  acaoDocumentoEmAndamento = true;
+
+  card?.classList.add("is-removing");
+
+  atualizarControlesDoDocumento();
+
+  try {
+    await persistirDocumentosDoCondominio(
+      documentosAtualizados,
+      historicoAtualizado,
+    );
+
+    if (caminhoStorage) {
+      try {
+        await deleteObject(storageRef(storage, caminhoStorage));
+      } catch (storageError) {
+        if (storageError?.code !== "storage/object-not-found") {
+          try {
+            await persistirDocumentosDoCondominio(
+              documentosOriginais,
+              historicoOriginal,
+            );
+          } catch (rollbackError) {
+            console.error(
+              "[Condomínios] Não foi possível restaurar o documento no Firestore:",
+              rollbackError,
+            );
+          }
+
+          throw storageError;
+        }
+      }
+    }
+
+    sincronizarDocumentosNoEstadoLocal(
+      documentosAtualizados,
+      historicoAtualizado,
+    );
+
+    renderizarDocumentos();
+
+    renderizarHistorico();
+
+    mostrarFeedback("Documento excluído do condomínio.");
+  } catch (error) {
+    console.error("[Condomínios] Não foi possível excluir o documento:", error);
+
+    mostrarFeedback(
+      error?.code === "storage/unauthorized" ||
+        error?.code === "permission-denied"
+        ? "O Firebase bloqueou a exclusão do documento."
+        : "Não foi possível excluir o documento.",
+    );
+  } finally {
+    acaoDocumentoEmAndamento = false;
+
+    card?.classList.remove("is-removing");
+
+    atualizarControlesDoDocumento();
+  }
+}
+
+function renderizarDocumentos() {
+  documentsList.innerHTML = "";
+
+  documentsLoading.hidden = true;
+
+  if (!condominioRascunho) {
+    documentsList.hidden = true;
+
+    documentsEmpty.hidden = false;
+
+    return;
+  }
+
+  const documentos = Array.isArray(condominioRascunho.documentos)
+    ? condominioRascunho.documentos
+    : [];
 
   documentsEmpty.hidden = documentos.length > 0;
 
@@ -4037,15 +4977,41 @@ function renderizarDocumentos() {
 
     const fragmento = documentTemplate.content.cloneNode(true);
 
+    const card = fragmento.querySelector(".document-card");
+
     const name = fragmento.querySelector(".document-card__name");
+
+    const metadata = fragmento.querySelector(".document-card__metadata");
 
     const expiration = fragmento.querySelector(".document-card__expiration");
 
     const status = fragmento.querySelector(".document-card__status");
 
+    const openButton = fragmento.querySelector(".document-card__action--open");
+
+    const downloadButton = fragmento.querySelector(
+      ".document-card__action--download",
+    );
+
     const removeButton = fragmento.querySelector(".document-card__remove");
 
     name.textContent = documento.nome;
+
+    const metadados = ["PDF"];
+
+    if (documento.tamanho > 0) {
+      metadados.push(formatarTamanhoDocumento(documento.tamanho));
+    }
+
+    const enviadoEm = formatarDataHoraDocumento(documento.enviadoEm);
+
+    if (enviadoEm) {
+      metadados.push(`Enviado em ${enviadoEm}`);
+    }
+
+    metadata.textContent = documento.storagePath
+      ? metadados.join(" • ")
+      : "Arquivo não vinculado ao Firebase Storage";
 
     expiration.textContent = documento.vencimento
       ? `Vencimento: ${formatarData(documento.vencimento)}`
@@ -4069,68 +5035,33 @@ function renderizarDocumentos() {
       status.classList.add("status--vencido");
     }
 
+    const possuiArquivo = Boolean(String(documento.storagePath || "").trim());
+
+    openButton.disabled = !possuiArquivo;
+
+    downloadButton.disabled = !possuiArquivo;
+
+    openButton.addEventListener("click", () => {
+      abrirDocumentoDoCondominio(documento);
+    });
+
+    downloadButton.addEventListener("click", () => {
+      baixarDocumentoDoCondominio(documento);
+    });
+
     removeButton.setAttribute(
       "aria-label",
-      `Remover documento ${documento.nome}`,
+      `Excluir documento ${documento.nome}`,
     );
 
     removeButton.addEventListener("click", () => {
-      condominioRascunho.documentos = condominioRascunho.documentos.filter(
-        (item) => item.id !== documento.id,
-      );
-
-      renderizarDocumentos();
-
-      mostrarFeedback("Documento removido.");
+      removerDocumentoDoCondominio(documento, card);
     });
 
     documentsList.appendChild(fragmento);
   });
-}
 
-function adicionarDocumento() {
-  if (!condominioRascunho) {
-    return;
-  }
-
-  const nome = window.prompt("Digite o nome do documento:");
-
-  if (!nome?.trim()) {
-    return;
-  }
-
-  const vencimento = window.prompt(
-    "Informe a data de vencimento no formato AAAA-MM-DD ou deixe em branco:",
-    "",
-  );
-
-  let status = "pendente";
-
-  if (vencimento?.trim()) {
-    const data = criarDataLocal(vencimento.trim());
-
-    if (!data) {
-      mostrarFeedback("A data informada não é válida.");
-
-      return;
-    }
-
-    status = data < obterInicioDoDia() ? "vencido" : "regular";
-  }
-
-  condominioRascunho.documentos.push({
-    id: gerarIdDocumento(),
-
-    nome: nome.trim(),
-
-    vencimento: vencimento?.trim() || "",
-
-    status,
-  });
-
-  renderizarDocumentos();
-
-  mostrarFeedback("Documento adicionado.");
+  atualizarControlesDoDocumento();
 }
 
 /* =========================================
@@ -4260,7 +5191,32 @@ environmentEquipmentSearch.addEventListener(
   "input",
   renderizarOpcoesDeEquipamentosDoEditor,
 );
-addDocumentButton.addEventListener("click", adicionarDocumento);
+addDocumentButton.addEventListener("click", abrirPainelUploadDocumento);
+
+closeDocumentUploadButton.addEventListener("click", () => {
+  fecharPainelUploadDocumento();
+});
+
+cancelDocumentUploadButton.addEventListener("click", () => {
+  fecharPainelUploadDocumento();
+});
+
+removeSelectedDocumentButton.addEventListener("click", () => {
+  limparArquivoDocumentoSelecionado({
+    limparTitulo: true,
+  });
+});
+
+condominiumDocumentFile.addEventListener("change", selecionarArquivoDocumento);
+
+documentTitle.addEventListener("input", atualizarControlesDoDocumento);
+
+documentExpirationDate.addEventListener(
+  "change",
+  atualizarControlesDoDocumento,
+);
+
+uploadDocumentButton.addEventListener("click", enviarDocumentoDoCondominio);
 
 condominiumDocument.addEventListener("input", () => {
   condominiumDocument.value = aplicarMascaraCNPJ(condominiumDocument.value);
@@ -4289,6 +5245,12 @@ document.addEventListener("keydown", (event) => {
 
   if (!condominiumEnvironmentEditor.hidden) {
     fecharEditorDeAmbiente();
+
+    return;
+  }
+
+  if (!documentUploadPanel.hidden) {
+    fecharPainelUploadDocumento();
 
     return;
   }
@@ -4338,7 +5300,7 @@ async function inicializarPaginaDeCondominios() {
   try {
     await prepararFirebaseDeCondominios();
 
-    await aguardarSessaoDaPagina();
+    sessaoAtual = await aguardarSessaoDaPagina();
 
     await carregarDadosDeCondominiosDoFirestore();
   } catch (error) {

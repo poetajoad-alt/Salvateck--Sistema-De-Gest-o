@@ -348,8 +348,55 @@ service cloud.firestore {
           && request.resource.data.observacoes.interna
             == resource.data.observacoes.interna
 
-          && request.resource.data.observacoes.resposta
+                    && request.resource.data.observacoes.resposta
             == "A solicitação foi cancelada pelo cliente."
+        )
+        || (
+          estaAutenticado()
+
+          && (
+            resource.data.clienteUid == request.auth.uid
+
+            || (
+              "clientesAutorizadosIds" in resource.data
+
+              && resource.data.clientesAutorizadosIds is list
+
+              && request.auth.uid
+                in resource.data.clientesAutorizadosIds
+            )
+          )
+
+          && !("documentoFinal" in resource.data)
+
+          && resource.data.status in [
+            "nova-solicitacao",
+            "em-analise",
+            "aguardando-confirmacao",
+            "agendada"
+          ]
+
+          && request.resource.data.status == resource.data.status
+
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "fotos",
+              "quantidadeFotos",
+              "atualizadoEm"
+            ])
+
+          && request.resource.data.fotos is list
+
+          && request.resource.data.fotos.size() <= 6
+
+          && request.resource.data.quantidadeFotos is int
+
+          && request.resource.data.quantidadeFotos
+            == request.resource.data.fotos.size()
+
+          && request.resource.data.atualizadoEm == request.time
         );
 
       allow delete: if eAdministrador()

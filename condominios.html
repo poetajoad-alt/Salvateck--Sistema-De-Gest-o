@@ -1336,13 +1336,165 @@
 
             </div>
 
-            <button type="button" class="add-document-button" id="add-document-button">
+            <button type="button" class="add-document-button" id="add-document-button" aria-expanded="false" aria-controls="document-upload-panel">
               Adicionar documento
             </button>
 
           </div>
 
-          <div class="documents-list" id="documents-list"></div>
+          <p class="documents-section-description">
+            Armazene contratos, laudos, certificados, notas e outros
+            documentos importantes. São aceitos somente arquivos PDF
+            de até 10 MB.
+          </p>
+
+          <!-- Upload do PDF -->
+
+          <div class="document-upload-panel" id="document-upload-panel" hidden>
+
+            <div class="document-upload-panel__header">
+
+              <div>
+
+                <span>
+                  Novo documento
+                </span>
+
+                <strong>
+                  Selecione o arquivo PDF
+                </strong>
+
+              </div>
+
+              <button type="button" class="document-upload-panel__close" id="close-document-upload-button" aria-label="Fechar envio de documento">
+                ×
+              </button>
+
+            </div>
+
+            <label class="document-upload-field" for="condominium-document-file" id="document-upload-field">
+
+              <input type="file" id="condominium-document-file" accept="application/pdf,.pdf" />
+
+              <span class="document-upload-field__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 3h8l4 4v14H6z"></path>
+                  <path d="M14 3v5h5"></path>
+                  <path d="M12 11v6"></path>
+                  <path d="M9 14h6"></path>
+                </svg>
+
+              </span>
+
+              <span class="document-upload-field__copy">
+
+                <strong>
+                  Selecionar arquivo
+                </strong>
+
+                <small>
+                  Somente PDF — tamanho máximo de 10 MB
+                </small>
+
+              </span>
+
+            </label>
+
+            <div class="document-selected-file" id="document-selected-file" hidden>
+
+              <span class="document-selected-file__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 3h8l4 4v14H6z"></path>
+                  <path d="M14 3v5h5"></path>
+                  <path d="M9 13h6M9 17h6"></path>
+                </svg>
+
+              </span>
+
+              <div class="document-selected-file__copy">
+
+                <strong id="document-selected-file-name">
+                  documento.pdf
+                </strong>
+
+                <span id="document-selected-file-size">
+                  0 KB
+                </span>
+
+              </div>
+
+              <button type="button" class="document-selected-file__remove" id="remove-selected-document-button" aria-label="Remover arquivo selecionado">
+                ×
+              </button>
+
+            </div>
+
+            <div class="document-upload-grid">
+
+              <label class="modal-field">
+
+                <span>
+                  Nome do documento
+                </span>
+
+                <input type="text" id="document-title" maxlength="160" placeholder="Ex.: Laudo técnico dos elevadores" />
+
+              </label>
+
+              <label class="modal-field">
+
+                <span>
+                  Data de vencimento
+                  <small>
+                    (opcional)
+                  </small>
+                </span>
+
+                <input type="date" id="document-expiration-date" />
+
+              </label>
+
+            </div>
+
+            <div class="document-upload-status" id="document-upload-status" aria-live="polite">
+
+              <span id="document-upload-status-text">
+                Selecione um arquivo PDF para continuar.
+              </span>
+
+              <progress id="document-upload-progress" value="0" max="100" hidden>
+                0%
+              </progress>
+
+            </div>
+
+            <p class="document-upload-error" id="document-upload-error" hidden>
+              Não foi possível preparar o documento.
+            </p>
+
+            <div class="document-upload-actions">
+
+              <button type="button" class="document-upload-action document-upload-action--secondary" id="cancel-document-upload-button">
+                Cancelar
+              </button>
+
+              <button type="button" class="document-upload-action document-upload-action--primary" id="upload-document-button" disabled>
+                Enviar documento
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- Lista dos documentos -->
+
+          <div class="documents-loading" id="documents-loading" hidden>
+            Carregando documentos...
+          </div>
+
+          <div class="documents-list" id="documents-list" aria-live="polite"></div>
 
           <div class="modal-empty-state" id="documents-empty">
 
@@ -1351,7 +1503,8 @@
             </strong>
 
             <p>
-              Cadastre laudos, certificados, contratos e documentos com data de vencimento.
+              Utilize o botão “Adicionar documento” para armazenar
+              o primeiro PDF deste condomínio.
             </p>
 
           </div>
@@ -1645,15 +1798,29 @@
 
         <strong class="document-card__name"></strong>
 
+        <span class="document-card__metadata"></span>
+
         <span class="document-card__expiration"></span>
 
       </div>
 
       <span class="document-card__status"></span>
 
-      <button type="button" class="document-card__remove" aria-label="Remover documento">
-        ×
-      </button>
+      <div class="document-card__actions">
+
+        <button type="button" class="document-card__action document-card__action--open">
+          Abrir
+        </button>
+
+        <button type="button" class="document-card__action document-card__action--download">
+          Baixar
+        </button>
+
+        <button type="button" class="document-card__remove" aria-label="Excluir documento" title="Excluir documento">
+          ×
+        </button>
+
+      </div>
 
     </article>
 

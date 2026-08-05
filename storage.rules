@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /* =====================================
+       USUÁRIOS
+    ===================================== */
+
+    function usuarioExiste() {
+      return request.auth != null
+        && firestore.exists(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        );
+    }
+
+    function usuarioAtivo() {
+      return usuarioExiste()
+        && firestore.get(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        ).data.ativo == true;
+    }
+
+    function eAdministrador() {
+      return usuarioAtivo()
+        && firestore.get(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        ).data.role == "admin";
+    }
+
+    function eCliente() {
+      return usuarioAtivo()
+        && firestore.get(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        ).data.role == "cliente";
+    }
+
+    /* =====================================
+       ORDENS DE SERVIÇO
+    ===================================== */
+
+    function ordemExiste(ordemId) {
+      return firestore.exists(
+        /databases/(default)/documents/ordens/$(ordemId)
+      );
+    }
+
+    function clientePodeAcessarOrdem(ordemId) {
+      return eCliente()
+        && (
+          firestore.get(
+            /databases/(default)/documents/ordens/$(ordemId)
+          ).data.clienteUid == request.auth.uid
+
+          || (
+            "clientesAutorizadosIds" in firestore.get(
+              /databases/(default)/documents/ordens/$(ordemId)
+            ).data
+
+            && firestore.get(
+              /databases/(default)/documents/ordens/$(ordemId)
+            ).data.clientesAutorizadosIds is list
+
+            && request.auth.uid in firestore.get(
+              /databases/(default)/documents/ordens/$(ordemId)
+            ).data.clientesAutorizadosIds
+          )
+        );
+    }
+
+    function podeAcessarOrdem(ordemId) {
+      return ordemExiste(ordemId)
+        && (
+          eAdministrador()
+          || clientePodeAcessarOrdem(ordemId)
+        );
+    }
+
+    function ordemAceitaImagens(ordemId) {
+      return ordemExiste(ordemId)
+
+        && firestore.get(
+          /databases/(default)/documents/ordens/$(ordemId)
+        ).data.status in [
+          "nova-solicitacao",
+          "em-analise",
+          "aguardando-confirmacao",
+          "agendada"
+        ]
+
+        && !(
+          "documentoFinal" in firestore.get(
+            /databases/(default)/documents/ordens/$(ordemId)
+          ).data
+        );
+    }
+
+    function imagemValida(ordemId, arquivo) {
+      return arquivo.matches('foto-[1-6][.]webp')
+
+        && request.resource.size > 0
+
+        && request.resource.size <= 2 * 1024 * 1024
+
+        && request.resource.contentType == "image/webp"
+
+        && request.resource.metadata.ordemId == ordemId
+
+        && request.resource.metadata.enviadoPorUid == request.auth.uid;
+    }
+
+    /* =====================================
+       IMAGENS DAS ORDENS
+    ===================================== */
+
+    match /ordens/{ordemId}/imagens/{arquivo} {
+
+      allow read: if podeAcessarOrdem(ordemId);
+
+      allow create: if podeAcessarOrdem(ordemId)
+        && ordemAceitaImagens(ordemId)
+        && imagemValida(ordemId, arquivo);
+
+      allow update: if false;
+
+      allow delete: if podeAcessarOrdem(ordemId)
+        && ordemAceitaImagens(ordemId)
+        && (
+          eAdministrador()
+          || resource.metadata.enviadoPorUid == request.auth.uid
+        );
+    }
+
+    /* =====================================
+       CONDOMÍNIOS
+    ===================================== */
+
+    function condominioExiste(condominioId) {
+      return firestore.exists(
+        /databases/(default)/documents/condominios/$(condominioId)
+      );
+    }
+
+    function pdfValido(condominioId, arquivo) {
+      return arquivo.matches('.*[.]pdf')
+
+        && request.resource.size > 0
+
+        && request.resource.size <= 10 * 1024 * 1024
+
+        && request.resource.contentType == "application/pdf"
+
+        && request.resource.metadata.condominioId == condominioId
+
+        && request.resource.metadata.enviadoPorUid == request.auth.uid;
+    }
+
+    /* =====================================
+       DOCUMENTOS DOS CONDOMÍNIOS
+    ===================================== */
+
+    match /condominios/{condominioId}/documentos/{arquivo} {
+
+      allow read: if eAdministrador()
+        && condominioExiste(condominioId);
+
+      allow create: if eAdministrador()
+        && condominioExiste(condominioId)
+        && pdfValido(condominioId, arquivo);
+
+      allow update: if false;
+
+      allow delete: if eAdministrador()
+        && condominioExiste(condominioId);
+    }
+
+    /* =====================================
+       BLOQUEIO GERAL
+    ===================================== */
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

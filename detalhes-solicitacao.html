@@ -545,7 +545,7 @@
          FOTOS
     ====================================== -->
 
-    <section class="details-card">
+    <section class="details-card" id="request-photos-card">
 
       <div class="details-card__header">
 
@@ -575,10 +575,96 @@
 
       </div>
 
+      <div class="photo-limit-summary">
+
+        <span>
+          Limite da ordem de serviço
+        </span>
+
+        <strong id="photo-limit-summary">
+          0 de 6 imagens
+        </strong>
+
+      </div>
+
       <div class="request-photos" id="request-photos"></div>
 
       <div class="photos-empty" id="photos-empty" hidden>
         Nenhuma foto foi adicionada nesta solicitação.
+      </div>
+
+      <div class="photo-management" id="photo-management" hidden>
+
+        <div class="photo-management__header">
+
+          <div>
+
+            <strong>
+              Adicionar novas imagens
+            </strong>
+
+            <span id="photo-available-slots">
+              Até 6 imagens disponíveis
+            </span>
+
+          </div>
+
+        </div>
+
+        <label class="additional-photo-upload" for="additional-photos-input">
+
+          <input id="additional-photos-input" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+
+          <span class="additional-photo-upload__icon">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+              <path d="M12 9v8"></path>
+              <path d="M8 13h8"></path>
+            </svg>
+
+          </span>
+
+          <span class="additional-photo-upload__copy">
+
+            <strong>
+              Selecionar imagens
+            </strong>
+
+            <small>
+              JPG, PNG ou WebP — até 10 MB por arquivo.
+            </small>
+
+          </span>
+
+        </label>
+
+        <div class="additional-photo-status" id="additional-photo-status" aria-live="polite">
+
+          <span id="additional-photo-count">
+            Nenhuma nova imagem selecionada
+          </span>
+
+          <span id="additional-photo-processing">
+            Compressão automática para WebP
+          </span>
+
+        </div>
+
+        <p class="photo-management-error" id="additional-photo-error" hidden>
+          Não foi possível preparar as imagens selecionadas.
+        </p>
+
+        <div class="additional-photo-preview" id="additional-photo-preview" aria-live="polite"></div>
+
+        <button type="button" class="upload-additional-photos-button" id="upload-additional-photos-button" disabled>
+          Enviar imagens
+        </button>
+
+      </div>
+
+      <div class="photo-locked-message" id="photo-locked-message" hidden>
+        Esta ordem não permite novas imagens.
       </div>
 
     </section>

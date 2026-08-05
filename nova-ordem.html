@@ -743,12 +743,13 @@
         </div>
 
         <p class="form-card__description">
-          As fotos ajudam a equipe a entender o serviço antes da visita.
+          Adicione até 6 imagens. Cada arquivo original pode ter no máximo
+          10 MB e será comprimido automaticamente antes do envio.
         </p>
 
         <label class="photo-upload" for="fotosProblema">
 
-          <input id="fotosProblema" name="fotosProblema" type="file" accept="image/*" multiple />
+          <input id="fotosProblema" name="fotosProblema" type="file" accept="image/jpeg,image/png,image/webp" multiple />
 
           <span class="photo-upload__icon">
 
@@ -766,13 +767,27 @@
               Selecionar fotos
             </strong>
 
-            <small>
-              Você poderá visualizar e remover antes de enviar.
+            <small id="photo-upload-description">
+              JPG, PNG ou WebP — máximo de 6 imagens e 10 MB por arquivo.
             </small>
 
           </span>
 
         </label>
+
+        <div class="photo-selection-status" aria-live="polite">
+          <span id="photo-selection-count">
+            Nenhuma imagem selecionada
+          </span>
+
+          <span id="photo-compression-status">
+            As imagens serão comprimidas para WebP
+          </span>
+        </div>
+
+        <p class="validation-message" id="photo-error" hidden>
+          Não foi possível preparar as imagens selecionadas.
+        </p>
 
         <div class="photo-preview" id="photo-preview" aria-live="polite"></div>
 
