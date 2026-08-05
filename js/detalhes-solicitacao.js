@@ -3795,8 +3795,8 @@ function setFinalPdfBusy(isBusy) {
     : "Visualizar documento";
 
   downloadFinalDocumentButton.textContent = isBusy
-    ? "Gerando PDF..."
-    : "Baixar PDF";
+    ? "Preparando PDF..."
+    : "Compartilhar PDF";
 }
 
 function handleFinalPdfError(error) {
@@ -3865,7 +3865,7 @@ async function viewFinalDocumentPdf() {
   }
 }
 
-async function downloadFinalDocumentPdf() {
+async function shareFinalDocumentPdf() {
   if (generatingFinalPdf) {
     return;
   }
@@ -3877,9 +3877,49 @@ async function downloadFinalDocumentPdf() {
 
     const pdf = await createFinalDocumentPdf();
 
-    pdf.save(getFinalPdfFileName(documentData));
+    const fileName = getFinalPdfFileName(documentData);
 
-    showFeedback("PDF baixado com sucesso.");
+    const pdfBlob = pdf.output("blob");
+
+    const pdfFile = new File([pdfBlob], fileName, {
+      type: "application/pdf",
+
+      lastModified: Date.now(),
+    });
+
+    const shareData = {
+      files: [pdfFile],
+    };
+
+    const canShareFile =
+      typeof navigator.share === "function" &&
+      (typeof navigator.canShare !== "function" ||
+        navigator.canShare(shareData));
+
+    if (canShareFile) {
+      try {
+        await navigator.share(shareData);
+
+        showFeedback("PDF da Ordem de Serviço compartilhado com sucesso.");
+
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+
+        console.warn(
+          "[PDF] O compartilhamento direto da Ordem de Serviço não foi concluído:",
+          error,
+        );
+      }
+    }
+
+    pdf.save(fileName);
+
+    showFeedback(
+      "O compartilhamento direto não está disponível. O PDF foi baixado.",
+    );
   } catch (error) {
     handleFinalPdfError(error);
   } finally {
@@ -4917,7 +4957,7 @@ uploadAdditionalPhotosButton.addEventListener("click", uploadAdditionalPhotos);
 
 viewFinalDocumentButton.addEventListener("click", viewFinalDocumentPdf);
 
-downloadFinalDocumentButton.addEventListener("click", downloadFinalDocumentPdf);
+downloadFinalDocumentButton.addEventListener("click", shareFinalDocumentPdf);
 
 technicalResponsibilityForm.addEventListener(
   "submit",
