@@ -284,6 +284,18 @@ function getInitials(name) {
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
 
+function getInspectionCommunicationCondominiumName(
+  condominium = selectedCondominium,
+) {
+  const name = String(condominium?.nome || "").trim();
+
+  if (!name) {
+    return "Condomínio não informado";
+  }
+
+  return /^condom[ií]nio\b/i.test(name) ? name : `Condomínio ${name}`;
+}
+
 function getCondominiumAddress(condominium = {}) {
   const address = condominium.endereco || {};
 
@@ -3335,7 +3347,28 @@ async function shareInspectionPdf() {
       lastModified: Date.now(),
     });
 
+    const inspectionCode = String(
+      currentInspectionDocument?.codigo ||
+        currentLinkedOrder?.codigo ||
+        "Vistoria técnica",
+    ).trim();
+
+    const responsibleName = String(selectedResponsible?.nome || "").trim();
+
     const shareData = {
+      title: `${inspectionCode} | Salvateck`,
+
+      text: [
+        responsibleName ? `Olá, ${responsibleName}!` : "Olá!",
+        "",
+        "Segue o relatório da vistoria técnica:",
+        "",
+        `Vistoria: ${inspectionCode}`,
+        `Local: ${getInspectionCommunicationCondominiumName()}`,
+        "",
+        "Agradecemos a confiança!",
+      ].join("\n"),
+
       files: [pdfFile],
     };
 

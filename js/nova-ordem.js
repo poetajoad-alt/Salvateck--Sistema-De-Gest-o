@@ -540,6 +540,18 @@ function sanitizePhoneNumber(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function getOrderWhatsAppCondominiumName(savedOrder = {}) {
+  const name = String(
+    savedOrder?.condominio?.nome || selectedCondominium?.nome || "",
+  ).trim();
+
+  if (!name) {
+    return "Condomínio não informado";
+  }
+
+  return /^condom[ií]nio\b/i.test(name) ? name : `Condomínio ${name}`;
+}
+
 function buildEmergencyWhatsAppMessage(savedOrder) {
   const clientName =
     savedOrder?.cliente?.nome ||
@@ -553,6 +565,8 @@ function buildEmergencyWhatsAppMessage(savedOrder) {
 
   const serviceTitle = savedOrder?.titulo || "Serviço não informado";
 
+  const condominiumName = getOrderWhatsAppCondominiumName(savedOrder);
+
   const addressSummary =
     savedOrder?.endereco || getAddressSummary() || "Endereço não informado";
 
@@ -564,9 +578,10 @@ function buildEmergencyWhatsAppMessage(savedOrder) {
     "🚨 EMERGÊNCIA SALVATECK",
     "",
     `OS: ${savedOrder.codigo}`,
+    `Serviço: ${serviceTitle}`,
+    `Local: ${condominiumName}`,
     `Cliente: ${clientName}`,
     `Telefone: ${clientPhone}`,
-    `Serviço: ${serviceTitle}`,
     `Endereço: ${addressSummary}`,
     "",
     "Descrição:",
@@ -585,18 +600,21 @@ function buildWhatsAppMessage(savedOrder) {
 
   const serviceTitle = savedOrder?.titulo || "Serviço não informado";
 
-  const addressSummary = getAddressSummary();
+  const condominiumName = getOrderWhatsAppCondominiumName(savedOrder);
+
+  const addressSummary = getAddressSummary() || "Endereço não informado";
 
   return [
     "Olá! Criei uma solicitação de serviço na Salvateck.",
     "",
     `OS: ${savedOrder.codigo}`,
     `Serviço: ${serviceTitle}`,
+    `Local: ${condominiumName}`,
     `Cliente: ${clientName}`,
     `Telefone: ${clientPhone}`,
     `Endereço: ${addressSummary}`,
     "",
-    "Gostaria de conversar sobre o atendimento, o orçamento e o agendamento.",
+    "Aguardo o retorno para combinarmos o atendimento.",
   ].join("\n");
 }
 

@@ -658,61 +658,101 @@ function normalizeWhatsAppPhone(phone) {
   return `55${digits}`;
 }
 
-function buildProposalWhatsAppMessage() {
+function formatWhatsAppTime(value) {
+  const time = String(value || "").trim();
+
+  if (!time) {
+    return "horário não informado";
+  }
+
+  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+
+  if (!match) {
+    return time;
+  }
+
+  return `${match[1].padStart(2, "0")}h${match[2]}`;
+}
+
+function getWhatsAppCondominiumName(condominium = currentRequest?.condominio) {
+  const name = String(condominium?.nome || "").trim();
+
+  if (!name) {
+    return "Condomínio não informado";
+  }
+
+  return /^condom[ií]nio\b/i.test(name) ? name : `Condomínio ${name}`;
+}
+
+function buildScheduleWhatsAppMessage({
+  introduction,
+  date,
+  period,
+  time,
+  requiresConfirmation = false,
+}) {
   const clientName =
     String(currentRequest.cliente?.nome || "").trim() || "cliente";
 
-  const proposalDate = formatDate(acceptDate.value);
+  const periodName =
+    periodoConfig[period] ||
+    String(period || "").trim() ||
+    "Período não informado";
 
-  const proposalPeriod =
-    periodoConfig[acceptPeriod.value] || acceptPeriod.value;
-
-  const proposalTime = acceptTime.value || "horário a combinar";
-
-  const customMessage = acceptMessage.value.trim();
-
-  return [
+  const messageLines = [
     `Olá, ${clientName}!`,
     "",
-    customMessage ||
-      "Analisamos sua solicitação e temos uma data disponível para o atendimento.",
+    introduction || "Temos um horário disponível para o seu atendimento.",
     "",
     `OS: ${currentRequest.codigo}`,
     `Serviço: ${currentRequest.titulo}`,
-    `Data disponível: ${proposalDate}`,
-    `Período: ${proposalPeriod}`,
-    `Horário: ${proposalTime}`,
-    "",
-    "Por favor, confirme se essa opção funciona para você.",
-  ].join("\n");
-}
-function buildScheduledWhatsAppMessage() {
-  const clientName =
-    String(currentRequest.cliente?.nome || "").trim() || "cliente";
+    `Data: ${formatDate(date)}`,
+    `Horário: ${formatWhatsAppTime(time)} (${periodName})`,
+    `Local: ${getWhatsAppCondominiumName()}`,
+  ];
 
+  if (requiresConfirmation) {
+    messageLines.push(
+      "",
+      "Por favor, confirme se o horário funciona para você.",
+    );
+  }
+
+  messageLines.push("", "Agradecemos a confiança!");
+
+  return messageLines.join("\n");
+}
+
+function buildProposalWhatsAppMessage() {
+  return buildScheduleWhatsAppMessage({
+    introduction:
+      acceptMessage.value.trim() ||
+      "Temos um horário disponível para o seu atendimento.",
+
+    date: acceptDate.value,
+
+    period: acceptPeriod.value,
+
+    time: acceptTime.value,
+
+    requiresConfirmation: true,
+  });
+}
+
+function buildScheduledWhatsAppMessage() {
   const attendance = currentRequest.atendimento || {};
 
-  const confirmedDate = formatDate(attendance.dataConfirmada);
+  return buildScheduleWhatsAppMessage({
+    introduction: "Seu atendimento está agendado:",
 
-  const confirmedPeriod =
-    periodoConfig[attendance.periodoConfirmado] ||
-    attendance.periodoConfirmado ||
-    "não informado";
+    date: attendance.dataConfirmada,
 
-  const confirmedTime = attendance.horarioConfirmado || "horário não informado";
+    period: attendance.periodoConfirmado,
 
-  return [
-    `Olá, ${clientName}!`,
-    "",
-    `Estou entrando em contato sobre a ordem de serviço ${currentRequest.codigo}.`,
-    "",
-    `Serviço: ${currentRequest.titulo}`,
-    `Data confirmada: ${confirmedDate}`,
-    `Período: ${confirmedPeriod}`,
-    `Horário: ${confirmedTime}`,
-    "",
-    "Como podemos ajudar?",
-  ].join("\n");
+    time: attendance.horarioConfirmado,
+
+    requiresConfirmation: false,
+  });
 }
 
 function contactScheduledClient() {
@@ -4344,27 +4384,21 @@ function submitReschedule(event) {
         enviadaEm: new Date().toISOString(),
       };
 
-      const clientName =
-        String(currentRequest.cliente?.nome || "").trim() || "cliente";
-
-      const period =
-        periodoConfig[reschedulePeriod.value] || reschedulePeriod.value;
-
       const customMessage = rescheduleMessage.value.trim();
 
-      const whatsappMessage = [
-        `Olá, ${clientName}!`,
-        "",
-        customMessage || "Precisamos alterar a data do seu atendimento.",
-        "",
-        `OS: ${currentRequest.codigo}`,
-        `Serviço: ${currentRequest.titulo}`,
-        `Nova data disponível: ${formatDate(rescheduleDate.value)}`,
-        `Período: ${period}`,
-        `Horário: ${rescheduleTime.value}`,
-        "",
-        "Por favor, confirme se essa nova opção funciona para você.",
-      ].join("\n");
+      const whatsappMessage = buildScheduleWhatsAppMessage({
+        introduction:
+          customMessage ||
+          "Temos uma nova opção de horário para o seu atendimento.",
+
+        date: rescheduleDate.value,
+
+        period: reschedulePeriod.value,
+
+        time: rescheduleTime.value,
+
+        requiresConfirmation: true,
+      });
 
       try {
         await saveChanges(
