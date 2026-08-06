@@ -135,10 +135,27 @@ service firebase.storage {
        CONDOMÍNIOS
     ===================================== */
 
-    function condominioExiste(condominioId) {
+            function condominioExiste(condominioId) {
       return firestore.exists(
         /databases/(default)/documents/condominios/$(condominioId)
       );
+    }
+
+    function clientePodeAcessarCondominio(condominioId) {
+      return eCliente()
+        && condominioExiste(condominioId)
+
+        && "clientesIds" in firestore.get(
+          /databases/(default)/documents/condominios/$(condominioId)
+        ).data
+
+        && firestore.get(
+          /databases/(default)/documents/condominios/$(condominioId)
+        ).data.clientesIds is list
+
+        && request.auth.uid in firestore.get(
+          /databases/(default)/documents/condominios/$(condominioId)
+        ).data.clientesIds;
     }
 
     function pdfValido(condominioId, arquivo) {
@@ -161,8 +178,11 @@ service firebase.storage {
 
     match /condominios/{condominioId}/documentos/{arquivo} {
 
-      allow read: if eAdministrador()
-        && condominioExiste(condominioId);
+                 allow read: if (
+        eAdministrador()
+        && condominioExiste(condominioId)
+      )
+      || clientePodeAcessarCondominio(condominioId);
 
       allow create: if eAdministrador()
         && condominioExiste(condominioId)

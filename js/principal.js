@@ -18,7 +18,7 @@ const profileConfig = {
     kicker: "Área do Cliente",
     name: "Bem-vindo à Salvateck",
     sectionEyebrow: "Serviços e solicitações",
-    searchPlaceholder: "Pesquisar serviço ou solicitação",
+    searchPlaceholder: "Pesquisar serviço, solicitação ou condomínio",
 
     cards: [
       {
@@ -38,6 +38,12 @@ const profileConfig = {
         description: "Veja datas, períodos e horários já confirmados.",
         target: "ordens.html?filtro=agendadas",
         icon: "calendar",
+      },
+      {
+        title: "Meus Condomínios",
+        description: "Consulte os condomínios vinculados ao seu cadastro.",
+        target: "meus-condominios.html?perfil=cliente",
+        icon: "building",
       },
       {
         title: "Histórico",

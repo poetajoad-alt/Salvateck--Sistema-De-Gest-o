@@ -1298,6 +1298,8 @@ function mapearCondominioDoFirestore(condominioSnapshot) {
       ? dados.clientesVinculados.map((vinculo) => ({
           clienteId: String(vinculo.clienteId || "").trim(),
 
+          nome: String(vinculo.nome || "").trim(),
+
           papel: vinculo.papel || "outro",
 
           contatoPrincipal: Boolean(vinculo.contatoPrincipal),
@@ -1847,6 +1849,10 @@ function montarDadosDoCondominio(condominio, novoCadastro) {
 
     clientesVinculados: condominio.clientesVinculados.map((vinculo) => ({
       ...vinculo,
+
+      nome: String(
+        vinculo.nome || obterClientePorId(vinculo.clienteId)?.nome || "",
+      ).trim(),
     })),
 
     clientesIds: obterClientesIdsDosVinculos(condominio),
@@ -3396,8 +3402,12 @@ function vincularCliente() {
     });
   }
 
+  const clienteSelecionado = obterClientePorId(clienteId);
+
   condominioRascunho.clientesVinculados.push({
     clienteId,
+
+    nome: String(clienteSelecionado?.nome || "").trim(),
 
     papel,
 

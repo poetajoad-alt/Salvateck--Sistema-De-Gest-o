@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Condomínios vinculados ao cliente da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Meus Condomínios | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/condominios.css?v=1.0.3" />
+  <link rel="stylesheet" href="css/meus-condominios.css?v=1.0.0" />
+</head>
+
+<body data-page="meus-condominios" data-profile="cliente" data-allowed-roles="cliente">
+
+  <main class="condominiums-shell" id="my-condominiums-shell" hidden>
+
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="condominiums-header">
+
+      <a href="principal.html?perfil=cliente" class="header-button" aria-label="Voltar para a área do cliente">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 18 9 12l6-6"></path>
+        </svg>
+
+      </a>
+
+      <div class="condominiums-header__content">
+
+        <p class="condominiums-header__eyebrow">
+          Área do Cliente
+        </p>
+
+        <h1>
+          Meus Condomínios
+        </h1>
+
+      </div>
+
+      <div class="condominiums-header__logo">
+
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+
+      </div>
+
+    </header>
+
+    <!-- =====================================
+         APRESENTAÇÃO
+    ====================================== -->
+
+    <section class="condominiums-intro my-condominiums-intro">
+
+      <div class="condominiums-intro__copy">
+
+        <span class="condominiums-intro__badge">
+          Meus locais
+        </span>
+
+        <h2>
+          Consulte seus condomínios
+        </h2>
+
+        <p>
+          Acesse informações, responsáveis, ambientes, equipamentos,
+          documentos e o histórico dos condomínios vinculados ao seu cadastro.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
+
+    <section class="condominiums-overview my-condominiums-overview" aria-label="Resumo dos condomínios vinculados">
+
+      <div class="overview-item my-overview-item">
+
+        <span>
+          Condomínios
+        </span>
+
+        <strong id="summary-total">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item my-overview-item">
+
+        <span>
+          Ativos
+        </span>
+
+        <strong id="summary-active">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item my-overview-item">
+
+        <span>
+          Ambientes
+        </span>
+
+        <strong id="summary-environments">
+          0
+        </strong>
+
+      </div>
+
+      <div class="overview-item my-overview-item">
+
+        <span>
+          Documentos
+        </span>
+
+        <strong id="summary-documents">
+          0
+        </strong>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         PESQUISA
+    ====================================== -->
+
+    <section class="condominiums-tools my-condominiums-tools">
+
+      <label class="search-field">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="condominiums-search" type="search" placeholder="Pesquisar condomínio, cidade ou código" autocomplete="off" aria-label="Pesquisar meus condomínios" />
+
+      </label>
+
+      <label class="my-condominiums-filter" for="condominium-filter">
+
+        <span>
+          Condomínio
+        </span>
+
+        <select id="condominium-filter" aria-label="Filtrar por condomínio">
+
+          <option value="">
+            Todos
+          </option>
+
+        </select>
+
+      </label>
+
+    </section>
+
+    <!-- =====================================
+         CARREGAMENTO
+    ====================================== -->
+
+    <div class="my-condominiums-loading" id="condominiums-loading" aria-live="polite">
+
+      Carregando seus condomínios...
+
+    </div>
+
+    <!-- =====================================
+         LISTAGEM
+    ====================================== -->
+
+    <section class="condominiums-content" id="condominiums-content" hidden>
+
+      <div class="condominiums-content__heading">
+
+        <div>
+
+          <p>
+            Locais vinculados
+          </p>
+
+          <h2>
+            Condomínios disponíveis
+          </h2>
+
+        </div>
+
+        <span class="condominiums-content__count" id="condominiums-count">
+          0 itens
+        </span>
+
+      </div>
+
+      <div class="condominiums-list" id="condominiums-list" aria-live="polite"></div>
+
+      <div class="empty-state" id="empty-state" hidden>
+
+        <span class="empty-state__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 21V6l8-3 8 3v15"></path>
+            <path d="M9 21v-5h6v5"></path>
+            <path d="M8 8h1M8 11h1M15 8h1M15 11h1"></path>
+          </svg>
+
+        </span>
+
+        <h3 id="empty-state-title">
+          Nenhum condomínio encontrado
+        </h3>
+
+        <p id="empty-state-description">
+          Não existem condomínios correspondentes à pesquisa selecionada.
+        </p>
+
+        <button type="button" class="empty-state__button" id="clear-condominium-search-button">
+          Limpar pesquisa
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =====================================
+       TEMPLATE DO CARD
+  ====================================== -->
+
+  <template id="condominium-card-template">
+
+    <article class="condominium-card">
+
+      <div class="condominium-card__summary">
+
+        <span class="condominium-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 21V6l8-3 8 3v15"></path>
+            <path d="M9 21v-5h6v5"></path>
+            <path d="M8 8h1M8 11h1M15 8h1M15 11h1"></path>
+          </svg>
+
+        </span>
+
+        <div class="condominium-card__content">
+
+          <div class="condominium-card__top">
+
+            <span class="condominium-card__code"></span>
+
+            <span class="condominium-card__status"></span>
+
+          </div>
+
+          <h3 class="condominium-card__name"></h3>
+
+          <span class="condominium-card__manager"></span>
+
+          <div class="condominium-card__indicators">
+
+            <span class="condominium-card__city"></span>
+
+            <span class="condominium-card__equipment-count"></span>
+
+            <span class="condominium-card__document-count"></span>
+
+          </div>
+
+        </div>
+
+        <button type="button" class="condominium-card__toggle" aria-expanded="false" aria-label="Mostrar informações do condomínio">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </div>
+
+      <div class="condominium-card__details" hidden>
+
+        <div class="condominium-card__information">
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Endereço
+            </span>
+
+            <strong class="condominium-card__address"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Contato principal
+            </span>
+
+            <strong class="condominium-card__contact"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Ambientes
+            </span>
+
+            <strong class="condominium-card__environment-count"></strong>
+
+          </div>
+
+          <div class="condominium-card__information-item">
+
+            <span>
+              Documentos
+            </span>
+
+            <strong class="condominium-card__documents-summary"></strong>
+
+          </div>
+
+        </div>
+
+        <div class="condominium-card__actions">
+
+          <button type="button" class="condominium-card__button condominium-card__button--primary" data-condominium-action="open">
+            Ver condomínio
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       MODAL DE CONSULTA
+  ====================================== -->
+
+  <div class="modal-backdrop" id="condominium-modal" hidden>
+
+    <section class="condominium-modal my-condominium-modal" role="dialog" aria-modal="true" aria-labelledby="condominium-modal-title">
+
+      <header class="condominium-modal__header">
+
+        <div>
+
+          <p id="condominium-modal-eyebrow">
+            Condomínio
+          </p>
+
+          <h2 id="condominium-modal-title">
+            Carregando...
+          </h2>
+
+        </div>
+
+        <button type="button" class="condominium-modal__close" id="close-condominium-modal-button" aria-label="Fechar condomínio">
+          ×
+        </button>
+
+      </header>
+
+      <!-- =====================================
+           ABAS
+      ====================================== -->
+
+      <nav class="condominium-modal__tabs" aria-label="Informações do condomínio">
+
+        <button type="button" class="condominium-modal__tab is-active" data-modal-tab="general" aria-pressed="true">
+          Dados gerais
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="contacts" aria-pressed="false">
+          Responsáveis
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="equipment" aria-pressed="false">
+          Ambientes e Equipamentos
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="documents" aria-pressed="false">
+          Documentos
+        </button>
+
+        <button type="button" class="condominium-modal__tab" data-modal-tab="history" aria-pressed="false">
+          Histórico
+        </button>
+
+      </nav>
+
+      <div class="my-condominium-modal__content">
+
+        <!-- =====================================
+             DADOS GERAIS
+        ====================================== -->
+
+        <section class="modal-tab-panel is-active" data-modal-panel="general">
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Identificação
+              </p>
+
+              <h3>
+                Dados do condomínio
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="my-condominium-data-grid">
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                Nome
+              </span>
+
+              <strong id="detail-condominium-name">
+                --
+              </strong>
+
+            </article>
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                Código
+              </span>
+
+              <strong id="detail-condominium-code">
+                --
+              </strong>
+
+            </article>
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                CNPJ
+              </span>
+
+              <strong id="detail-condominium-document">
+                --
+              </strong>
+
+            </article>
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                Situação
+              </span>
+
+              <strong id="detail-condominium-status">
+                --
+              </strong>
+
+            </article>
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                Blocos
+              </span>
+
+              <strong id="detail-condominium-blocks">
+                --
+              </strong>
+
+            </article>
+
+            <article class="my-condominium-data-item">
+
+              <span>
+                Unidades
+              </span>
+
+              <strong id="detail-condominium-units">
+                --
+              </strong>
+
+            </article>
+
+          </div>
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Localização
+              </p>
+
+              <h3>
+                Endereço
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="my-condominium-address">
+
+            <strong id="detail-condominium-address">
+              Endereço não informado
+            </strong>
+
+          </div>
+
+          <div class="modal-section-heading modal-section-heading--spaced">
+
+            <div>
+
+              <p>
+                Informações
+              </p>
+
+              <h3>
+                Observações
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="my-condominium-notes">
+
+            <p id="detail-condominium-notes">
+              Nenhuma observação cadastrada.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             RESPONSÁVEIS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="contacts" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Relacionamentos
+              </p>
+
+              <h3>
+                Responsáveis vinculados
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="linked-clients-count">
+              0 vínculos
+            </span>
+
+          </div>
+
+          <div class="linked-clients-list" id="linked-clients-list"></div>
+
+          <div class="modal-empty-state" id="linked-clients-empty" hidden>
+
+            <strong>
+              Nenhum responsável vinculado
+            </strong>
+
+            <p>
+              Não existem responsáveis disponíveis para consulta neste condomínio.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             AMBIENTES E EQUIPAMENTOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="equipment" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Estrutura existente
+              </p>
+
+              <h3>
+                Ambientes e equipamentos
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="selected-equipment-count">
+              0 equipamentos
+            </span>
+
+          </div>
+
+          <p class="modal-section-description">
+            Consulte os ambientes e equipamentos cadastrados neste condomínio.
+          </p>
+
+          <div class="condominium-environments-list" id="condominium-environments-list"></div>
+
+          <div class="modal-empty-state" id="condominium-environments-empty" hidden>
+
+            <strong>
+              Nenhum ambiente cadastrado
+            </strong>
+
+            <p>
+              A estrutura deste condomínio ainda não possui ambientes cadastrados.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             DOCUMENTOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="documents" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Controle documental
+              </p>
+
+              <h3>
+                Documentos do condomínio
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="documents-count">
+              0 documentos
+            </span>
+
+          </div>
+
+          <p class="documents-section-description">
+            Consulte os documentos disponibilizados pela Salvateck.
+            Os arquivos podem ser abertos ou baixados para o seu dispositivo.
+          </p>
+
+          <div class="documents-loading" id="documents-loading" hidden>
+            Carregando documentos...
+          </div>
+
+          <div class="documents-list" id="documents-list" aria-live="polite"></div>
+
+          <div class="modal-empty-state" id="documents-empty" hidden>
+
+            <strong>
+              Nenhum documento disponível
+            </strong>
+
+            <p>
+              Ainda não existem documentos publicados para este condomínio.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             HISTÓRICO
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="history" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Linha do tempo
+              </p>
+
+              <h3>
+                Histórico operacional
+              </h3>
+
+            </div>
+
+          </div>
+
+          <div class="condominium-history" id="condominium-history"></div>
+
+          <div class="modal-empty-state" id="history-empty" hidden>
+
+            <strong>
+              Ainda não existem registros
+            </strong>
+
+            <p>
+              As informações disponíveis sobre este condomínio aparecerão aqui.
+            </p>
+
+          </div>
+
+        </section>
+
+      </div>
+
+      <div class="condominium-modal__actions my-condominium-modal__actions">
+
+        <button type="button" class="modal-button modal-button--primary" id="close-condominium-button">
+          Fechar
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
+       TEMPLATE DO RESPONSÁVEL
+  ====================================== -->
+
+  <template id="linked-client-template">
+
+    <article class="linked-client-card">
+
+      <span class="linked-client-card__avatar"></span>
+
+      <div class="linked-client-card__content">
+
+        <div class="linked-client-card__top">
+
+          <strong class="linked-client-card__name"></strong>
+
+          <span class="linked-client-card__role"></span>
+
+        </div>
+
+        <div class="linked-client-card__badges">
+
+          <span class="linked-client-card__badge" data-primary-badge hidden>
+            Contato principal
+          </span>
+
+          <span class="linked-client-card__badge" data-financial-badge hidden>
+            Financeiro
+          </span>
+
+        </div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO AMBIENTE
+  ====================================== -->
+
+  <template id="condominium-environment-template">
+
+    <article class="condominium-environment-card">
+
+      <header class="condominium-environment-card__header">
+
+        <span class="condominium-environment-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 21h18"></path>
+            <path d="M5 21V5h10v16"></path>
+            <path d="M15 9h4v12"></path>
+            <path d="M8 9h4M8 13h4M8 17h4"></path>
+          </svg>
+
+        </span>
+
+        <div class="condominium-environment-card__copy">
+
+          <div class="condominium-environment-card__top">
+
+            <strong class="condominium-environment-card__name"></strong>
+
+            <span class="condominium-environment-card__legacy" hidden>
+              Cadastro anterior
+            </span>
+
+          </div>
+
+          <span class="condominium-environment-card__category"></span>
+
+          <small class="condominium-environment-card__count"></small>
+
+        </div>
+
+        <button type="button" class="condominium-environment-card__toggle" aria-expanded="false" aria-label="Mostrar equipamentos do ambiente">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+
+        </button>
+
+      </header>
+
+      <div class="condominium-environment-card__details" hidden>
+
+        <div class="condominium-environment-card__equipment-list"></div>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO EQUIPAMENTO
+  ====================================== -->
+
+  <template id="condominium-environment-equipment-template">
+
+    <article class="condominium-environment-equipment">
+
+      <div class="condominium-environment-equipment__copy">
+
+        <strong class="condominium-environment-equipment__name"></strong>
+
+        <span class="condominium-environment-equipment__category"></span>
+
+      </div>
+
+      <div class="condominium-environment-equipment__quantity">
+
+        <span>
+          Quantidade
+        </span>
+
+        <strong></strong>
+
+      </div>
+
+      <p class="condominium-environment-equipment__observation" hidden></p>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       TEMPLATE DO DOCUMENTO
+  ====================================== -->
+
+  <template id="document-template">
+
+    <article class="document-card">
+
+      <span class="document-card__icon">
+
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 3h8l4 4v14H6z"></path>
+          <path d="M14 3v5h5"></path>
+          <path d="M9 13h6M9 17h6"></path>
+        </svg>
+
+      </span>
+
+      <div class="document-card__content">
+
+        <strong class="document-card__name"></strong>
+
+        <span class="document-card__metadata"></span>
+
+        <span class="document-card__expiration"></span>
+
+      </div>
+
+      <span class="document-card__status"></span>
+
+      <div class="document-card__actions">
+
+        <button type="button" class="document-card__action document-card__action--open">
+          Abrir
+        </button>
+
+        <button type="button" class="document-card__action document-card__action--download">
+          Baixar
+        </button>
+
+      </div>
+
+    </article>
+
+  </template>
+
+  <!-- =====================================
+       FEEDBACK
+  ====================================== -->
+
+  <div class="feedback-message" id="feedback-message" role="status" aria-live="polite" hidden>
+    Ação realizada com sucesso.
+  </div>
+
+  <script type="module" src="js/auth-guard.js"></script>
+
+  <script type="module" src="js/meus-condominios.js?v=1.0.0"></script>
+
+</body>
+
+</html>
