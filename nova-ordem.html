@@ -1048,8 +1048,104 @@
   </main>
 
   <!-- =====================================
+     MODAL DE MODO DA VISTORIA
+  ====================================== -->
+
+  <div class="inspection-mode-modal" id="inspection-mode-modal" aria-hidden="true" hidden>
+
+    <button type="button" class="inspection-mode-modal__backdrop" data-close-inspection-mode-modal tabindex="-1" aria-label="Fechar opções da vistoria"></button>
+
+    <section class="inspection-mode-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-mode-modal-title" aria-describedby="inspection-mode-modal-description">
+
+      <button type="button" class="inspection-mode-modal__close" data-close-inspection-mode-modal aria-label="Fechar">
+        ×
+      </button>
+
+      <span class="inspection-mode-modal__icon" aria-hidden="true">
+
+        <svg viewBox="0 0 24 24">
+          <path d="M9 5h6"></path>
+          <path d="M9 3h6v4H9z"></path>
+          <path d="M6 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"></path>
+          <path d="m8 14 2 2 5-5"></path>
+        </svg>
+
+      </span>
+
+      <span class="inspection-mode-modal__eyebrow">
+        Vistoria técnica
+      </span>
+
+      <h2 class="inspection-mode-modal__title" id="inspection-mode-modal-title">
+        Como deseja realizar esta vistoria?
+      </h2>
+
+      <p class="inspection-mode-modal__description" id="inspection-mode-modal-description">
+        Escolha se a vistoria será iniciada agora no local ou agendada para outro momento.
+      </p>
+
+      <div class="inspection-mode-modal__options">
+
+        <button type="button" class="inspection-mode-option inspection-mode-option--primary" id="start-inspection-now-button">
+
+          <span class="inspection-mode-option__icon" aria-hidden="true">
+
+            <svg viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7Z"></path>
+            </svg>
+
+          </span>
+
+          <span class="inspection-mode-option__content">
+
+            <strong>
+              Iniciar vistoria agora
+            </strong>
+
+            <small>
+              Cria a OS imediatamente e abre o checklist para execução no local.
+            </small>
+
+          </span>
+
+        </button>
+
+        <button type="button" class="inspection-mode-option" id="schedule-inspection-button">
+
+          <span class="inspection-mode-option__icon" aria-hidden="true">
+
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+              <path d="M16 3v4"></path>
+              <path d="M8 3v4"></path>
+              <path d="M3 11h18"></path>
+            </svg>
+
+          </span>
+
+          <span class="inspection-mode-option__content">
+
+            <strong>
+              Agendar vistoria
+            </strong>
+
+            <small>
+              Continue preenchendo a OS para definir uma data e um horário.
+            </small>
+
+          </span>
+
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
      MODAL DE SELEÇÃO DE VISTORIA
-====================================== -->
+  ====================================== -->
 
   <div class="inspection-link-modal" id="inspection-link-modal" aria-hidden="true" hidden>
 

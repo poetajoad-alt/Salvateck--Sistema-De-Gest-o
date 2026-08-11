@@ -2647,10 +2647,10 @@ function abrirNovaVistoria(condominio) {
   const parametros = new URLSearchParams({
     perfil: "admin",
     condominio: condominio.id,
-    origem: "condominio",
+    tipo: "vistoria",
   });
 
-  window.location.href = `nova-vistoria.html?${parametros.toString()}`;
+  window.location.href = `nova-ordem.html?${parametros.toString()}`;
 }
 /* =========================================
    ATIVAÇÃO VISUAL DO CONDOMÍNIO

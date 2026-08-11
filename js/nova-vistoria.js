@@ -3002,7 +3002,7 @@ function addInspectionPdfFooters(pdf, code) {
     pdf.setFontSize(6.5);
 
     pdf.text(
-      "Documento de Vistoria - não substitui uma Ordem de Serviço.",
+      "Relatório de Vistoria Técnica - documento vinculado à Ordem de Serviço.",
       16,
       290,
     );
@@ -3057,9 +3057,12 @@ function createInspectionPdf() {
 
   let y = drawInspectionPdfHeader(pdf, code);
 
+  const linkedOrderCode =
+    inspection.codigoOS || inspection.origem?.codigoOS || "OS não identificada";
+
   const warningText =
-    "Este relatório registra exclusivamente uma Vistoria Técnica. " +
-    "Ele não representa, não substitui e não possui validade como Ordem de Serviço.";
+    `Este relatório registra a Vistoria Técnica realizada na ${linkedOrderCode}, ` +
+    "incluindo o checklist, os resultados e as observações registradas durante a inspeção.";
 
   const warningLines = pdf.splitTextToSize(warningText, contentWidth - 12);
 
@@ -3091,11 +3094,11 @@ function createInspectionPdf() {
       value: code,
     },
     {
-      label: "Situação",
+      label: "Ordem de Serviço",
       value:
-        inspection.ordemVinculada === true
-          ? `Vinculada à ${inspection.codigoOS || "OS"}`
-          : "Validada - sem OS",
+        inspection.codigoOS ||
+        inspection.origem?.codigoOS ||
+        "Não identificada",
     },
     code,
   );
@@ -3245,7 +3248,7 @@ function createInspectionPdf() {
   pdf.setFontSize(8.5);
 
   const finalNotice = pdf.splitTextToSize(
-    "Para gerar uma Ordem de Serviço a partir desta vistoria, utilize no sistema Salvateck o botão verde identificado pelo código da VST.",
+    `Esta vistoria integra o registro técnico da ${linkedOrderCode} e documenta os resultados do checklist realizado durante o atendimento.`,
     contentWidth - 12,
   );
 

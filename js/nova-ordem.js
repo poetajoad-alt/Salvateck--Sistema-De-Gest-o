@@ -337,6 +337,22 @@ const closeEmergencyModalButtons = document.querySelectorAll(
   "[data-close-emergency-modal]",
 );
 
+/* Modo da vistoria */
+
+const inspectionModeModal = document.getElementById("inspection-mode-modal");
+
+const startInspectionNowButton = document.getElementById(
+  "start-inspection-now-button",
+);
+
+const scheduleInspectionButton = document.getElementById(
+  "schedule-inspection-button",
+);
+
+const closeInspectionModeModalButtons = document.querySelectorAll(
+  "[data-close-inspection-mode-modal]",
+);
+
 /* Seleção de vistoria */
 
 const inspectionLinkModal = document.getElementById("inspection-link-modal");
@@ -2314,6 +2330,10 @@ function preselectCategoryFromURL() {
 
   window.setTimeout(() => {
     scrollToElement(servicesSection);
+
+    if (currentProfile === "admin") {
+      openInspectionModeModal();
+    }
   }, 150);
 }
 
@@ -2654,6 +2674,55 @@ async function applySelectedInspectionToOrder() {
   );
 }
 
+function openInspectionModeModal() {
+  if (currentProfile !== "admin" || !inspectionModeModal) {
+    return;
+  }
+
+  inspectionModeModal.hidden = false;
+
+  inspectionModeModal.setAttribute("aria-hidden", "false");
+
+  body.classList.add("inspection-mode-modal-open");
+}
+
+function closeInspectionModeModal({ keepCategory = false } = {}) {
+  if (!inspectionModeModal) {
+    return;
+  }
+
+  inspectionModeModal.hidden = true;
+
+  inspectionModeModal.setAttribute("aria-hidden", "true");
+
+  body.classList.remove("inspection-mode-modal-open");
+
+  if (!keepCategory) {
+    const inspectionInput = Array.from(categoryInputs).find(
+      (input) => input.value === "vistoria",
+    );
+
+    if (inspectionInput) {
+      inspectionInput.checked = false;
+    }
+
+    selectedInspectionForOrder = null;
+
+    syncCategoryStyles();
+
+    updateSummary();
+    updateProgress();
+  }
+}
+
+function scheduleInspection() {
+  closeInspectionModeModal({
+    keepCategory: true,
+  });
+
+  scrollToElement(servicesSection);
+}
+
 async function handleCategoryChange(event) {
   const changedInput = event.target;
 
@@ -2663,9 +2732,7 @@ async function handleCategoryChange(event) {
         input.checked = false;
       }
     });
-  }
 
-  if (changedInput.checked && changedInput.value !== "vistoria") {
     selectedInspectionForOrder = null;
   }
 
@@ -2681,7 +2748,7 @@ async function handleCategoryChange(event) {
     changedInput.checked &&
     changedInput.value === "vistoria"
   ) {
-    await openInspectionLinkModal();
+    openInspectionModeModal();
   }
 }
 
@@ -3303,23 +3370,6 @@ function validateForm() {
     return false;
   }
 
-  const selectedCategory = getSelectedCategories()[0] || "";
-
-  if (
-    currentProfile === "admin" &&
-    selectedCategory === "vistoria" &&
-    !selectedInspectionForOrder
-  ) {
-    showFeedback(
-      "Selecione uma vistoria validada antes de criar a OS.",
-      "error",
-    );
-
-    openInspectionLinkModal();
-
-    return false;
-  }
-
   if (getServiceDescription().length < 10) {
     showServiceValidation();
 
@@ -3911,11 +3961,7 @@ async function handleSubmit(event) {
       return;
     }
 
-    const destination = selectedInspectionForOrder
-      ? "ordens.html"
-      : savedOrder.tipoAtendimento === "vistoria"
-        ? "vistorias.html"
-        : "ordens.html";
+    const destination = "ordens.html";
 
     window.setTimeout(() => {
       window.location.href = destination;
@@ -4067,6 +4113,16 @@ closeEmergencyModalButtons.forEach((button) => {
   button.addEventListener("click", closeEmergencyModal);
 });
 
+closeInspectionModeModalButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    closeInspectionModeModal();
+  });
+});
+
+if (scheduleInspectionButton) {
+  scheduleInspectionButton.addEventListener("click", scheduleInspection);
+}
+
 closeInspectionLinkModalButtons.forEach((button) => {
   button.addEventListener("click", () => {
     closeInspectionLinkModal();
@@ -4085,6 +4141,16 @@ if (confirmEmergencyButton) {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    inspectionModeModal &&
+    !inspectionModeModal.hidden
+  ) {
+    closeInspectionModeModal();
+
+    return;
+  }
+
   if (
     event.key === "Escape" &&
     inspectionLinkModal &&

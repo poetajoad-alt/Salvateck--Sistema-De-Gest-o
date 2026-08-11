@@ -1005,9 +1005,19 @@ function normalizeOrder(snapshot) {
       periodoConfirmado: order.atendimento?.periodoConfirmado || "",
 
       horarioConfirmado: order.atendimento?.horarioConfirmado || "",
+
+      modo: order.atendimento?.modo || "",
     },
 
     proposta: order.proposta || null,
+
+    agendaGoogle: {
+      eventId: String(order.agendaGoogle?.eventId || "").trim(),
+      status: String(order.agendaGoogle?.status || "").trim(),
+      ultimaAcao: String(order.agendaGoogle?.ultimaAcao || "").trim(),
+      sincronizadoEm: order.agendaGoogle?.sincronizadoEm || null,
+      erro: String(order.agendaGoogle?.erro || "").trim(),
+    },
 
     fotos: servicePhotos
       .map((photo, index) => {
@@ -4002,9 +4012,16 @@ function renderProfile() {
   adminActionsCard.hidden =
     !isAdmin || (!isNewOrAnalysis && !isAwaitingConfirmation);
 
-  scheduledActionsCard.hidden = !isAdmin || !isScheduled;
+  const canStartImmediateInspection =
+    isAdmin && isInspection && !hasLinkedInspection && isNewOrAnalysis;
 
-  startInspectionButton.hidden = !isAdmin || !isScheduled || !isInspection;
+  scheduledActionsCard.hidden =
+    !isAdmin || (!isScheduled && !canStartImmediateInspection);
+
+  scheduledWhatsAppButton.hidden = !isScheduled;
+
+  startInspectionButton.hidden =
+    !isAdmin || !isInspection || (!isScheduled && !canStartImmediateInspection);
 
   startInspectionButton.textContent = hasLinkedInspection
     ? "Abrir vistoria"
@@ -4150,6 +4167,382 @@ async function saveChanges(changes, successMessage, privateChanges = null) {
 }
 
 /* =========================================
+   GOOGLE AGENDA
+========================================= */
+
+let sincronizadorGoogleAgenda = null;
+
+async function obterSincronizadorGoogleAgenda() {
+  if (sincronizadorGoogleAgenda) {
+    return sincronizadorGoogleAgenda;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  sincronizadorGoogleAgenda = functionsModule.httpsCallable(
+    functions,
+    "sincronizarGoogleAgenda",
+  );
+
+  return sincronizadorGoogleAgenda;
+}
+
+let verificadorDisponibilidadeAgenda = null;
+
+let confirmadorAgendamentoSeguro = null;
+
+async function obterVerificadorDisponibilidadeAgenda() {
+  if (verificadorDisponibilidadeAgenda) {
+    return verificadorDisponibilidadeAgenda;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  verificadorDisponibilidadeAgenda = functionsModule.httpsCallable(
+    functions,
+    "verificarDisponibilidadeAgenda",
+  );
+
+  return verificadorDisponibilidadeAgenda;
+}
+
+async function obterConfirmadorAgendamentoSeguro() {
+  if (confirmadorAgendamentoSeguro) {
+    return confirmadorAgendamentoSeguro;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  confirmadorAgendamentoSeguro = functionsModule.httpsCallable(
+    functions,
+    "confirmarAgendamentoSeguro",
+  );
+
+  return confirmadorAgendamentoSeguro;
+}
+
+function montarMensagemConflitoAgenda(conflito = {}) {
+  const codigo = String(conflito.codigo || "Outra OS").trim();
+
+  const tipo =
+    conflito.tipoAtendimento === "vistoria" ? "uma vistoria" : "um atendimento";
+
+  const horarioInicio = String(conflito.horarioInicio || "").trim();
+
+  const horarioFim = String(conflito.horarioFim || "").trim();
+
+  const periodo =
+    horarioInicio && horarioFim ? ` das ${horarioInicio} às ${horarioFim}` : "";
+
+  return (
+    `Horário indisponível. ${codigo} já possui ${tipo} agendado${periodo}. ` +
+    "Escolha uma nova data ou horário."
+  );
+}
+
+async function verificarDisponibilidadeDoHorario(data, horario) {
+  try {
+    const verificar = await obterVerificadorDisponibilidadeAgenda();
+
+    const resposta = await verificar({
+      data,
+      horario,
+      ordemId: currentRequest.documentId,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (resultado.disponivel === true) {
+      return true;
+    }
+
+    showFeedback(montarMensagemConflitoAgenda(resultado.conflito || {}));
+
+    return false;
+  } catch (error) {
+    console.error(
+      "[Agenda] Não foi possível verificar a disponibilidade:",
+      error,
+    );
+
+    showFeedback(
+      "Não foi possível verificar a disponibilidade deste horário. Tente novamente antes de enviar a proposta.",
+    );
+
+    return false;
+  }
+}
+
+async function confirmarAgendamentoComBlindagem() {
+  if (savingChanges || !currentRequestReference) {
+    return false;
+  }
+
+  savingChanges = true;
+
+  try {
+    const confirmar = await obterConfirmadorAgendamentoSeguro();
+
+    const resposta = await confirmar({
+      ordemId: currentRequest.documentId,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (resultado.sucesso !== true) {
+      throw new Error("CONFIRMACAO_SEGURA_INVALIDA");
+    }
+
+    await loadRequest();
+
+    closeActionForms();
+
+    renderAll();
+
+    showFeedback("Agendamento confirmado com sucesso.");
+
+    return true;
+  } catch (error) {
+    console.error("[Agenda] Não foi possível confirmar o agendamento:", error);
+
+    const conflito =
+      error?.details?.conflito || error?.customData?.details?.conflito || null;
+
+    if (error?.code === "functions/already-exists" || conflito) {
+      showFeedback(montarMensagemConflitoAgenda(conflito || {}));
+
+      return false;
+    }
+
+    if (error?.code === "functions/failed-precondition") {
+      showFeedback(
+        "Este agendamento não pode mais ser confirmado. Atualize a página e verifique os dados da OS.",
+      );
+
+      return false;
+    }
+
+    showFeedback(
+      "Não foi possível confirmar o agendamento. Nenhum horário foi reservado.",
+    );
+
+    return false;
+  } finally {
+    savingChanges = false;
+  }
+}
+
+function obterEnderecoParaAgenda() {
+  const endereco = currentRequest.endereco || {};
+
+  if (endereco.resumo) {
+    return endereco.resumo;
+  }
+
+  return [
+    endereco.logradouro,
+    endereco.numero,
+    endereco.complemento,
+    endereco.bairro,
+    endereco.cidade,
+    endereco.uf,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function montarDadosDoEventoAgenda(acao, eventId = "") {
+  return {
+    acao,
+    eventId,
+    codigo: currentRequest.codigo || "",
+    servico: currentRequest.titulo || "Serviço",
+    condominio: currentRequest.condominio?.nome || "",
+    cliente: currentRequest.cliente?.nome || "",
+    telefone: currentRequest.cliente?.telefone || "",
+    descricao: currentRequest.descricao || "",
+    endereco: obterEnderecoParaAgenda(),
+    data: currentRequest.atendimento?.dataConfirmada || "",
+    horario: currentRequest.atendimento?.horarioConfirmado || "",
+  };
+}
+
+async function registrarStatusDaAgenda(dados) {
+  if (!currentRequestReference) {
+    return;
+  }
+
+  await updateDoc(currentRequestReference, {
+    agendaGoogle: dados,
+    atualizadoEm: serverTimestamp(),
+  });
+
+  await loadRequest();
+}
+
+async function sincronizarAgendamentoGoogle() {
+  if (currentSession.role !== "admin" || !currentRequestReference) {
+    return;
+  }
+
+  const modoAtendimento = String(currentRequest.atendimento?.modo || "")
+    .trim()
+    .toLowerCase();
+
+  if (modoAtendimento === "imediato") {
+    return;
+  }
+
+  const eventIdAtual = currentRequest.agendaGoogle?.eventId || "";
+
+  const acao = eventIdAtual ? "atualizar" : "criar";
+
+  let eventIdRecebido = eventIdAtual;
+
+  try {
+    const sincronizar = await obterSincronizadorGoogleAgenda();
+
+    const resposta = await sincronizar(
+      montarDadosDoEventoAgenda(acao, eventIdAtual),
+    );
+
+    const resultado = resposta.data || {};
+
+    if (resultado.sucesso !== true || !resultado.eventId) {
+      throw new Error("RESPOSTA_INVALIDA_DA_GOOGLE_AGENDA");
+    }
+
+    eventIdRecebido = resultado.eventId;
+
+    await registrarStatusDaAgenda({
+      eventId: eventIdRecebido,
+      status: "sincronizado",
+      ultimaAcao: acao,
+      sincronizadoEm: serverTimestamp(),
+      erro: "",
+    });
+
+    showFeedback(
+      acao === "criar"
+        ? "Agendamento confirmado e adicionado à Google Agenda."
+        : "Agendamento confirmado e atualizado na Google Agenda.",
+    );
+  } catch (error) {
+    console.error("[Google Agenda] Falha ao sincronizar agendamento:", error);
+
+    try {
+      await registrarStatusDaAgenda({
+        eventId: eventIdRecebido,
+        status: "erro",
+        ultimaAcao: acao,
+        sincronizadoEm: null,
+        erro: String(error?.message || "ERRO_DESCONHECIDO"),
+      });
+    } catch (statusError) {
+      console.error(
+        "[Google Agenda] Não foi possível registrar o erro de sincronização:",
+        statusError,
+      );
+    }
+
+    showFeedback(
+      "Agendamento salvo no Salvateck, mas não foi possível sincronizar com a Google Agenda.",
+    );
+  }
+}
+
+async function removerAgendamentoGoogle() {
+  if (currentSession.role !== "admin" || !currentRequestReference) {
+    return;
+  }
+
+  const eventId = currentRequest.agendaGoogle?.eventId || "";
+
+  if (!eventId) {
+    return;
+  }
+
+  try {
+    const sincronizar = await obterSincronizadorGoogleAgenda();
+
+    const resposta = await sincronizar({
+      acao: "excluir",
+      eventId,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (resultado.sucesso !== true) {
+      throw new Error("RESPOSTA_INVALIDA_DA_GOOGLE_AGENDA");
+    }
+
+    await registrarStatusDaAgenda({
+      eventId,
+      status: "removido",
+      ultimaAcao: "excluir",
+      sincronizadoEm: serverTimestamp(),
+      erro: "",
+    });
+
+    showFeedback("Ordem cancelada e removida da Google Agenda.");
+  } catch (error) {
+    console.error("[Google Agenda] Falha ao remover evento:", error);
+
+    try {
+      await registrarStatusDaAgenda({
+        eventId,
+        status: "erro",
+        ultimaAcao: "excluir",
+        sincronizadoEm: null,
+        erro: String(error?.message || "ERRO_DESCONHECIDO"),
+      });
+    } catch (statusError) {
+      console.error(
+        "[Google Agenda] Não foi possível registrar o erro de remoção:",
+        statusError,
+      );
+    }
+
+    showFeedback(
+      "A OS foi cancelada no Salvateck, mas não foi possível removê-la da Google Agenda.",
+    );
+  }
+}
+
+/* =========================================
    ALTERAR PRIORIDADE
 ========================================= */
 
@@ -4248,12 +4641,21 @@ function closeModal() {
    ACEITAR SOLICITAÇÃO
 ========================================= */
 
-function submitAccept(event) {
+async function submitAccept(event) {
   event.preventDefault();
 
   if (!acceptForm.checkValidity()) {
     acceptForm.reportValidity();
 
+    return;
+  }
+
+  const horarioDisponivel = await verificarDisponibilidadeDoHorario(
+    acceptDate.value,
+    acceptTime.value,
+  );
+
+  if (!horarioDisponivel) {
     return;
   }
 
@@ -4348,33 +4750,13 @@ function confirmSchedule() {
     confirmationText: "Confirmar Agendamento",
 
     confirm: async () => {
-      const attendance = {
-        ...currentRequest.atendimento,
+      const agendamentoConfirmado = await confirmarAgendamentoComBlindagem();
 
-        dataConfirmada: proposal.data,
+      if (!agendamentoConfirmado) {
+        return;
+      }
 
-        periodoConfirmado: proposal.periodo,
-
-        horarioConfirmado: proposal.horario,
-      };
-
-      await saveChanges(
-        {
-          status: "agendada",
-
-          atendimento: attendance,
-
-          proposta: {
-            ...proposal,
-
-            status: "aceita",
-
-            confirmadaEm: new Date().toISOString(),
-          },
-        },
-
-        "Agendamento confirmado com sucesso.",
-      );
+      await sincronizarAgendamentoGoogle();
     },
   });
 }
@@ -4382,7 +4764,7 @@ function confirmSchedule() {
    REAGENDAR ORDEM DE SERVIÇO
 ========================================= */
 
-function submitReschedule(event) {
+async function submitReschedule(event) {
   event.preventDefault();
 
   if (
@@ -4396,6 +4778,15 @@ function submitReschedule(event) {
   if (!rescheduleForm.checkValidity()) {
     rescheduleForm.reportValidity();
 
+    return;
+  }
+
+  const horarioDisponivel = await verificarDisponibilidadeDoHorario(
+    rescheduleDate.value,
+    rescheduleTime.value,
+  );
+
+  if (!horarioDisponivel) {
     return;
   }
 
@@ -4656,10 +5047,37 @@ function hasExecutedInspection() {
   );
 }
 
-function openInspectionExecution() {
+let iniciadorVistoriaAgora = null;
+
+async function obterIniciadorVistoriaAgora() {
+  if (iniciadorVistoriaAgora) {
+    return iniciadorVistoriaAgora;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  iniciadorVistoriaAgora = functionsModule.httpsCallable(
+    functions,
+    "iniciarVistoriaAgora",
+  );
+
+  return iniciadorVistoriaAgora;
+}
+
+async function openInspectionExecution() {
   if (
     currentSession.role !== "admin" ||
-    currentRequest.status !== "agendada" ||
     currentRequest.tipoAtendimento !== "vistoria"
   ) {
     return;
@@ -4667,21 +5085,80 @@ function openInspectionExecution() {
 
   const linkedInspectionId = getLinkedInspectionId();
 
-  const parameters = new URLSearchParams({
-    perfil: "admin",
-  });
-
   if (linkedInspectionId) {
-    parameters.set("vistoria", linkedInspectionId);
+    if (currentRequest.status !== "agendada") {
+      return;
+    }
 
-    parameters.set("modo", "consulta");
-  } else {
-    parameters.set("ordem", currentRequest.documentId);
+    const parameters = new URLSearchParams({
+      perfil: "admin",
+      vistoria: linkedInspectionId,
+      modo: "consulta",
+    });
 
-    parameters.set("modo", "execucao");
+    window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+
+    return;
   }
 
-  window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+  if (currentRequest.status === "agendada") {
+    const parameters = new URLSearchParams({
+      perfil: "admin",
+      ordem: currentRequest.documentId,
+      modo: "execucao",
+    });
+
+    window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+
+    return;
+  }
+
+  if (
+    !["nova-solicitacao", "em-analise"].includes(currentRequest.status) ||
+    savingChanges
+  ) {
+    return;
+  }
+
+  savingChanges = true;
+
+  const originalText = startInspectionButton.textContent;
+
+  startInspectionButton.disabled = true;
+  startInspectionButton.textContent = "Iniciando vistoria...";
+
+  try {
+    const iniciarVistoria = await obterIniciadorVistoriaAgora();
+
+    const resposta = await iniciarVistoria({
+      ordemId: currentRequest.documentId,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (resultado.sucesso !== true) {
+      throw new Error("Não foi possível iniciar a vistoria agora.");
+    }
+
+    const parameters = new URLSearchParams({
+      perfil: "admin",
+      ordem: currentRequest.documentId,
+      modo: "execucao",
+    });
+
+    window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+  } catch (error) {
+    console.error("[Detalhes] Não foi possível iniciar a vistoria:", error);
+
+    showFeedback(
+      error?.message || "Não foi possível iniciar a vistoria agora.",
+    );
+  } finally {
+    savingChanges = false;
+
+    startInspectionButton.disabled = false;
+    startInspectionButton.textContent = originalText;
+  }
 }
 
 /* =========================================
@@ -4823,6 +5300,8 @@ function cancelRequestByAdmin() {
 
         "Ordem de serviço cancelada.",
       );
+
+      await removerAgendamentoGoogle();
     },
   });
 }
