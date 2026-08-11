@@ -1081,6 +1081,15 @@ body.modal-open {
   overflow-wrap: anywhere;
 }
 
+.customer-card__metrics .customer-card__total-value {
+  padding-inline: 2px;
+
+  font-size: 0.66rem;
+  white-space: nowrap;
+
+  overflow-wrap: normal;
+}
+
 /* =========================================
    AVISO DO CLIENTE
 ========================================= */
@@ -2913,12 +2922,21 @@ body.modal-open {
   }
 
   .customer-condominium-card__top {
+    width: 100%;
+    min-width: 0;
+
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .customer-condominium-card__name,
   .customer-condominium-card__address {
+    width: 100%;
+    max-width: 100%;
+
     white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
   }
 
   .customer-details__condominiums-heading {
