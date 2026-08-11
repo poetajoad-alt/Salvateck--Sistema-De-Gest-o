@@ -2715,6 +2715,188 @@ function closeInspectionModeModal({ keepCategory = false } = {}) {
   }
 }
 
+let iniciadorVistoriaAgora = null;
+
+async function obterIniciadorVistoriaAgora() {
+  if (iniciadorVistoriaAgora) {
+    return iniciadorVistoriaAgora;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  iniciadorVistoriaAgora = functionsModule.httpsCallable(
+    functions,
+    "iniciarVistoriaAgora",
+  );
+
+  return iniciadorVistoriaAgora;
+}
+
+function validateImmediateInspectionData() {
+  if (currentProfile !== "admin") {
+    return false;
+  }
+
+  if (!selectedCondominium?.id) {
+    showFeedback("Selecione o condomínio da vistoria.", "error");
+
+    closeInspectionModeModal({
+      keepCategory: true,
+    });
+
+    scrollToElement(document.getElementById("condominium-field"));
+
+    return false;
+  }
+
+  if (!isClientDataComplete()) {
+    showFeedback("Selecione o responsável pela vistoria.", "error");
+
+    closeInspectionModeModal({
+      keepCategory: true,
+    });
+
+    scrollToElement(nomeCliente.closest(".form-card"));
+
+    return false;
+  }
+
+  if (!isAddressComplete()) {
+    showFeedback("Informe o endereço da vistoria.", "error");
+
+    closeInspectionModeModal({
+      keepCategory: true,
+    });
+
+    scrollToElement(document.querySelector('[data-section="endereco"]'));
+
+    return false;
+  }
+
+  if (!getSelectedCategories().includes("vistoria")) {
+    showFeedback("Selecione Vistoria técnica para continuar.", "error");
+
+    return false;
+  }
+
+  return true;
+}
+
+async function startInspectionNow() {
+  if (!startInspectionNowButton || !validateImmediateInspectionData()) {
+    return;
+  }
+
+  const buttonTitle = startInspectionNowButton.querySelector("strong");
+
+  const originalButtonTitle =
+    buttonTitle?.textContent || "Iniciar vistoria agora";
+
+  const originalDescription = serviceDescription.value;
+
+  const originalDate = dataPreferida.value;
+
+  const originalPeriod = getSelectedPeriod() || "";
+
+  const originalTime = horarioPreferido.value;
+
+  let savedOrder = null;
+
+  startInspectionNowButton.disabled = true;
+
+  if (buttonTitle) {
+    buttonTitle.textContent = "Criando OS...";
+  }
+
+  if (getServiceDescription().length < 10) {
+    serviceDescription.value =
+      "Vistoria técnica iniciada imediatamente no local.";
+  }
+
+  dataPreferida.value = "";
+
+  periodInputs.forEach((input) => {
+    input.checked = false;
+  });
+
+  horarioPreferido.value = "";
+
+  try {
+    savedOrder = await saveOrderInFirestore();
+
+    const iniciarVistoria = await obterIniciadorVistoriaAgora();
+
+    const resposta = await iniciarVistoria({
+      ordemId: savedOrder.id,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (resultado.sucesso !== true) {
+      throw new Error("Não foi possível iniciar a vistoria agora.");
+    }
+
+    window.location.href = `nova-vistoria.html?perfil=admin&ordem=${encodeURIComponent(
+      savedOrder.id,
+    )}&modo=execucao`;
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível iniciar a vistoria imediatamente:",
+      error,
+    );
+
+    if (savedOrder?.id) {
+      showFeedback(
+        `${savedOrder.codigo} foi criada, mas não foi possível abrir a vistoria. Abra a OS para tentar novamente.`,
+        "error",
+      );
+
+      window.setTimeout(() => {
+        window.location.href = `detalhes-solicitacao.html?id=${encodeURIComponent(savedOrder.id)}`;
+      }, 1800);
+
+      return;
+    }
+
+    serviceDescription.value = originalDescription;
+
+    dataPreferida.value = originalDate;
+
+    periodInputs.forEach((input) => {
+      input.checked = input.value === originalPeriod;
+    });
+
+    horarioPreferido.value = originalTime;
+
+    updateServiceDescriptionCounter();
+    syncPeriodStyles();
+    updateSummary();
+    updateProgress();
+
+    showFeedback(
+      error?.message || "Não foi possível iniciar a vistoria agora.",
+      "error",
+    );
+  } finally {
+    startInspectionNowButton.disabled = false;
+
+    if (buttonTitle) {
+      buttonTitle.textContent = originalButtonTitle;
+    }
+  }
+}
+
 function scheduleInspection() {
   closeInspectionModeModal({
     keepCategory: true,
@@ -4118,6 +4300,10 @@ closeInspectionModeModalButtons.forEach((button) => {
     closeInspectionModeModal();
   });
 });
+
+if (startInspectionNowButton) {
+  startInspectionNowButton.addEventListener("click", startInspectionNow);
+}
 
 if (scheduleInspectionButton) {
   scheduleInspectionButton.addEventListener("click", scheduleInspection);
