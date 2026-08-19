@@ -366,7 +366,9 @@ function getOrderLabel(reference) {
 }
 
 function getEffectiveStatus(entry) {
-  if (entry.status === "pending" && parseLocalDate(entry.vencimento) < today) {
+  const dueDate = parseLocalDate(entry.vencimento);
+
+  if (entry.status === "pending" && dueDate && dueDate < today) {
     return "overdue";
   }
 
@@ -396,7 +398,7 @@ function normalizeEntry(entry, documentId = "") {
 
     valor: Number(entry.valor) || 0,
 
-    vencimento: entry.vencimento || dateToISO(today),
+    vencimento: String(entry.vencimento || "").trim(),
 
     status: entry.status || "pending",
 

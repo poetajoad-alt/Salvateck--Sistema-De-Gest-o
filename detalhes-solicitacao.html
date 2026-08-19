@@ -738,6 +738,62 @@
     </section>
 
     <!-- =====================================
+         VALOR DA ORDEM DE SERVIÇO
+    ====================================== -->
+
+    <section class="details-card admin-only order-value-card" id="order-value-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M9 9.5c0-1.1 1.2-2 3-2s3 .9 3 2-1.2 2-3 2-3 .9-3 2 1.2 2 3 2 3-.9 3-2"></path>
+            <path d="M12 5.5v13"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Gestão financeira
+          </p>
+
+          <h2>
+            Valor da ordem de serviço
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="technical-responsibility-card__description">
+        Informe o valor desta OS. Ao salvar, o valor será vinculado ao Financeiro e ao Dashboard.
+      </p>
+
+      <form id="order-value-form" novalidate>
+
+        <div class="form-group">
+
+          <label class="form-label" for="order-value">
+            Valor da OS
+          </label>
+
+          <input id="order-value" name="orderValue" type="text" class="input" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00" required />
+
+        </div>
+
+        <button type="submit" class="technical-responsibility-save" id="save-order-value-button">
+          Salvar valor
+        </button>
+
+      </form>
+
+    </section>
+
+    <!-- =====================================
          RESPONSABILIDADE TÉCNICA
     ====================================== -->
 

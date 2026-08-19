@@ -262,6 +262,16 @@ const saveTechnicalResponsibilityButton = document.getElementById(
   "save-technical-responsibility-button",
 );
 
+/* Valor da OS */
+
+const orderValueCard = document.getElementById("order-value-card");
+
+const orderValueForm = document.getElementById("order-value-form");
+
+const orderValue = document.getElementById("order-value");
+
+const saveOrderValueButton = document.getElementById("save-order-value-button");
+
 /* Prioridade */
 
 const priorityInputs = document.querySelectorAll('input[name="prioridade"]');
@@ -895,6 +905,8 @@ function normalizeOrder(snapshot) {
     codigo: order.codigo || snapshot.id,
 
     numero: Number(order.numero || 0),
+
+    valorSalvateck: Number(order.valorSalvateck || 0),
 
     clienteId: order.clienteUid || order.cliente?.id || "",
 
@@ -2504,6 +2516,181 @@ function getTechnicalResponsibilityFormData() {
   };
 }
 
+function formatOrderValueFromNumber(value) {
+  const numericValue = Number(value) || 0;
+
+  if (numericValue <= 0) {
+    return "";
+  }
+
+  return numericValue.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatOrderValueInput(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const numericValue = Number(digits) / 100;
+
+  return numericValue.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function orderValueInputToNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (!digits) {
+    return 0;
+  }
+
+  return Number(digits) / 100;
+}
+
+function renderOrderValue() {
+  orderValue.value = formatOrderValueFromNumber(currentRequest.valorSalvateck);
+}
+
+async function saveOrderValue(event) {
+  event.preventDefault();
+
+  if (
+    currentSession.role !== "admin" ||
+    ["recusada", "cancelada"].includes(currentRequest.status)
+  ) {
+    return;
+  }
+
+  const value = orderValueInputToNumber(orderValue.value);
+
+  if (value <= 0) {
+    showFeedback("Informe um valor válido para a Ordem de Serviço.");
+
+    orderValue.focus();
+
+    return;
+  }
+
+  const originalText = saveOrderValueButton.textContent;
+
+  saveOrderValueButton.disabled = true;
+
+  saveOrderValueButton.textContent = "Salvando...";
+
+  try {
+    const financialReference = doc(
+      db,
+      "financeiro",
+      `ordem-${currentRequest.documentId}`,
+    );
+
+    const financialSnapshot = await getDoc(financialReference);
+
+    const batch = writeBatch(db);
+
+    batch.update(currentRequestReference, {
+      valorSalvateck: value,
+
+      valorSalvateckAtualizadoEm: serverTimestamp(),
+
+      valorSalvateckAtualizadoPorUid: currentSession.uid,
+
+      atualizadoEm: serverTimestamp(),
+    });
+
+    const financialData = {
+      tipo: "income",
+
+      descricao: currentRequest.titulo,
+
+      categoria:
+        currentRequest.tipoAtendimento === "vistoria" ? "vistoria" : "servico",
+
+      valor: value,
+
+      clienteUid: currentRequest.clienteId,
+
+      condominioId: currentRequest.condominio.id,
+
+      ordemId: currentRequest.documentId,
+
+      cliente: {
+        id: currentRequest.clienteId,
+        nome: currentRequest.cliente.nome,
+        email: currentRequest.cliente.email,
+        telefone: currentRequest.cliente.telefone,
+      },
+
+      condominio: {
+        id: currentRequest.condominio.id,
+        codigo: currentRequest.condominio.codigo,
+        nome: currentRequest.condominio.nome,
+      },
+
+      ordem: {
+        id: currentRequest.documentId,
+        codigo: currentRequest.codigo,
+        titulo: currentRequest.titulo,
+      },
+
+      origem: "ordem",
+
+      observacoes: `Lançamento gerado automaticamente pela ${currentRequest.codigo}.`,
+
+      atualizadoEm: serverTimestamp(),
+
+      atualizadoPorUid: currentSession.uid,
+    };
+
+    if (financialSnapshot.exists()) {
+      batch.set(financialReference, financialData, {
+        merge: true,
+      });
+    } else {
+      batch.set(financialReference, {
+        ...financialData,
+
+        id: financialReference.id,
+
+        codigo: `FIN-${currentRequest.codigo}`,
+
+        status: "pending",
+
+        vencimento: "",
+
+        pagamentoEm: "",
+
+        formaPagamento: "",
+
+        criadoEm: serverTimestamp(),
+
+        criadoPorUid: currentSession.uid,
+      });
+    }
+
+    await batch.commit();
+
+    await loadRequest();
+
+    renderAll();
+
+    showFeedback("Valor da OS salvo e enviado ao Financeiro.");
+  } catch (error) {
+    handleSaveError(error);
+  } finally {
+    saveOrderValueButton.disabled = false;
+
+    saveOrderValueButton.textContent = originalText;
+  }
+}
+
 function isTechnicalResponsibilityComplete(data = {}) {
   return Boolean(String(data.nome || "").trim());
 }
@@ -3996,6 +4183,14 @@ function renderProfile() {
     input.disabled = !isAdmin || isFinalStatus;
   });
 
+  const orderValueLocked = ["recusada", "cancelada"].includes(status);
+
+  orderValueCard.hidden = !isAdmin || orderValueLocked;
+
+  orderValue.disabled = !isAdmin || orderValueLocked;
+
+  saveOrderValueButton.disabled = !isAdmin || orderValueLocked;
+
   technicalResponsibilityCard.hidden = !isAdmin || isFinalStatus;
 
   [
@@ -4075,6 +4270,8 @@ function renderAll() {
   renderPhotos();
 
   renderObservations();
+
+  renderOrderValue();
 
   renderTechnicalResponsibility();
 
@@ -5437,6 +5634,12 @@ uploadAdditionalPhotosButton.addEventListener("click", uploadAdditionalPhotos);
 viewFinalDocumentButton.addEventListener("click", viewFinalDocumentPdf);
 
 downloadFinalDocumentButton.addEventListener("click", shareFinalDocumentPdf);
+
+orderValue.addEventListener("input", () => {
+  orderValue.value = formatOrderValueInput(orderValue.value);
+});
+
+orderValueForm.addEventListener("submit", saveOrderValue);
 
 technicalResponsibilityForm.addEventListener(
   "submit",
