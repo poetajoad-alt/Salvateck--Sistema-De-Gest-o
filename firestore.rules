@@ -17,13 +17,22 @@ service cloud.firestore {
       ).data;
     }
 
-    function eAdministrador() {
-  return estaAutenticado()
-    && exists(
-      /databases/$(database)/documents/usuarios/$(request.auth.uid)
-    )
-    && usuarioAtual().role == "admin";
-}
+       function eAdministrador() {
+      return estaAutenticado()
+        && exists(
+          /databases/$(database)/documents/usuarios/$(request.auth.uid)
+        )
+        && usuarioAtual().role == "admin";
+    }
+
+    function eFuncionario() {
+      return estaAutenticado()
+        && exists(
+          /databases/$(database)/documents/usuarios/$(request.auth.uid)
+        )
+        && usuarioAtual().role == "funcionario"
+        && usuarioAtual().ativo == true;
+    }
 
     function contadorOrdensDepois() {
       return getAfter(
@@ -111,18 +120,19 @@ service cloud.firestore {
     ===================================== */
 
     match /ordens/{ordemId} {
-            allow read: if eAdministrador()
+                  allow read: if eAdministrador()
+        || (
+          eFuncionario()
+          && "funcionarioResponsavelUid" in resource.data
+          && resource.data.funcionarioResponsavelUid == request.auth.uid
+        )
         || (
           estaAutenticado()
-
           && (
             resource.data.clienteUid == request.auth.uid
-
             || (
               "clientesAutorizadosIds" in resource.data
-
               && resource.data.clientesAutorizadosIds is list
-
               && request.auth.uid
                 in resource.data.clientesAutorizadosIds
             )

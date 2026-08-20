@@ -4,8 +4,10 @@ import {
   collection,
   doc,
   getDocs,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 import { db } from "./firebase-config.js";
@@ -17,6 +19,8 @@ import { db } from "./firebase-config.js";
 const MODOS_VISUALIZACAO = ["mes", "semana", "dia", "lista"];
 
 let atendimentos = [];
+
+let currentSession = null;
 
 /* =========================================
    FUNÇÕES DE DATA
@@ -520,6 +524,21 @@ function criarSlugResponsavel(valor) {
 }
 
 function obterResponsavelDaOrdem(ordem = {}) {
+  const funcionario = ordem.funcionarioResponsavel || {};
+
+  const funcionarioUid = String(
+    ordem.funcionarioResponsavelUid || funcionario.usuarioUid || "",
+  ).trim();
+
+  const funcionarioNome = String(funcionario.nome || "").trim();
+
+  if (funcionarioUid) {
+    responsavelConfig[funcionarioUid] =
+      funcionarioNome || responsavelConfig[funcionarioUid] || funcionarioUid;
+
+    return funcionarioUid;
+  }
+
   const responsavel = ordem.responsavel || ordem.executor || {};
 
   const id = String(
@@ -653,14 +672,23 @@ function popularFiltroDeResponsaveis() {
 }
 
 async function carregarAgendaDoFirestore() {
-  const snapshot = await getDocs(collection(db, "ordens"));
+  if (currentSession?.role !== "funcionario" || !currentSession.uid) {
+    throw new Error("AGENDA_ACCESS_DENIED");
+  }
+
+  const agendaQuery = query(
+    collection(db, "ordens"),
+    where("funcionarioResponsavelUid", "==", currentSession.uid),
+  );
+
+  const snapshot = await getDocs(agendaQuery);
 
   atendimentos = snapshot.docs.map(mapearOrdemParaAtendimento).filter(Boolean);
 
   popularFiltroDeResponsaveis();
 
   console.info(
-    `[Agenda] ${atendimentos.length} atendimento(s) com data carregado(s) do Firestore.`,
+    `[Agenda] ${atendimentos.length} atendimento(s) atribuídos ao funcionário carregado(s) do Firestore.`,
   );
 }
 
@@ -1372,13 +1400,17 @@ function preencherCard(atendimento) {
     abrirDetalhes(atendimento.id);
   });
 
+  const agendaSomenteConsulta = currentSession?.role === "funcionario";
+
   const statusFinalizado = ["concluido", "cancelado"].includes(
     atendimento.status,
   );
 
-  menuButton.hidden = statusFinalizado;
+  detailsButton.hidden = agendaSomenteConsulta;
 
-  if (statusFinalizado) {
+  menuButton.hidden = agendaSomenteConsulta || statusFinalizado;
+
+  if (agendaSomenteConsulta || statusFinalizado) {
     options.hidden = true;
   }
 
@@ -1396,6 +1428,12 @@ function preencherCard(atendimento) {
 
   actionButtons.forEach((button) => {
     const acao = button.dataset.appointmentAction;
+
+    if (agendaSomenteConsulta) {
+      button.hidden = true;
+
+      return;
+    }
 
     if (acao === "iniciar" && atendimento.status === "em-atendimento") {
       button.hidden = true;
@@ -1844,7 +1882,7 @@ document.addEventListener("keydown", (event) => {
 
 async function inicializarPaginaDeAgenda() {
   try {
-    await window.salvateckSessionReady;
+    currentSession = await window.salvateckSessionReady;
 
     await carregarAgendaDoFirestore();
   } catch (error) {

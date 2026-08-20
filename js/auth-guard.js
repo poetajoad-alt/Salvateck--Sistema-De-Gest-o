@@ -207,7 +207,7 @@ onAuthStateChanged(auth, async (user) => {
       .trim()
       .toLowerCase();
 
-    if (role !== "admin" && role !== "cliente") {
+    if (role !== "admin" && role !== "cliente" && role !== "funcionario") {
       await invalidateSession("Esta conta não possui uma permissão válida.");
 
       return;

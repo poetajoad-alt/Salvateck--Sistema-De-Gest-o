@@ -3,10 +3,12 @@ const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 
 const {initializeApp} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
 
 initializeApp();
 
+const authAdmin = getAuth();
 const db = getFirestore();
 
 const salvateckApiToken = defineSecret("SALVATECK_API_TOKEN");
@@ -41,7 +43,7 @@ async function validarAdministrador(uid) {
   if (usuario.ativo !== true || usuario.role !== "admin") {
     throw new HttpsError(
         "permission-denied",
-        "Apenas administradores podem sincronizar a agenda.",
+        "Apenas administradores podem realizar esta operação.",
     );
   }
 }
@@ -718,6 +720,191 @@ exports.iniciarVistoriaAgora = onCall(
         throw new HttpsError(
             "internal",
             "Não foi possível iniciar a vistoria agora.",
+        );
+      }
+    },
+);
+
+exports.criarAcessoFuncionario = onCall(
+    {
+      region: "southamerica-east1",
+      maxInstances: 10,
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError(
+            "unauthenticated",
+            "É necessário estar autenticado.",
+        );
+      }
+
+      await validarAdministrador(request.auth.uid);
+
+      const funcionarioId = texto(request.data?.funcionarioId);
+
+      if (!funcionarioId) {
+        throw new HttpsError(
+            "invalid-argument",
+            "O ID do funcionário é obrigatório.",
+        );
+      }
+
+      const funcionarioReference = db
+          .collection("funcionarios")
+          .doc(funcionarioId);
+
+      const funcionarioSnapshot = await funcionarioReference.get();
+
+      if (!funcionarioSnapshot.exists) {
+        throw new HttpsError("not-found", "O funcionário não foi encontrado.");
+      }
+
+      const funcionario = funcionarioSnapshot.data() || {};
+
+      const nome = texto(funcionario.nome);
+
+      const email = texto(funcionario.email).toLowerCase();
+
+      const codigo = texto(funcionario.codigo);
+
+      const status = texto(funcionario.status).toLowerCase();
+
+      const usuarioUidAtual = texto(funcionario.usuarioUid);
+
+      if (status === "inativo" || funcionario.ativo === false) {
+        throw new HttpsError(
+            "failed-precondition",
+            "Não é possível criar acesso para um funcionário inativo.",
+        );
+      }
+
+      if (!nome) {
+        throw new HttpsError(
+            "failed-precondition",
+            "O funcionário não possui nome cadastrado.",
+        );
+      }
+
+      if (!email) {
+        throw new HttpsError(
+            "failed-precondition",
+            "O funcionário não possui e-mail cadastrado.",
+        );
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new HttpsError(
+            "failed-precondition",
+            "O funcionário possui um e-mail inválido.",
+        );
+      }
+
+      if (funcionario.acessoConfigurado === true || usuarioUidAtual) {
+        throw new HttpsError(
+            "already-exists",
+            "Este funcionário já possui acesso ao sistema.",
+        );
+      }
+
+      let usuarioCriado = null;
+
+      try {
+        usuarioCriado = await authAdmin.createUser({
+          email,
+          emailVerified: false,
+          displayName: nome,
+          disabled: false,
+        });
+
+        const usuarioReference = db
+            .collection("usuarios")
+            .doc(usuarioCriado.uid);
+
+        const batch = db.batch();
+
+        batch.set(usuarioReference, {
+          nome,
+          email,
+          role: "funcionario",
+          ativo: true,
+          funcionarioId,
+          funcionarioCodigo: codigo,
+          criadoEm: FieldValue.serverTimestamp(),
+          criadoPorUid: request.auth.uid,
+          atualizadoEm: FieldValue.serverTimestamp(),
+          atualizadoPorUid: request.auth.uid,
+        });
+
+        batch.update(funcionarioReference, {
+          acessoConfigurado: true,
+          usuarioUid: usuarioCriado.uid,
+          acessoCriadoEm: FieldValue.serverTimestamp(),
+          acessoCriadoPorUid: request.auth.uid,
+          atualizadoEm: FieldValue.serverTimestamp(),
+          atualizadoPorUid: request.auth.uid,
+        });
+
+        await batch.commit();
+
+        logger.info("Acesso de funcionário criado.", {
+          uidAdmin: request.auth.uid,
+          funcionarioId,
+          codigo: codigo || null,
+          usuarioUid: usuarioCriado.uid,
+        });
+
+        return {
+          sucesso: true,
+          funcionarioId,
+          codigo,
+          nome,
+          email,
+          usuarioUid: usuarioCriado.uid,
+          precisaDefinirSenha: true,
+        };
+      } catch (error) {
+        if (usuarioCriado) {
+          try {
+            await authAdmin.deleteUser(usuarioCriado.uid);
+          } catch (rollbackError) {
+            logger.error(
+                "Não foi possível remover usuário após falha no cadastro.",
+                {
+                  usuarioUid: usuarioCriado.uid,
+                  message: rollbackError.message,
+                },
+            );
+          }
+        }
+
+        if (error instanceof HttpsError) {
+          throw error;
+        }
+
+        if (error?.code === "auth/email-already-exists") {
+          throw new HttpsError(
+              "already-exists",
+              "Este e-mail já possui uma conta no sistema.",
+          );
+        }
+
+        if (error?.code === "auth/invalid-email") {
+          throw new HttpsError(
+              "invalid-argument",
+              "O e-mail do funcionário é inválido.",
+          );
+        }
+
+        logger.error("Não foi possível criar acesso do funcionário.", {
+          uidAdmin: request.auth.uid,
+          funcionarioId,
+          message: error.message,
+          code: error.code || null,
+        });
+
+        throw new HttpsError(
+            "internal",
+            "Não foi possível criar o acesso do funcionário.",
         );
       }
     },

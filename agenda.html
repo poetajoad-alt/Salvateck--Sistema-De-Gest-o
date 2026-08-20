@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/agenda.css" />
 </head>
 
-<body data-page="agenda" data-profile="admin" data-allowed-roles="admin">
+<body data-page="agenda" data-profile="funcionario" data-allowed-roles="funcionario">
 
   <main class="agenda-shell">
 
@@ -32,7 +32,7 @@
 
     <header class="agenda-header">
 
-      <a href="principal.html?perfil=admin" class="header-button" id="back-button" aria-label="Voltar para o painel administrativo">
+      <a href="principal.html" class="header-button" id="back-button" aria-label="Voltar para o painel do funcionário">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
@@ -43,7 +43,7 @@
       <div class="agenda-header__content">
 
         <p class="agenda-header__eyebrow">
-          Sistema de Gestão
+          Área do Funcionário
         </p>
 
         <h1>
@@ -69,20 +69,20 @@
       <div class="agenda-intro__copy">
 
         <span class="agenda-intro__badge">
-          Operação
+          Minha operação
         </span>
 
         <h2>
-          Atendimentos da equipe
+          Minha agenda
         </h2>
 
         <p>
-          Consulte a programação, selecione uma data e acesse somente os serviços necessários.
+          Consulte sua programação, selecione uma data e acompanhe os atendimentos atribuídos a você.
         </p>
 
       </div>
 
-      <a href="nova-ordem.html?perfil=admin" class="new-order-button">
+      <a href="nova-ordem.html?perfil=admin" class="new-order-button" hidden>
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v14"></path>
@@ -436,7 +436,7 @@
 
       </div>
 
-      <div class="filter-group">
+      <div class="filter-group" hidden>
 
         <label class="filter-group__label" for="employee-filter">
           Responsável
@@ -598,7 +598,7 @@
               A data está livre ou os atendimentos foram ocultados pelos filtros.
             </p>
 
-            <a href="nova-ordem.html?perfil=admin">
+            <a href="nova-ordem.html?perfil=admin" hidden>
               Criar ordem nesta data
             </a>
 
@@ -636,7 +636,7 @@
           Não existem agendamentos correspondentes ao período, à pesquisa ou aos filtros selecionados.
         </p>
 
-        <a href="nova-ordem.html?perfil=admin" class="empty-state__button">
+        <a href="nova-ordem.html?perfil=admin" class="empty-state__button" hidden>
           Criar nova ordem
         </a>
 
@@ -831,16 +831,7 @@
     Ação realizada com sucesso.
   </div>
 
-  <!--
-    Agenda interna temporariamente desativada.
-
-    Para reativar, remova o redirecionamento abaixo
-    e restaure o carregamento do arquivo js/agenda.js.
-  -->
-
-  <script>
-    window.location.replace("principal.html?perfil=admin");
-  </script>
+  <script type="module" src="js/agenda.js?v=1.0.1"></script>
 
 </body>
 

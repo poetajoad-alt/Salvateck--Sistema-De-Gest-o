@@ -1900,6 +1900,66 @@
 }
 
 /* =========================================
+   FUNCIONÁRIO RESPONSÁVEL
+========================================= */
+
+.employee-assignment-card[hidden] {
+  display: none !important;
+}
+
+.employee-assignment-card {
+  border-color: rgba(13, 56, 97, 0.2);
+}
+
+.employee-assignment-card .details-card__icon {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  box-shadow: 0 8px 18px rgba(13, 56, 97, 0.18);
+}
+
+.employee-assignment-card > .technical-responsibility-card__description {
+  margin: -4px 0 8px;
+
+  font-size: 0.74rem;
+  line-height: 1.6;
+}
+
+#employee-assignment-form {
+  display: grid;
+  gap: 16px;
+}
+
+#employee-assignment-form .form-group {
+  margin-top: 8px;
+}
+
+#assigned-employee {
+  cursor: pointer;
+
+  padding-right: 42px;
+}
+
+#employee-assignment-status {
+  margin: 0;
+  padding: 12px 14px;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  color: #5d6872;
+  background-color: rgba(13, 56, 97, 0.05);
+
+  border: 1px solid rgba(13, 56, 97, 0.09);
+  border-radius: 12px;
+}
+
+.employee-assignment-card .technical-responsibility-save {
+  margin-top: 2px;
+}
+
+/* =========================================
    DOCUMENTO FINAL
 ========================================= */
 

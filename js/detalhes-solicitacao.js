@@ -1,8 +1,10 @@
 import "./auth-guard.js";
 
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   updateDoc,
   writeBatch,
   serverTimestamp,
@@ -272,6 +274,26 @@ const orderValue = document.getElementById("order-value");
 
 const saveOrderValueButton = document.getElementById("save-order-value-button");
 
+/* Funcionário responsável */
+
+const employeeAssignmentCard = document.getElementById(
+  "employee-assignment-card",
+);
+
+const employeeAssignmentForm = document.getElementById(
+  "employee-assignment-form",
+);
+
+const assignedEmployee = document.getElementById("assigned-employee");
+
+const employeeAssignmentStatus = document.getElementById(
+  "employee-assignment-status",
+);
+
+const saveEmployeeAssignmentButton = document.getElementById(
+  "save-employee-assignment-button",
+);
+
 /* Prioridade */
 
 const priorityInputs = document.querySelectorAll('input[name="prioridade"]');
@@ -462,6 +484,8 @@ let currentRequest = null;
 let currentRequestReference = null;
 
 let currentPrivateRequestReference = null;
+
+let assignableEmployees = [];
 
 let modalCallback = null;
 
@@ -968,6 +992,42 @@ function normalizeOrder(snapshot) {
 
     documentoFinal: order.documentoFinal || null,
 
+    funcionarioResponsavelUid: String(
+      order.funcionarioResponsavelUid ||
+        order.funcionarioResponsavel?.usuarioUid ||
+        "",
+    ).trim(),
+
+    funcionarioResponsavel:
+      order.funcionarioResponsavel &&
+      typeof order.funcionarioResponsavel === "object"
+        ? {
+            funcionarioId: String(
+              order.funcionarioResponsavel.funcionarioId || "",
+            ).trim(),
+
+            usuarioUid: String(
+              order.funcionarioResponsavel.usuarioUid || "",
+            ).trim(),
+
+            codigo: String(order.funcionarioResponsavel.codigo || "").trim(),
+
+            nome: String(order.funcionarioResponsavel.nome || "").trim(),
+
+            cargo: String(order.funcionarioResponsavel.cargo || "").trim(),
+
+            designadoEm: order.funcionarioResponsavel.designadoEm || null,
+
+            designadoPorUid: String(
+              order.funcionarioResponsavel.designadoPorUid || "",
+            ).trim(),
+
+            designadoPorNome: String(
+              order.funcionarioResponsavel.designadoPorNome || "",
+            ).trim(),
+          }
+        : null,
+
     responsabilidadeTecnica: {
       nome: String(order.responsabilidadeTecnica?.nome || "").trim(),
 
@@ -1202,6 +1262,217 @@ async function loadRequest() {
 
   if (legacyPublicNote) {
     await migrateLegacyInternalObservation(finalInternalNote);
+  }
+}
+
+/* =========================================
+   FUNCIONÁRIO RESPONSÁVEL
+========================================= */
+
+async function loadAssignableEmployees() {
+  if (currentSession.role !== "admin") {
+    assignableEmployees = [];
+
+    return;
+  }
+
+  const snapshot = await getDocs(collection(db, "funcionarios"));
+
+  assignableEmployees = snapshot.docs
+    .map((employeeSnapshot) => {
+      const employee = employeeSnapshot.data();
+
+      return {
+        documentId: employeeSnapshot.id,
+
+        codigo: String(employee.codigo || "").trim(),
+
+        nome: String(employee.nome || "").trim(),
+
+        cargo: String(employee.cargo || "").trim(),
+
+        usuarioUid: String(employee.usuarioUid || "").trim(),
+
+        ativo:
+          employee.ativo === true &&
+          String(employee.status || "ativo").trim() !== "inativo",
+      };
+    })
+    .filter((employee) => employee.ativo && employee.usuarioUid)
+    .sort((employeeA, employeeB) =>
+      employeeA.nome.localeCompare(employeeB.nome, "pt-BR", {
+        sensitivity: "base",
+      }),
+    );
+}
+
+function renderEmployeeAssignment() {
+  assignedEmployee.replaceChildren();
+
+  const emptyOption = document.createElement("option");
+
+  emptyOption.value = "";
+
+  emptyOption.textContent = "Sem funcionário designado";
+
+  assignedEmployee.appendChild(emptyOption);
+
+  const currentUid = String(
+    currentRequest.funcionarioResponsavelUid || "",
+  ).trim();
+
+  let currentEmployeeFound = false;
+
+  assignableEmployees.forEach((employee) => {
+    const option = document.createElement("option");
+
+    option.value = employee.usuarioUid;
+
+    const employeeLabel =
+      [employee.codigo, employee.nome].filter(Boolean).join(" — ") ||
+      "Funcionário";
+
+    option.textContent = employee.cargo
+      ? `${employeeLabel} · ${employee.cargo}`
+      : employeeLabel;
+
+    if (employee.usuarioUid === currentUid) {
+      currentEmployeeFound = true;
+    }
+
+    assignedEmployee.appendChild(option);
+  });
+
+  if (currentUid && !currentEmployeeFound) {
+    const currentEmployee = currentRequest.funcionarioResponsavel || {};
+
+    const option = document.createElement("option");
+
+    option.value = currentUid;
+
+    option.textContent =
+      [currentEmployee.codigo, currentEmployee.nome]
+        .filter(Boolean)
+        .join(" — ") || "Funcionário anteriormente designado";
+
+    assignedEmployee.appendChild(option);
+  }
+
+  assignedEmployee.value = currentUid;
+
+  if (currentUid) {
+    const currentEmployee = currentRequest.funcionarioResponsavel || {};
+
+    const employeeLabel =
+      [currentEmployee.codigo, currentEmployee.nome]
+        .filter(Boolean)
+        .join(" — ") || "Funcionário designado";
+
+    employeeAssignmentStatus.textContent = `Designado atualmente: ${employeeLabel}.`;
+
+    return;
+  }
+
+  employeeAssignmentStatus.textContent =
+    assignableEmployees.length > 0
+      ? "Nenhum funcionário foi designado para esta OS."
+      : "Nenhum funcionário ativo com acesso ao sistema está disponível para designação.";
+}
+
+async function saveEmployeeAssignment(event) {
+  event.preventDefault();
+
+  const isFinalStatus = ["concluida", "recusada", "cancelada"].includes(
+    currentRequest.status,
+  );
+
+  if (currentSession.role !== "admin" || isFinalStatus) {
+    return;
+  }
+
+  const selectedUid = String(assignedEmployee.value || "").trim();
+
+  const currentUid = String(
+    currentRequest.funcionarioResponsavelUid || "",
+  ).trim();
+
+  if (selectedUid === currentUid) {
+    showFeedback(
+      selectedUid
+        ? "Este funcionário já está designado para a OS."
+        : "Esta OS já está sem funcionário designado.",
+    );
+
+    return;
+  }
+
+  const originalText = saveEmployeeAssignmentButton.textContent;
+
+  saveEmployeeAssignmentButton.disabled = true;
+
+  saveEmployeeAssignmentButton.textContent = "Salvando...";
+
+  try {
+    if (!selectedUid) {
+      await saveChanges(
+        {
+          funcionarioResponsavelUid: "",
+
+          funcionarioResponsavel: null,
+        },
+        "Funcionário removido da OS.",
+      );
+
+      return;
+    }
+
+    const employee = assignableEmployees.find(
+      (item) => item.usuarioUid === selectedUid,
+    );
+
+    if (!employee) {
+      showFeedback(
+        "O funcionário selecionado não está disponível para designação.",
+      );
+
+      return;
+    }
+
+    const designatedByName = String(
+      currentSession.profile?.nome ||
+        currentSession.user?.displayName ||
+        currentSession.email ||
+        "Administrador",
+    ).trim();
+
+    await saveChanges(
+      {
+        funcionarioResponsavelUid: employee.usuarioUid,
+
+        funcionarioResponsavel: {
+          funcionarioId: employee.documentId,
+
+          usuarioUid: employee.usuarioUid,
+
+          codigo: employee.codigo,
+
+          nome: employee.nome,
+
+          cargo: employee.cargo,
+
+          designadoEm: serverTimestamp(),
+
+          designadoPorUid: currentSession.uid,
+
+          designadoPorNome: designatedByName,
+        },
+      },
+      "Funcionário responsável designado para a OS.",
+    );
+  } finally {
+    saveEmployeeAssignmentButton.disabled = false;
+
+    saveEmployeeAssignmentButton.textContent = originalText;
   }
 }
 
@@ -4191,6 +4462,12 @@ function renderProfile() {
 
   saveOrderValueButton.disabled = !isAdmin || orderValueLocked;
 
+  employeeAssignmentCard.hidden = !isAdmin || isFinalStatus;
+
+  assignedEmployee.disabled = !isAdmin || isFinalStatus;
+
+  saveEmployeeAssignmentButton.disabled = !isAdmin || isFinalStatus;
+
   technicalResponsibilityCard.hidden = !isAdmin || isFinalStatus;
 
   [
@@ -4272,6 +4549,8 @@ function renderAll() {
   renderObservations();
 
   renderOrderValue();
+
+  renderEmployeeAssignment();
 
   renderTechnicalResponsibility();
 
@@ -5641,6 +5920,8 @@ orderValue.addEventListener("input", () => {
 
 orderValueForm.addEventListener("submit", saveOrderValue);
 
+employeeAssignmentForm.addEventListener("submit", saveEmployeeAssignment);
+
 technicalResponsibilityForm.addEventListener(
   "submit",
   saveTechnicalResponsibility,
@@ -5761,6 +6042,8 @@ async function initializePage() {
     rescheduleDate.min = minimumDate;
 
     await loadRequest();
+
+    await loadAssignableEmployees();
 
     renderAll();
 

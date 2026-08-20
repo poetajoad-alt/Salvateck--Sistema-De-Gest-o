@@ -794,6 +794,70 @@
     </section>
 
     <!-- =====================================
+         FUNCIONÁRIO RESPONSÁVEL
+    ====================================== -->
+
+    <section class="details-card employee-assignment-card" id="employee-assignment-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M5 21a7 7 0 0 1 14 0"></path>
+            <path d="m16 12 2 2 3-3"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Operação
+          </p>
+
+          <h2>
+            Funcionário responsável
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="technical-responsibility-card__description">
+        Selecione o funcionário responsável pela execução desta ordem de serviço.
+      </p>
+
+      <form id="employee-assignment-form" novalidate>
+
+        <div class="form-group">
+
+          <label class="form-label" for="assigned-employee">
+            Funcionário designado
+          </label>
+
+          <select id="assigned-employee" name="assignedEmployee" class="input">
+            <option value="">
+              Sem funcionário designado
+            </option>
+          </select>
+
+        </div>
+
+        <p class="technical-responsibility-card__description" id="employee-assignment-status">
+          Nenhum funcionário foi designado para esta OS.
+        </p>
+
+        <button type="submit" class="technical-responsibility-save" id="save-employee-assignment-button">
+          Salvar designação
+        </button>
+
+      </form>
+
+    </section>
+
+    <!-- =====================================
          RESPONSABILIDADE TÉCNICA
     ====================================== -->
 
@@ -1683,7 +1747,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 
-  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.9"></script>
+  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.10"></script>
 </body>
 
 </html>

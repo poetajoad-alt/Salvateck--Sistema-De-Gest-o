@@ -131,6 +131,40 @@ const profileConfig = {
       },
     ],
   },
+
+  funcionario: {
+    kicker: "Área do Funcionário",
+    name: "Bem-vindo à Salvateck",
+    sectionEyebrow: "Minha operação",
+    searchPlaceholder: "Pesquisar agenda, OS ou vistoria",
+
+    cards: [
+      {
+        title: "Agenda",
+        description: "Consulte seus atendimentos e compromissos agendados.",
+        target: "agenda.html?perfil=funcionario",
+        icon: "calendar",
+      },
+      {
+        title: "Minhas OS",
+        description: "Acompanhe as ordens de serviço designadas para você.",
+        target: "ordens.html?perfil=funcionario",
+        icon: "list",
+      },
+      {
+        title: "Vistorias",
+        description: "Consulte as vistorias técnicas atribuídas a você.",
+        target: "vistorias.html?perfil=funcionario",
+        icon: "inspection",
+      },
+      {
+        title: "Meu Perfil",
+        description: "Consulte seus dados e informações de acesso.",
+        target: "meus-dados.html?perfil=funcionario",
+        icon: "user",
+      },
+    ],
+  },
 };
 
 /* ==============================
@@ -621,10 +655,13 @@ function changeProfile(profile, userProfile = {}) {
 
   document.body.dataset.profile = profile;
 
-  document.title =
-    profile === "admin"
-      ? "Painel Administrativo | Salvateck"
-      : "Área do Cliente | Salvateck";
+  if (profile === "admin") {
+    document.title = "Painel Administrativo | Salvateck";
+  } else if (profile === "funcionario") {
+    document.title = "Área do Funcionário | Salvateck";
+  } else {
+    document.title = "Área do Cliente | Salvateck";
+  }
 
   renderCards();
 
@@ -765,7 +802,7 @@ onAuthStateChanged(auth, async (user) => {
       .trim()
       .toLowerCase();
 
-    if (role !== "admin" && role !== "cliente") {
+    if (role !== "admin" && role !== "cliente" && role !== "funcionario") {
       await denyAccess("Esta conta não possui uma permissão válida.");
 
       return;

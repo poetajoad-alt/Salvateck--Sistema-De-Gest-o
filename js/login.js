@@ -153,7 +153,7 @@ async function redirectAuthenticatedUser(user) {
       .toLowerCase()
       .trim();
 
-    if (role === "admin" || role === "cliente") {
+    if (role === "admin" || role === "cliente" || role === "funcionario") {
       window.location.replace("principal.html");
 
       return;

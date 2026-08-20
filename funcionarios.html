@@ -20,14 +20,18 @@
   <!-- CSS -->
   <link rel="stylesheet" href="./css/base.css?v=1.0.2" />
 
-  <link rel="stylesheet" href="./css/em-breve.css?v=1.0.0" />
+  <link rel="stylesheet" href="./css/funcionarios.css?v=1.0.0" />
 </head>
 
 <body data-page="funcionarios" data-profile="admin" data-allowed-roles="admin">
 
-  <main class="coming-soon-shell">
+  <main class="employees-shell">
 
-    <header class="coming-soon-header">
+    <!-- =====================================
+         CABEÇALHO
+    ====================================== -->
+
+    <header class="employees-header">
 
       <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -35,7 +39,7 @@
         </svg>
       </a>
 
-      <div class="coming-soon-header__copy">
+      <div class="employees-header__copy">
 
         <span>
           Área administrativa
@@ -47,112 +51,1079 @@
 
       </div>
 
-      <a href="principal.html" class="coming-soon-logo" aria-label="Voltar para a tela principal" title="Tela principal">
+      <a href="principal.html" class="employees-logo" aria-label="Voltar para a tela principal" title="Tela principal">
         <img src="./assets/logo.salvateck.png" alt="Logo da Salvateck" />
       </a>
 
     </header>
 
-    <section class="coming-soon-content">
+    <!-- =====================================
+         INTRODUÇÃO
+    ====================================== -->
 
-      <div class="coming-soon-card">
+    <section class="employees-hero">
 
-        <span class="coming-soon-badge">
-          Em breve
+      <div class="employees-hero__content">
+
+        <span class="employees-hero__eyebrow">
+          Gestão da equipe
         </span>
 
-        <div class="coming-soon-icon">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="8" r="4"></circle>
-
-            <path d="M6 21c.8-4.2 2.8-6.5 6-6.5s5.2 2.3 6 6.5"></path>
-
-            <path d="m18 3 .7 1.4 1.5.2-1.1 1 .3 1.5L18 6.4l-1.4.7.3-1.5-1.1-1 1.5-.2L18 3Z"></path>
-          </svg>
-
-        </div>
-
-        <p class="coming-soon-eyebrow">
-          Gestão da equipe
-        </p>
-
         <h2>
-          A área de Funcionários está sendo preparada
+          Equipe Salvateck
         </h2>
 
-        <p class="coming-soon-description">
-          Em uma próxima atualização, esta página permitirá cadastrar
-          funcionários, organizar responsabilidades e acompanhar os
-          atendimentos atribuídos à equipe.
+        <p>
+          Cadastre os profissionais, organize especialidades e acompanhe a disponibilidade da equipe.
         </p>
 
-        <div class="coming-soon-features">
+      </div>
 
-          <div class="coming-soon-feature">
+      <button type="button" class="employees-primary-button" id="new-employee-button">
 
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
 
-            <span>
-              Cadastro e atualização de funcionários
-            </span>
+        <span>
+          Novo funcionário
+        </span>
 
-          </div>
+      </button>
 
-          <div class="coming-soon-feature">
+    </section>
 
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
+    <!-- =====================================
+         RESUMO
+    ====================================== -->
 
-            <span>
-              Distribuição de ordens de serviço
-            </span>
+    <section class="employees-summary" aria-label="Resumo dos funcionários">
 
-          </div>
+      <article class="employees-summary-card">
 
-          <div class="coming-soon-feature">
+        <span class="employees-summary-card__icon">
 
-            <span class="coming-soon-feature__icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m5 12 4 4L19 6"></path>
-              </svg>
-            </span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="4"></circle>
+            <path d="M3 21c.7-4.1 2.7-6.5 6-6.5s5.3 2.4 6 6.5"></path>
+            <path d="M17 11a3 3 0 1 0 0-6"></path>
+            <path d="M17 14.5c2.3.3 3.7 2.1 4 5"></path>
+          </svg>
 
-            <span>
-              Controle de disponibilidade da equipe
-            </span>
+        </span>
 
-          </div>
+        <div>
+
+          <span>
+            Total da equipe
+          </span>
+
+          <strong id="summary-total-employees">
+            0
+          </strong>
 
         </div>
 
-        <a href="principal.html?perfil=admin" class="coming-soon-button">
-          Voltar ao painel
+      </article>
+
+      <article class="employees-summary-card employees-summary-card--active">
+
+        <span class="employees-summary-card__icon">
 
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19 12H5"></path>
-            <path d="m11 18-6-6 6-6"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m8 12 2.5 2.5L16 9"></path>
           </svg>
-        </a>
+
+        </span>
+
+        <div>
+
+          <span>
+            Funcionários ativos
+          </span>
+
+          <strong id="summary-active-employees">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="employees-summary-card employees-summary-card--inactive">
+
+        <span class="employees-summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M8 12h8"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <span>
+            Funcionários inativos
+          </span>
+
+          <strong id="summary-inactive-employees">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+      <article class="employees-summary-card employees-summary-card--access">
+
+        <span class="employees-summary-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="4"></circle>
+            <path d="M3 21c.7-4.1 2.7-6.5 6-6.5s5.3 2.4 6 6.5"></path>
+            <path d="M17 13v6"></path>
+            <path d="M14 16h6"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <span>
+            Sem acesso ao sistema
+          </span>
+
+          <strong id="summary-without-access">
+            0
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================
+         FILTROS
+    ====================================== -->
+
+    <section class="employees-toolbar">
+
+      <div class="employees-search">
+
+        <span class="employees-search__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-4-4"></path>
+          </svg>
+
+        </span>
+
+        <input type="search" id="employee-search" placeholder="Buscar por nome, cargo ou especialidade" autocomplete="off" aria-label="Buscar funcionário" />
+
+      </div>
+
+      <div class="employees-filter-group">
+
+        <label class="employees-filter">
+
+          <span>
+            Status
+          </span>
+
+          <select id="employee-status-filter">
+
+            <option value="">
+              Todos
+            </option>
+
+            <option value="ativo">
+              Ativos
+            </option>
+
+            <option value="inativo">
+              Inativos
+            </option>
+
+          </select>
+
+        </label>
+
+        <label class="employees-filter">
+
+          <span>
+            Disponibilidade
+          </span>
+
+          <select id="employee-availability-filter">
+
+            <option value="">
+              Todas
+            </option>
+
+            <option value="disponivel">
+              Disponível
+            </option>
+
+            <option value="em-atendimento">
+              Em atendimento
+            </option>
+
+            <option value="indisponivel">
+              Indisponível
+            </option>
+
+          </select>
+
+        </label>
 
       </div>
 
     </section>
 
-    <footer class="coming-soon-footer">
+    <!-- =====================================
+         LISTA DE FUNCIONÁRIOS
+    ====================================== -->
+
+    <section class="employees-content">
+
+      <div class="employees-content__header">
+
+        <div>
+
+          <span>
+            Equipe cadastrada
+          </span>
+
+          <h2>
+            Funcionários
+          </h2>
+
+        </div>
+
+        <span class="employees-count" id="employees-count">
+          0 funcionários
+        </span>
+
+      </div>
+
+      <!-- CARREGAMENTO -->
+
+      <div class="employees-loading" id="employees-loading">
+
+        <span class="employees-loading__spinner"></span>
+
+        <p>
+          Carregando funcionários...
+        </p>
+
+      </div>
+
+      <!-- LISTA -->
+
+      <div class="employees-list" id="employees-list" hidden></div>
+
+      <!-- ESTADO VAZIO -->
+
+      <div class="employees-empty" id="employees-empty" hidden>
+
+        <span class="employees-empty__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="4"></circle>
+            <path d="M3 21c.7-4.1 2.7-6.5 6-6.5s5.3 2.4 6 6.5"></path>
+            <path d="M17 13v6"></path>
+            <path d="M14 16h6"></path>
+          </svg>
+
+        </span>
+
+        <span class="employees-empty__eyebrow">
+          Nenhum funcionário encontrado
+        </span>
+
+        <h3 id="employees-empty-title">
+          Sua equipe começa aqui
+        </h3>
+
+        <p id="employees-empty-description">
+          Cadastre o primeiro funcionário para começar a organizar a operação da Salvateck.
+        </p>
+
+        <button type="button" class="employees-secondary-button" id="empty-new-employee-button">
+          Cadastrar funcionário
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         TEMPLATE DO FUNCIONÁRIO
+    ====================================== -->
+
+    <template id="employee-card-template">
+
+      <article class="employee-card">
+
+        <div class="employee-card__main">
+
+          <div class="employee-avatar">
+
+            <span class="employee-avatar__initials">
+              ST
+            </span>
+
+          </div>
+
+          <div class="employee-card__identity">
+
+            <div class="employee-card__heading">
+
+              <div>
+
+                <span class="employee-card__code">
+                  FUNC-0001
+                </span>
+
+                <h3 class="employee-card__name">
+                  Funcionário
+                </h3>
+
+              </div>
+
+              <span class="employee-status">
+                Ativo
+              </span>
+
+            </div>
+
+            <p class="employee-card__role">
+              Cargo não informado
+            </p>
+
+            <div class="employee-card__specialties"></div>
+
+          </div>
+
+        </div>
+
+        <div class="employee-card__information">
+
+          <div class="employee-card__info">
+
+            <span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 4h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4c0 1.1-.9 2-2 2C9.7 21 3 14.3 3 6c0-1.1.9-2 2-2Z"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <small>
+                Telefone
+              </small>
+
+              <strong class="employee-card__phone">
+                Não informado
+              </strong>
+
+            </div>
+
+          </div>
+
+          <div class="employee-card__info">
+
+            <span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                <path d="m4 7 8 6 8-6"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <small>
+                E-mail
+              </small>
+
+              <strong class="employee-card__email">
+                Não informado
+              </strong>
+
+            </div>
+
+          </div>
+
+          <div class="employee-card__info">
+
+            <span>
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <small>
+                Disponibilidade
+              </small>
+
+              <strong class="employee-card__availability">
+                Disponível
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="employee-card__footer">
+
+          <div class="employee-access-status">
+
+            <span class="employee-access-status__indicator"></span>
+
+            <span class="employee-access-status__text">
+              Sem acesso ao sistema
+            </span>
+
+          </div>
+
+          <div class="employee-card__actions">
+
+            <button type="button" class="employee-card__action employee-card__action--secondary" data-employee-action="details">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 11v5"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+
+              <span>
+                Ver detalhes
+              </span>
+
+            </button>
+
+            <button type="button" class="employee-card__action employee-card__action--primary" data-employee-action="edit">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"></path>
+                <path d="m13.5 7 3.5 3.5"></path>
+              </svg>
+
+              <span>
+                Editar
+              </span>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </article>
+
+    </template>
+
+    <!-- =====================================
+         MODAL CADASTRO / EDIÇÃO
+    ====================================== -->
+
+    <div class="employee-modal" id="employee-modal" hidden>
+
+      <div class="employee-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="employee-modal-title">
+
+        <div class="employee-modal__header">
+
+          <div>
+
+            <span id="employee-modal-eyebrow">
+              Novo cadastro
+            </span>
+
+            <h2 id="employee-modal-title">
+              Cadastrar funcionário
+            </h2>
+
+          </div>
+
+          <button type="button" class="employee-modal__close" id="close-employee-modal-button" aria-label="Fechar">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6 6 18"></path>
+            </svg>
+
+          </button>
+
+        </div>
+
+        <form id="employee-form" novalidate>
+
+          <input type="hidden" id="employee-id" />
+
+          <!-- DADOS PRINCIPAIS -->
+
+          <section class="employee-form-section">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M5 21a7 7 0 0 1 14 0"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Identificação
+                </span>
+
+                <h3>
+                  Dados principais
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div class="employee-form-grid">
+
+              <div class="employee-form-field employee-form-field--full">
+
+                <label for="employee-name">
+                  Nome completo
+                </label>
+
+                <input type="text" id="employee-name" maxlength="160" placeholder="Nome completo do funcionário" autocomplete="name" required />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-phone">
+                  Telefone
+                </label>
+
+                <input type="tel" id="employee-phone" maxlength="20" placeholder="(44) 99999-9999" autocomplete="tel" required />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-email">
+                  E-mail
+                </label>
+
+                <input type="email" id="employee-email" maxlength="160" placeholder="funcionario@email.com" autocomplete="email" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- DADOS PROFISSIONAIS -->
+
+          <section class="employee-form-section">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="7" width="16" height="12" rx="2"></rect>
+                  <path d="M9 7V5h6v2"></path>
+                  <path d="M4 12h16"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Operação
+                </span>
+
+                <h3>
+                  Dados profissionais
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div class="employee-form-grid">
+
+              <div class="employee-form-field">
+
+                <label for="employee-role">
+                  Cargo ou função
+                </label>
+
+                <input type="text" id="employee-role" maxlength="100" placeholder="Ex: Técnico de manutenção" required />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-admission-date">
+                  Data de admissão
+                </label>
+
+                <input type="date" id="employee-admission-date" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-status">
+                  Status
+                </label>
+
+                <select id="employee-status" required>
+
+                  <option value="ativo">
+                    Ativo
+                  </option>
+
+                  <option value="inativo">
+                    Inativo
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-availability">
+                  Disponibilidade
+                </label>
+
+                <select id="employee-availability" required>
+
+                  <option value="disponivel">
+                    Disponível
+                  </option>
+
+                  <option value="em-atendimento">
+                    Em atendimento
+                  </option>
+
+                  <option value="indisponivel">
+                    Indisponível
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- ESPECIALIDADES -->
+
+          <section class="employee-form-section">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14.5 6.5 17.5 3.5"></path>
+                  <path d="m13 8 3 3"></path>
+                  <path d="M5 19 15 9"></path>
+                  <path d="m4 20 4-1-3-3-1 4Z"></path>
+                  <path d="M15 4a4 4 0 0 0 5 5"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Capacidades
+                </span>
+
+                <h3>
+                  Especialidades
+                </h3>
+
+              </div>
+
+            </div>
+
+            <p class="employee-form-section__description">
+              Selecione uma ou mais áreas em que este funcionário pode atuar.
+            </p>
+
+            <div class="employee-specialties" id="employee-specialties">
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="hidraulica" />
+
+                <span>
+                  Hidráulica
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="eletrica" />
+
+                <span>
+                  Elétrica
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="pintura" />
+
+                <span>
+                  Pintura
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="alvenaria" />
+
+                <span>
+                  Alvenaria
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="instalacoes" />
+
+                <span>
+                  Instalações
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="manutencao-geral" />
+
+                <span>
+                  Manutenção geral
+                </span>
+
+              </label>
+
+              <label class="employee-specialty-option">
+
+                <input type="checkbox" name="employeeSpecialty" value="vistoria" />
+
+                <span>
+                  Vistoria técnica
+                </span>
+
+              </label>
+
+            </div>
+
+          </section>
+
+          <!-- OBSERVAÇÕES -->
+
+          <section class="employee-form-section">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 4h14v13H9l-4 3V4Z"></path>
+                  <path d="M8 8h8"></path>
+                  <path d="M8 12h6"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Uso administrativo
+                </span>
+
+                <h3>
+                  Observações profissionais
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div class="employee-form-field">
+
+              <label for="employee-notes">
+                Observações
+              </label>
+
+              <textarea id="employee-notes" rows="4" maxlength="800" placeholder="Informações úteis sobre disponibilidade, experiência, atividades ou responsabilidades."></textarea>
+
+              <span class="employee-form-field__error"></span>
+
+            </div>
+
+          </section>
+
+          <!-- AVISO DE ACESSO -->
+
+          <div class="employee-access-notice">
+
+            <span class="employee-access-notice__icon">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <strong>
+                Acesso ao sistema
+              </strong>
+
+              <p>
+                O cadastro do funcionário é independente do acesso à plataforma. A criação da conta de funcionário será configurada em uma próxima etapa.
+              </p>
+
+            </div>
+
+          </div>
+
+          <!-- AÇÕES -->
+
+          <div class="employee-modal__actions">
+
+            <button type="button" class="employee-modal__button employee-modal__button--secondary" id="cancel-employee-button">
+              Cancelar
+            </button>
+
+            <button type="submit" class="employee-modal__button employee-modal__button--primary" id="save-employee-button">
+              Salvar funcionário
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+    <!-- =====================================
+         MODAL DE DETALHES
+    ====================================== -->
+
+    <div class="employee-details-modal" id="employee-details-modal" hidden>
+
+      <div class="employee-details-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="employee-details-name">
+
+        <div class="employee-details-modal__header">
+
+          <div class="employee-details-modal__identity">
+
+            <div class="employee-details-avatar">
+
+              <span id="employee-details-initials">
+                ST
+              </span>
+
+            </div>
+
+            <div>
+
+              <span id="employee-details-code">
+                FUNC-0001
+              </span>
+
+              <h2 id="employee-details-name">
+                Funcionário
+              </h2>
+
+              <p id="employee-details-role">
+                Cargo não informado
+              </p>
+
+            </div>
+
+          </div>
+
+          <button type="button" class="employee-modal__close" id="close-employee-details-button" aria-label="Fechar">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6 6 18"></path>
+            </svg>
+
+          </button>
+
+        </div>
+
+        <div class="employee-details-statuses">
+
+          <span class="employee-details-status" id="employee-details-status">
+            Ativo
+          </span>
+
+          <span class="employee-details-availability" id="employee-details-availability">
+            Disponível
+          </span>
+
+        </div>
+
+        <div class="employee-details-grid">
+
+          <article>
+
+            <span>
+              Telefone
+            </span>
+
+            <strong id="employee-details-phone">
+              Não informado
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              E-mail
+            </span>
+
+            <strong id="employee-details-email">
+              Não informado
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Admissão
+            </span>
+
+            <strong id="employee-details-admission">
+              Não informada
+            </strong>
+
+          </article>
+
+          <article>
+
+            <span>
+              Acesso ao sistema
+            </span>
+
+            <strong id="employee-details-access">
+              Não configurado
+            </strong>
+
+          </article>
+
+        </div>
+
+        <section class="employee-details-section">
+
+          <span>
+            Especialidades
+          </span>
+
+          <div class="employee-details-specialties" id="employee-details-specialties"></div>
+
+        </section>
+
+        <section class="employee-details-section">
+
+          <span>
+            Observações
+          </span>
+
+          <p id="employee-details-notes">
+            Nenhuma observação registrada.
+          </p>
+
+        </section>
+
+        <div class="employee-details-actions">
+
+          <button type="button" class="employee-modal__button employee-modal__button--primary" id="edit-employee-from-details-button">
+            Editar funcionário
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =====================================
+         FEEDBACK
+    ====================================== -->
+
+    <div class="employees-feedback" id="employees-feedback" hidden></div>
+
+    <!-- =====================================
+         RODAPÉ
+    ====================================== -->
+
+    <footer class="employees-footer">
       Salvateck Group · Sistema de Gestão
     </footer>
 
   </main>
 
   <script type="module" src="./js/auth-guard.js?v=1.0.2"></script>
+
+  <script type="module" src="./js/funcionarios.js?v=1.0.0"></script>
 
 </body>
 
