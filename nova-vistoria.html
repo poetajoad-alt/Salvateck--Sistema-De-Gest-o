@@ -24,7 +24,7 @@
   <link rel="stylesheet" href="css/nova-vistoria.css?v=1.0.1" />
 </head>
 
-<body data-page="nova-vistoria" data-profile="admin" data-allowed-roles="admin">
+<body data-page="nova-vistoria" data-profile="admin" data-allowed-roles="admin,funcionario">
 
   <main class="order-shell">
 
@@ -418,17 +418,29 @@
 
       <div class="inspection-form-actions">
 
-        <a href="principal.html?perfil=admin" class="inspection-cancel-button">
-          Cancelar
-        </a>
-
         <button type="submit" class="button button--primary" id="btnSalvarVistoria" disabled>
           Salvar vistoria
         </button>
 
+        <div class="inspection-admin-validation-actions" id="inspection-admin-validation-actions" hidden>
+
+          <button type="button" class="button button--primary" id="validate-inspection-button">
+            Validar e concluir vistoria
+          </button>
+
+          <button type="button" class="button inspection-cancel-button" id="return-inspection-button">
+            Devolver ao funcionário
+          </button>
+
+        </div>
+
         <button type="button" class="button inspection-export-button" id="btnExportarPdfVistoria" hidden>
           Compartilhar PDF
         </button>
+
+        <a href="principal.html?perfil=admin" class="inspection-cancel-button">
+          Cancelar
+        </a>
 
       </div>
 
@@ -475,9 +487,48 @@
     </section>
 
   </div>
+
+  <div class="inspection-pdf-modal" id="inspection-admin-modal" aria-hidden="true" hidden>
+
+    <button type="button" class="inspection-pdf-modal__backdrop" data-close-inspection-admin-modal aria-label="Fechar confirmação"></button>
+
+    <section class="inspection-pdf-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="inspection-admin-modal-title">
+
+      <button type="button" class="inspection-pdf-modal__close" data-close-inspection-admin-modal aria-label="Fechar">
+        ×
+      </button>
+
+      <span class="inspection-pdf-modal__eyebrow">
+        Validação administrativa
+      </span>
+
+      <h2 id="inspection-admin-modal-title">
+        Validar vistoria?
+      </h2>
+
+      <p id="inspection-admin-modal-description">
+        Confirme a ação para continuar.
+      </p>
+
+      <div class="inspection-pdf-modal__actions">
+
+        <button type="button" class="inspection-pdf-modal__button inspection-pdf-modal__button--secondary" data-close-inspection-admin-modal>
+          Voltar
+        </button>
+
+        <button type="button" class="inspection-pdf-modal__button inspection-pdf-modal__button--primary" id="confirm-inspection-admin-action">
+          Confirmar
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 
-  <script type="module" src="js/nova-vistoria.js?v=1.0.9"></script>
+  <script type="module" src="js/nova-vistoria.js?v=1.0.12"></script>
 
 </body>
 

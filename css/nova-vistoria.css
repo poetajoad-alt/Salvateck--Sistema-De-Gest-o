@@ -914,3 +914,31 @@ body.inspection-pdf-modal-open {
     grid-template-columns: 1fr;
   }
 }
+.inspection-form-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.inspection-form-actions > * {
+  margin: 0 !important;
+}
+
+.inspection-admin-validation-actions {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+#return-inspection-button {
+  color: #ffffff;
+  background-color: #b83a3a;
+  border-color: #b83a3a;
+  box-shadow: 0 10px 22px rgba(184, 58, 58, 0.24);
+}
+
+#return-inspection-button:hover {
+  color: #ffffff;
+  background-color: #962e2e;
+  border-color: #962e2e;
+  box-shadow: 0 13px 26px rgba(184, 58, 58, 0.3);
+}

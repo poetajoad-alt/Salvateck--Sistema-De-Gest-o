@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/vistorias.css?v=1.0.3" />
 </head>
 
-<body data-page="vistorias" data-profile="admin" data-allowed-roles="admin">
+<body data-page="vistorias" data-profile="admin" data-allowed-roles="admin,funcionario">
 
   <main class="inspections-shell">
 
@@ -32,7 +32,7 @@
 
     <header class="inspections-header">
 
-      <a href="principal.html?perfil=admin" class="header-button" aria-label="Voltar para o painel administrativo">
+      <a href="principal.html?perfil=admin" class="header-button" id="back-to-main-button" aria-label="Voltar para o painel">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M15 18 9 12l6-6"></path>
@@ -46,7 +46,7 @@
           Sistema de Gestão
         </p>
 
-        <h1>
+        <h1 id="inspections-page-title">
           Vistorias
         </h1>
 
@@ -68,22 +68,22 @@
 
       <div>
 
-        <span class="inspections-intro__badge">
+        <span class="inspections-intro__badge" id="inspections-intro-badge">
           Controle preventivo
         </span>
 
-        <h2>
+        <h2 id="inspections-intro-title">
           Vistorias técnicas
         </h2>
 
-        <p>
+        <p id="inspections-intro-description">
           Acompanhe inspeções, não conformidades, registros
           fotográficos e ações necessárias em cada condomínio.
         </p>
 
       </div>
 
-      <a href="nova-ordem.html?perfil=admin&tipo=vistoria" class="new-inspection-button">
+      <a href="nova-ordem.html?perfil=admin&tipo=vistoria" class="new-inspection-button" id="new-inspection-button">
 
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v14"></path>

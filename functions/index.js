@@ -910,6 +910,685 @@ exports.criarAcessoFuncionario = onCall(
     },
 );
 
+exports.enviarExecucaoParaValidacao = onCall(
+    {
+      region: "southamerica-east1",
+      maxInstances: 10,
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError(
+            "unauthenticated",
+            "É necessário estar autenticado.",
+        );
+      }
+
+      const ordemId = texto(request.data?.ordemId);
+
+      const observacao = texto(request.data?.observacao);
+
+      if (!ordemId) {
+        throw new HttpsError(
+            "invalid-argument",
+            "O ID da Ordem de Serviço é obrigatório.",
+        );
+      }
+
+      if (observacao.length > 1000) {
+        throw new HttpsError(
+            "invalid-argument",
+            "A observação da execução deve ter no máximo 1000 caracteres.",
+        );
+      }
+
+      const usuarioReference = db.collection("usuarios").doc(request.auth.uid);
+
+      const ordemReference = db.collection("ordens").doc(ordemId);
+
+      try {
+        const resultado = await db.runTransaction(async (transaction) => {
+          const usuarioSnapshot = await transaction.get(usuarioReference);
+
+          if (!usuarioSnapshot.exists) {
+            throw new HttpsError(
+                "permission-denied",
+                "Usu\u00e1rio n\u00e3o autorizado.",
+            );
+          }
+
+          const usuario = usuarioSnapshot.data() || {};
+
+          if (usuario.ativo !== true || usuario.role !== "funcionario") {
+            throw new HttpsError(
+                "permission-denied",
+                "Apenas funcionários ativos podem enviar uma execução.",
+            );
+          }
+
+          const funcionarioId = texto(usuario.funcionarioId);
+
+          if (!funcionarioId) {
+            throw new HttpsError(
+                "failed-precondition",
+                "A conta não possui um funcionário vinculado.",
+            );
+          }
+
+          const funcionarioReference = db
+              .collection("funcionarios")
+              .doc(funcionarioId);
+
+          const funcionarioSnapshot = await transaction.get(
+              funcionarioReference,
+          );
+
+          if (!funcionarioSnapshot.exists) {
+            throw new HttpsError(
+                "failed-precondition",
+                "O cadastro do funcionário não foi encontrado.",
+            );
+          }
+
+          const funcionario = funcionarioSnapshot.data() || {};
+
+          const funcionarioUid = texto(funcionario.usuarioUid);
+
+          const funcionarioStatus = texto(funcionario.status).toLowerCase();
+
+          if (
+            funcionario.ativo !== true ||
+          funcionarioStatus === "inativo" ||
+          funcionarioUid !== request.auth.uid
+          ) {
+            throw new HttpsError(
+                "permission-denied",
+                "O funcionário não possui autorização para esta operação.",
+            );
+          }
+
+          const ordemSnapshot = await transaction.get(ordemReference);
+
+          if (!ordemSnapshot.exists) {
+            throw new HttpsError(
+                "not-found",
+                "A Ordem de Serviço não foi encontrada.",
+            );
+          }
+
+          const ordem = ordemSnapshot.data() || {};
+
+          const funcionarioResponsavelUid = texto(
+              ordem.funcionarioResponsavelUid ||
+            ordem.funcionarioResponsavel?.usuarioUid,
+          );
+
+          if (funcionarioResponsavelUid !== request.auth.uid) {
+            throw new HttpsError(
+                "permission-denied",
+                "Esta Ordem de Serviço não está atribuída a este funcionário.",
+            );
+          }
+
+          const status = texto(ordem.status).toLowerCase();
+
+          if (status !== "agendada") {
+            throw new HttpsError(
+                "failed-precondition",
+                "Somente uma OS agendada pode ser enviada para validação.",
+            );
+          }
+
+          const tipoAtendimento = texto(ordem.tipoAtendimento).toLowerCase();
+
+          if (tipoAtendimento === "vistoria") {
+            throw new HttpsError(
+                "failed-precondition",
+                "Vistorias devem seguir o fluxo pr\u00f3prio de checklist.",
+            );
+          }
+
+          const funcionarioNome =
+          texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
+
+          const funcionarioCodigo = texto(funcionario.codigo);
+
+          transaction.update(ordemReference, {
+            status: "aguardando-validacao",
+
+            execucaoFuncionario: {
+              status: "aguardando-validacao",
+              funcionarioUid: request.auth.uid,
+              funcionarioId,
+              funcionarioCodigo,
+              funcionarioNome,
+              observacao,
+              finalizadoEm: FieldValue.serverTimestamp(),
+              enviadoParaValidacaoEm: FieldValue.serverTimestamp(),
+            },
+
+            atualizadoEm: FieldValue.serverTimestamp(),
+
+            statusAtualizadoEm: FieldValue.serverTimestamp(),
+          });
+
+          return {
+            sucesso: true,
+            ordemId,
+            codigo: texto(ordem.codigo),
+            status: "aguardando-validacao",
+          };
+        });
+
+        logger.info("Execução enviada para validação.", {
+          funcionarioUid: request.auth.uid,
+          ordemId,
+          codigo: resultado.codigo || null,
+        });
+
+        return resultado;
+      } catch (error) {
+        if (error instanceof HttpsError) {
+          throw error;
+        }
+
+        logger.error("Não foi possível enviar a execução para validação.", {
+          funcionarioUid: request.auth.uid,
+          ordemId,
+          message: error.message,
+          code: error.code || null,
+        });
+
+        throw new HttpsError(
+            "internal",
+            "Não foi possível enviar a execução para validação.",
+        );
+      }
+    },
+);
+
+function normalizarItemChecklistVistoria(item, index) {
+  if (!item || typeof item !== "object") {
+    throw new HttpsError(
+        "invalid-argument",
+        `O item ${index + 1} do checklist é inválido.`,
+    );
+  }
+
+  const resultado = texto(item.resultado).toLowerCase();
+
+  if (!["ok", "precisa-ajuste"].includes(resultado)) {
+    throw new HttpsError(
+        "invalid-argument",
+        `Avalie corretamente o item ${index + 1} do checklist.`,
+    );
+  }
+
+  const observacao = texto(item.observacao);
+
+  if (observacao.length > 1000) {
+    throw new HttpsError(
+        "invalid-argument",
+        `A observação do item ${index + 1} ultrapassa 1000 caracteres.`,
+    );
+  }
+
+  if (resultado === "precisa-ajuste" && !observacao) {
+    throw new HttpsError(
+        "invalid-argument",
+        `Descreva o ajuste necessário no item ${index + 1}.`,
+    );
+  }
+
+  const quantidadeInformada = Number(item.quantidade);
+
+  const quantidade =
+    Number.isInteger(quantidadeInformada) && quantidadeInformada > 0 ?
+      Math.min(quantidadeInformada, 1000) :
+      1;
+
+  return {
+    ambienteId: texto(item.ambienteId).slice(0, 200),
+    ambienteNome: texto(item.ambienteNome).slice(0, 200),
+    categoriaAmbiente: texto(item.categoriaAmbiente).slice(0, 200),
+    equipamentoId: texto(item.equipamentoId).slice(0, 200),
+    nome: texto(item.nome).slice(0, 200),
+    categoria: texto(item.categoria).slice(0, 200),
+    quantidade,
+    localizacao: texto(item.localizacao).slice(0, 500),
+    resultado,
+    observacao,
+  };
+}
+
+function formatarCodigoVistoria(numero) {
+  return `VST-${String(numero).padStart(4, "0")}`;
+}
+
+exports.enviarVistoriaParaValidacao = onCall(
+    {
+      region: "southamerica-east1",
+      maxInstances: 10,
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError(
+            "unauthenticated",
+            "É necessário estar autenticado.",
+        );
+      }
+
+      const ordemId = texto(request.data?.ordemId);
+
+      const checklistRecebido = Array.isArray(request.data?.checklist) ?
+      request.data.checklist :
+      [];
+
+      if (!ordemId) {
+        throw new HttpsError(
+            "invalid-argument",
+            "O ID da Ordem de Serviço é obrigatório.",
+        );
+      }
+
+      if (checklistRecebido.length === 0) {
+        throw new HttpsError(
+            "invalid-argument",
+            "A vistoria precisa possuir itens avaliados.",
+        );
+      }
+
+      if (checklistRecebido.length > 500) {
+        throw new HttpsError(
+            "invalid-argument",
+            "O checklist ultrapassa o limite permitido.",
+        );
+      }
+
+      const checklist = checklistRecebido.map(normalizarItemChecklistVistoria);
+
+      const usuarioReference = db.collection("usuarios").doc(request.auth.uid);
+
+      const ordemReference = db.collection("ordens").doc(ordemId);
+
+      const contadorReference = db.collection("contadores").doc("vistorias");
+
+      const novaVistoriaReference = db.collection("vistorias").doc();
+
+      try {
+        const resultado = await db.runTransaction(async (transaction) => {
+          const usuarioSnapshot = await transaction.get(usuarioReference);
+
+          if (!usuarioSnapshot.exists) {
+            throw new HttpsError(
+                "permission-denied",
+                "Usu\u00e1rio n\u00e3o autorizado.",
+            );
+          }
+
+          const usuario = usuarioSnapshot.data() || {};
+
+          if (usuario.ativo !== true || usuario.role !== "funcionario") {
+            throw new HttpsError(
+                "permission-denied",
+                "Apenas funcionários ativos podem enviar uma vistoria.",
+            );
+          }
+
+          const funcionarioId = texto(usuario.funcionarioId);
+
+          if (!funcionarioId) {
+            throw new HttpsError(
+                "failed-precondition",
+                "A conta não possui um funcionário vinculado.",
+            );
+          }
+
+          const funcionarioReference = db
+              .collection("funcionarios")
+              .doc(funcionarioId);
+
+          const funcionarioSnapshot = await transaction.get(
+              funcionarioReference,
+          );
+
+          if (!funcionarioSnapshot.exists) {
+            throw new HttpsError(
+                "failed-precondition",
+                "O cadastro do funcionário não foi encontrado.",
+            );
+          }
+
+          const funcionario = funcionarioSnapshot.data() || {};
+
+          const funcionarioUid = texto(funcionario.usuarioUid);
+
+          const funcionarioStatus = texto(funcionario.status).toLowerCase();
+
+          if (
+            funcionario.ativo !== true ||
+          funcionarioStatus === "inativo" ||
+          funcionarioUid !== request.auth.uid
+          ) {
+            throw new HttpsError(
+                "permission-denied",
+                "O funcionário não possui autorização para esta operação.",
+            );
+          }
+
+          const ordemSnapshot = await transaction.get(ordemReference);
+
+          if (!ordemSnapshot.exists) {
+            throw new HttpsError(
+                "not-found",
+                "A Ordem de Serviço não foi encontrada.",
+            );
+          }
+
+          const ordem = ordemSnapshot.data() || {};
+
+          const tipoAtendimento = texto(ordem.tipoAtendimento).toLowerCase();
+
+          if (tipoAtendimento !== "vistoria") {
+            throw new HttpsError(
+                "failed-precondition",
+                "Esta Ordem de Serviço não é uma vistoria técnica.",
+            );
+          }
+
+          const funcionarioResponsavelUid = texto(
+              ordem.funcionarioResponsavelUid ||
+            ordem.funcionarioResponsavel?.usuarioUid,
+          );
+
+          if (funcionarioResponsavelUid !== request.auth.uid) {
+            throw new HttpsError(
+                "permission-denied",
+                "Esta vistoria não está atribuída a este funcionário.",
+            );
+          }
+
+          const status = texto(ordem.status).toLowerCase();
+
+          if (status !== "agendada") {
+            throw new HttpsError(
+                "failed-precondition",
+                "Somente uma vistoria agendada pode ser enviada.",
+            );
+          }
+
+          const vistoriaIdExistente =
+          texto(ordem.vistoria?.id) ||
+          texto(ordem.vistoria?.vistoriaId) ||
+          texto(ordem.vistoriaId);
+
+          let vistoriaReference = novaVistoriaReference;
+
+          let vistoriaSnapshot = null;
+
+          let numeroVistoria = 0;
+
+          let codigoVistoria = "";
+
+          if (vistoriaIdExistente) {
+            vistoriaReference = db
+                .collection("vistorias")
+                .doc(vistoriaIdExistente);
+
+            vistoriaSnapshot = await transaction.get(vistoriaReference);
+
+            if (!vistoriaSnapshot.exists) {
+              throw new HttpsError(
+                  "failed-precondition",
+                  "A vistoria vinculada à OS não foi encontrada.",
+              );
+            }
+
+            const vistoriaExistente = vistoriaSnapshot.data() || {};
+
+            if (texto(vistoriaExistente.ordemId) !== ordemId) {
+              throw new HttpsError(
+                  "failed-precondition",
+                  "A vistoria vinculada não pertence a esta OS.",
+              );
+            }
+
+            if (
+              vistoriaExistente.validada === true ||
+            texto(vistoriaExistente.status).toLowerCase() === "concluida"
+            ) {
+              throw new HttpsError(
+                  "failed-precondition",
+                  "Esta vistoria já foi validada.",
+              );
+            }
+
+            numeroVistoria = Number(vistoriaExistente.numero || 0);
+
+            codigoVistoria =
+            texto(vistoriaExistente.codigo) || texto(ordem.codigoVistoria);
+          } else {
+            const contadorSnapshot = await transaction.get(contadorReference);
+
+            const numeroAtual = contadorSnapshot.exists ?
+            Number(contadorSnapshot.data().ultimoNumero || 0) :
+            0;
+
+            if (!Number.isInteger(numeroAtual) || numeroAtual < 0) {
+              throw new HttpsError(
+                  "failed-precondition",
+                  "O contador das vistorias possui um valor inválido.",
+              );
+            }
+
+            numeroVistoria = numeroAtual + 1;
+
+            codigoVistoria = formatarCodigoVistoria(numeroVistoria);
+          }
+
+          const funcionarioNome =
+          texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
+
+          const funcionarioCodigo = texto(funcionario.codigo);
+
+          const funcionarioEmail =
+          texto(funcionario.email) || texto(usuario.email);
+
+          const itensComAjuste = checklist.filter(
+              (item) => item.resultado === "precisa-ajuste",
+          );
+
+          const totalItens = checklist.length;
+
+          const resumoExecucao =
+          itensComAjuste.length > 0 ?
+            [
+              "Vistoria técnica concluída com",
+              `${itensComAjuste.length} item(ns) que precisam de ajuste.`,
+            ].join(" ") :
+            "Vistoria técnica concluída sem ajustes apontados.";
+
+          const estruturaAmbientes = Array.isArray(
+              ordem.condominio?.estruturaAmbientes,
+          ) ?
+          ordem.condominio.estruturaAmbientes :
+          [];
+
+          const vistoriaData = {
+            id: vistoriaReference.id,
+            numero: numeroVistoria,
+            codigo: codigoVistoria,
+            atualizadoEm: FieldValue.serverTimestamp(),
+            statusAtualizadoEm: FieldValue.serverTimestamp(),
+            enviadoParaValidacaoEm: FieldValue.serverTimestamp(),
+            tipoAtendimento: "vistoria",
+            tipo: "Vistoria técnica",
+            titulo:
+            texto(ordem.titulo) ||
+            texto(ordem.servicoPrincipal) ||
+            "Vistoria técnica",
+            status: "aguardando-validacao",
+            validada: false,
+            progresso: 100,
+            prioridade: texto(ordem.prioridade) || "normal",
+            condominioId:
+            texto(ordem.condominioId) || texto(ordem.condominio?.id),
+            clienteUid: texto(ordem.clienteUid) || texto(ordem.cliente?.id),
+            condominio: {
+              id: texto(ordem.condominio?.id) || texto(ordem.condominioId),
+              codigo: texto(ordem.condominio?.codigo),
+              nome: texto(ordem.condominio?.nome),
+              cnpj: texto(ordem.condominio?.cnpj),
+              endereco: ordem.condominio?.endereco || ordem.endereco || {},
+            },
+            cliente: {
+              id: texto(ordem.cliente?.id) || texto(ordem.clienteUid),
+              nome: texto(ordem.cliente?.nome),
+              telefone: texto(ordem.cliente?.telefone),
+              email: texto(ordem.cliente?.email),
+            },
+            endereco: ordem.condominio?.endereco || ordem.endereco || {},
+            tecnico: {
+              uid: request.auth.uid,
+              funcionarioId,
+              codigo: funcionarioCodigo,
+              nome: funcionarioNome,
+              email: funcionarioEmail,
+            },
+            estruturaAmbientesSnapshot: estruturaAmbientes,
+            checklist,
+            totalItens,
+            itensConcluidos: totalItens,
+            equipamentosAvaliados: totalItens,
+            naoConformidades: itensComAjuste.length,
+            pendenciasCriticas: 0,
+            quantidadeFotos: 0,
+            observacao: "",
+            ordemVinculada: true,
+            ordemId,
+            codigoOS: texto(ordem.codigo),
+            origem: {
+              tipo: "ordem-servico",
+              ordemId,
+              codigoOS: texto(ordem.codigo),
+            },
+            execucaoFuncionario: {
+              status: "aguardando-validacao",
+              funcionarioUid: request.auth.uid,
+              funcionarioId,
+              funcionarioCodigo,
+              funcionarioNome,
+              enviadoParaValidacaoEm: FieldValue.serverTimestamp(),
+            },
+            tentativaValidacao: FieldValue.increment(1),
+          };
+
+          if (!vistoriaIdExistente) {
+            vistoriaData.criadoEm = FieldValue.serverTimestamp();
+            vistoriaData.criadoPorUid = request.auth.uid;
+            vistoriaData.criadoPorNome = funcionarioNome;
+            vistoriaData.perfilCriador = "funcionario";
+
+            transaction.set(
+                contadorReference,
+                {
+                  ultimoNumero: numeroVistoria,
+                  ultimoDocumentoId: vistoriaReference.id,
+                  atualizadoEm: FieldValue.serverTimestamp(),
+                },
+                {
+                  merge: true,
+                },
+            );
+          }
+
+          transaction.set(vistoriaReference, vistoriaData, {
+            merge: Boolean(vistoriaIdExistente),
+          });
+
+          transaction.update(ordemReference, {
+            status: "aguardando-validacao",
+
+            vistoria: {
+              ...(ordem.vistoria || {}),
+              id: vistoriaReference.id,
+              vistoriaId: vistoriaReference.id,
+              codigo: codigoVistoria,
+              codigoVistoria,
+              status: "aguardando-validacao",
+              validada: false,
+              progresso: 100,
+              totalItens,
+              itensConcluidos: totalItens,
+              equipamentosAvaliados: totalItens,
+              naoConformidades: itensComAjuste.length,
+              pendenciasCriticas: 0,
+              quantidadeFotos: 0,
+              enviadoParaValidacaoEm: FieldValue.serverTimestamp(),
+            },
+
+            vistoriaId: vistoriaReference.id,
+
+            codigoVistoria,
+
+            execucaoFuncionario: {
+              status: "aguardando-validacao",
+              tipo: "vistoria",
+              funcionarioUid: request.auth.uid,
+              funcionarioId,
+              funcionarioCodigo,
+              funcionarioNome,
+              observacao: resumoExecucao,
+              finalizadoEm: FieldValue.serverTimestamp(),
+              enviadoParaValidacaoEm: FieldValue.serverTimestamp(),
+              vistoriaId: vistoriaReference.id,
+              codigoVistoria,
+            },
+
+            atualizadoEm: FieldValue.serverTimestamp(),
+
+            statusAtualizadoEm: FieldValue.serverTimestamp(),
+          });
+
+          return {
+            sucesso: true,
+            ordemId,
+            codigo: texto(ordem.codigo),
+            vistoriaId: vistoriaReference.id,
+            codigoVistoria,
+            status: "aguardando-validacao",
+            naoConformidades: itensComAjuste.length,
+          };
+        });
+
+        logger.info("Vistoria enviada para validação.", {
+          funcionarioUid: request.auth.uid,
+          ordemId,
+          codigo: resultado.codigo || null,
+          vistoriaId: resultado.vistoriaId,
+          codigoVistoria: resultado.codigoVistoria,
+        });
+
+        return resultado;
+      } catch (error) {
+        if (error instanceof HttpsError) {
+          throw error;
+        }
+
+        logger.error("Não foi possível enviar a vistoria para validação.", {
+          funcionarioUid: request.auth.uid,
+          ordemId,
+          message: error.message,
+          code: error.code || null,
+        });
+
+        throw new HttpsError(
+            "internal",
+            "Não foi possível enviar a vistoria para validação.",
+        );
+      }
+    },
+);
+
 exports.sincronizarGoogleAgenda = onCall(
     {
       region: "southamerica-east1",

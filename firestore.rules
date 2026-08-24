@@ -490,11 +490,77 @@ service cloud.firestore {
   allow create, update, delete: if eAdministrador();
 }
 
+         /* =====================================
+       FUNCIONÁRIOS
+    ===================================== */
+
+    match /funcionarios/{funcionarioId} {
+      allow read: if eAdministrador()
+        || (
+          eFuncionario()
+          && "usuarioUid" in resource.data
+          && resource.data.usuarioUid == request.auth.uid
+        );
+
+      allow create, update, delete: if eAdministrador();
+    }
+
+    /* =====================================
+       VISTORIAS
+    ===================================== */
+
+   match /vistorias/{vistoriaId} {
+      allow read: if eAdministrador()
+        || (
+          eFuncionario()
+          && (
+            (
+              "ordemId" in resource.data
+              && resource.data.ordemId is string
+              && resource.data.ordemId != ""
+              && exists(
+                /databases/$(database)/documents/ordens/$(resource.data.ordemId)
+              )
+              && get(
+                /databases/$(database)/documents/ordens/$(resource.data.ordemId)
+              ).data.funcionarioResponsavelUid == request.auth.uid
+            )
+            || (
+              "origem" in resource.data
+              && resource.data.origem is map
+              && "ordemId" in resource.data.origem
+              && resource.data.origem.ordemId is string
+              && resource.data.origem.ordemId != ""
+              && exists(
+                /databases/$(database)/documents/ordens/$(resource.data.origem.ordemId)
+              )
+              && get(
+                /databases/$(database)/documents/ordens/$(resource.data.origem.ordemId)
+              ).data.funcionarioResponsavelUid == request.auth.uid
+            )
+            || (
+              "funcionarioResponsavelUid" in resource.data
+              && resource.data.funcionarioResponsavelUid == request.auth.uid
+            )
+          )
+        );
+
+      allow create, update, delete: if eAdministrador();
+    }
+
     /* =====================================
        FINANCEIRO
     ===================================== */
 
     match /financeiro/{lancamentoId} {
+      allow read, create, update, delete: if eAdministrador();
+    }
+
+    /* =====================================
+       DADOS PRIVADOS DOS FUNCIONÁRIOS
+    ===================================== */
+
+    match /funcionariosPrivados/{funcionarioId} {
       allow read, create, update, delete: if eAdministrador();
     }
 

@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="css/detalhes-solicitacao.css?v=1.0.4" />
 </head>
 
-<body data-page="detalhes-solicitacao" data-allowed-roles="admin,cliente">
+<body data-page="detalhes-solicitacao" data-allowed-roles="admin,cliente,funcionario">
   <main class="details-shell" id="details-shell" hidden>
 
     <!-- =====================================
@@ -1654,6 +1654,169 @@
       </form>
 
     </section>
+
+    <!-- =====================================
+         VALIDAÇÃO DA EXECUÇÃO
+    ====================================== -->
+
+    <section class="details-card admin-validation-card" id="admin-validation-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+            <path d="M12 3v4"></path>
+            <path d="M12 17v4"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Validação administrativa
+          </p>
+
+          <h2>
+            Serviço enviado pelo funcionário
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="admin-actions-card__description">
+        Revise as informações registradas pelo funcionário antes de concluir definitivamente a Ordem de Serviço.
+      </p>
+
+      <div class="admin-validation-summary">
+
+        <div class="admin-validation-summary__item">
+
+          <span>
+            Funcionário
+          </span>
+
+          <strong id="admin-validation-employee">
+            --
+          </strong>
+
+        </div>
+
+        <div class="admin-validation-summary__item">
+
+          <span>
+            Enviado para validação
+          </span>
+
+          <strong id="admin-validation-date">
+            --
+          </strong>
+
+        </div>
+
+      </div>
+
+      <div class="observation-box admin-validation-observation">
+
+        <span>
+          Observações da execução
+        </span>
+
+        <p id="admin-validation-notes">
+          Nenhuma observação foi registrada pelo funcionário.
+        </p>
+
+      </div>
+
+      <div class="admin-validation-actions">
+
+        <button type="button" class="action-button action-button--inspection" id="review-inspection-checklist-button" hidden>
+          Revisar checklist da vistoria
+        </button>
+
+        <button type="button" class="action-button action-button--accept" id="validate-employee-execution-button">
+          Validar e concluir OS
+        </button>
+
+        <button type="button" class="action-button action-button--reject" id="return-employee-execution-button">
+          Devolver ao funcionário
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================
+         EXECUÇÃO DO FUNCIONÁRIO
+    ====================================== -->
+
+    <section class="details-card employee-execution-card" id="employee-execution-card" hidden>
+
+      <div class="details-card__header">
+
+        <span class="details-card__icon">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12l4 4L19 6"></path>
+            <path d="M12 3v4"></path>
+            <path d="M12 17v4"></path>
+          </svg>
+
+        </span>
+
+        <div>
+
+          <p>
+            Execução da ordem
+          </p>
+
+          <h2>
+            Finalizar serviço em campo
+          </h2>
+
+        </div>
+
+      </div>
+
+      <p class="admin-actions-card__description">
+        Quando o serviço estiver concluído, registre uma observação sobre a execução e envie a OS para validação da Administração.
+      </p>
+
+      <div class="observation-box employee-execution-status" id="employee-execution-status">
+
+        <span>
+          Status da execução
+        </span>
+
+        <p id="employee-execution-status-message">
+          Esta ordem está sob sua responsabilidade.
+        </p>
+
+      </div>
+
+      <div class="form-group">
+
+        <label class="form-label" for="employee-execution-notes">
+          Observações da execução <small>(opcional)</small>
+        </label>
+
+        <textarea id="employee-execution-notes" name="employeeExecutionNotes" class="input textarea" rows="4" maxlength="1000" placeholder="Descreva o serviço realizado, materiais utilizados, ocorrências ou informações importantes para a Administração."></textarea>
+
+      </div>
+
+      <button type="button" class="action-button action-button--accept" id="submit-employee-execution-button">
+        Serviço executado
+      </button>
+
+      <p class="technical-responsibility-card__description">
+        Ao confirmar, esta OS será enviada para validação da Administração. O funcionário não concluirá a ordem diretamente.
+      </p>
+
+    </section>
+
     <!-- =====================================
          CANCELAMENTO DO CLIENTE
     ====================================== -->
@@ -1747,7 +1910,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
 
-  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.10"></script>
+  <script type="module" src="js/detalhes-solicitacao.js?v=1.0.11"></script>
 </body>
 
 </html>

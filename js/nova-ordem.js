@@ -256,6 +256,24 @@ const horarioPreferido = document.getElementById("horarioPreferido");
 
 const scheduleSection = document.getElementById("schedule-section");
 
+/* Funcionário responsável */
+
+const inspectionEmployeeSection = document.getElementById(
+  "inspection-employee-section",
+);
+
+const employeeResponsibleSelect = document.getElementById(
+  "funcionarioResponsavel",
+);
+
+const employeeResponsibleHelp = document.getElementById(
+  "funcionarioResponsavelAjuda",
+);
+
+const summaryEmployeeItem = document.getElementById("summary-employee-item");
+
+const summaryEmployee = document.getElementById("summary-employee");
+
 /* Fotos */
 
 const fotosProblema = document.getElementById("fotosProblema");
@@ -397,6 +415,12 @@ let selectedCondominium = null;
 let availableCondominiums = [];
 
 let availableLinkedClients = [];
+
+let availableEmployees = [];
+
+let selectedEmployee = null;
+
+let inspectionSchedulingSelected = false;
 
 let hasRegisteredAddress = false;
 
@@ -1104,6 +1128,14 @@ function mapCondominiumSnapshot(snapshot) {
     clientesVinculados: Array.isArray(data.clientesVinculados)
       ? data.clientesVinculados
       : [],
+
+    estruturaAmbientes: Array.isArray(data.estruturaAmbientes)
+      ? data.estruturaAmbientes
+      : Array.isArray(data.ambientesEquipamentos)
+        ? data.ambientesEquipamentos
+        : [],
+
+    equipamentos: Array.isArray(data.equipamentos) ? data.equipamentos : [],
   };
 }
 
@@ -1978,6 +2010,8 @@ function changeProfile(profile) {
   }
 
   toggleSpecificTime();
+
+  updateInspectionEmployeeSection();
 
   updateClientSummary();
 
@@ -2897,10 +2931,173 @@ async function startInspectionNow() {
   }
 }
 
-function scheduleInspection() {
+function resetInspectionEmployeeSelection() {
+  selectedEmployee = null;
+
+  if (employeeResponsibleSelect) {
+    employeeResponsibleSelect.value = "";
+  }
+
+  if (summaryEmployee) {
+    summaryEmployee.textContent = "Funcionário não selecionado";
+  }
+}
+
+function updateInspectionEmployeeSection() {
+  const isInspection = getSelectedCategories().includes("vistoria");
+
+  const shouldShow =
+    currentProfile === "admin" && isInspection && inspectionSchedulingSelected;
+
+  if (inspectionEmployeeSection) {
+    inspectionEmployeeSection.hidden = !shouldShow;
+  }
+
+  if (employeeResponsibleSelect) {
+    employeeResponsibleSelect.disabled = !shouldShow;
+
+    employeeResponsibleSelect.required = shouldShow;
+  }
+
+  if (summaryEmployeeItem) {
+    summaryEmployeeItem.hidden = !shouldShow;
+  }
+
+  if (!shouldShow) {
+    resetInspectionEmployeeSelection();
+  }
+}
+
+async function loadAvailableEmployees() {
+  if (!employeeResponsibleSelect) {
+    return;
+  }
+
+  employeeResponsibleSelect.innerHTML = "";
+
+  employeeResponsibleSelect.appendChild(
+    createCondominiumOption("", "Carregando funcionários..."),
+  );
+
+  employeeResponsibleSelect.disabled = true;
+
+  employeeResponsibleHelp.textContent =
+    "Consultando os funcionários disponíveis.";
+
+  try {
+    const snapshot = await getDocs(collection(db, "funcionarios"));
+
+    availableEmployees = snapshot.docs
+      .map((documentSnapshot) => ({
+        id: documentSnapshot.id,
+
+        ...documentSnapshot.data(),
+      }))
+      .filter(
+        (employee) =>
+          normalizeText(employee.status) === "ativo" &&
+          Boolean(String(employee.usuarioUid || "").trim()) &&
+          employee.acessoConfigurado === true,
+      )
+      .sort((employeeA, employeeB) =>
+        String(employeeA.nome || "").localeCompare(
+          String(employeeB.nome || ""),
+          "pt-BR",
+        ),
+      );
+
+    employeeResponsibleSelect.innerHTML = "";
+
+    employeeResponsibleSelect.appendChild(
+      createCondominiumOption("", "Selecione o funcionário"),
+    );
+
+    availableEmployees.forEach((employee) => {
+      const identification = [employee.codigo, employee.nome, employee.cargo]
+        .filter(Boolean)
+        .join(" — ");
+
+      employeeResponsibleSelect.appendChild(
+        createCondominiumOption(
+          employee.id,
+          identification || "Funcionário sem identificação",
+        ),
+      );
+    });
+
+    employeeResponsibleSelect.disabled = false;
+
+    if (availableEmployees.length === 0) {
+      employeeResponsibleSelect.innerHTML = "";
+
+      employeeResponsibleSelect.appendChild(
+        createCondominiumOption("", "Nenhum funcionário disponível"),
+      );
+
+      employeeResponsibleSelect.disabled = true;
+
+      employeeResponsibleHelp.textContent =
+        "Nenhum funcionário ativo com acesso configurado foi encontrado.";
+
+      return;
+    }
+
+    employeeResponsibleHelp.textContent =
+      availableEmployees.length === 1
+        ? "1 funcionário disponível para esta vistoria."
+        : `${availableEmployees.length} funcionários disponíveis para esta vistoria.`;
+  } catch (error) {
+    console.error(
+      "[Nova Ordem] Não foi possível carregar os funcionários:",
+      error,
+    );
+
+    availableEmployees = [];
+
+    employeeResponsibleSelect.innerHTML = "";
+
+    employeeResponsibleSelect.appendChild(
+      createCondominiumOption("", "Erro ao carregar funcionários"),
+    );
+
+    employeeResponsibleSelect.disabled = true;
+
+    employeeResponsibleHelp.textContent =
+      "Não foi possível consultar os funcionários cadastrados.";
+
+    showFeedback("Não foi possível carregar os funcionários.", "error");
+  }
+}
+
+function handleInspectionEmployeeChange() {
+  const employeeId = String(employeeResponsibleSelect?.value || "").trim();
+
+  selectedEmployee =
+    availableEmployees.find((employee) => employee.id === employeeId) || null;
+
+  if (summaryEmployee) {
+    summaryEmployee.textContent = selectedEmployee
+      ? [selectedEmployee.codigo, selectedEmployee.nome]
+          .filter(Boolean)
+          .join(" — ")
+      : "Funcionário não selecionado";
+  }
+
+  updateSummary();
+
+  updateProgress();
+}
+
+async function scheduleInspection() {
+  inspectionSchedulingSelected = true;
+
   closeInspectionModeModal({
     keepCategory: true,
   });
+
+  updateInspectionEmployeeSection();
+
+  await loadAvailableEmployees();
 
   scrollToElement(servicesSection);
 }
@@ -2916,7 +3113,15 @@ async function handleCategoryChange(event) {
     });
 
     selectedInspectionForOrder = null;
+
+    if (changedInput.value !== "vistoria") {
+      inspectionSchedulingSelected = false;
+    }
+  } else if (changedInput.value === "vistoria") {
+    inspectionSchedulingSelected = false;
   }
+
+  updateInspectionEmployeeSection();
 
   syncCategoryStyles();
 
@@ -3489,6 +3694,13 @@ function updateProgress() {
 
   if (currentProfile === "admin") {
     steps.push(isScheduleComplete());
+
+    if (
+      getSelectedCategories().includes("vistoria") &&
+      inspectionSchedulingSelected
+    ) {
+      steps.push(Boolean(selectedEmployee?.usuarioUid));
+    }
   }
 
   const completedSteps = steps.filter(Boolean).length;
@@ -3556,6 +3768,21 @@ function validateForm() {
     showServiceValidation();
 
     serviceDescription.focus();
+
+    return false;
+  }
+
+  const requiresInspectionEmployee =
+    currentProfile === "admin" &&
+    getSelectedCategories().includes("vistoria") &&
+    inspectionSchedulingSelected;
+
+  if (requiresInspectionEmployee && !selectedEmployee?.usuarioUid) {
+    showFeedback("Selecione o funcionário responsável pela vistoria.", "error");
+
+    scrollToElement(inspectionEmployeeSection);
+
+    employeeResponsibleSelect?.focus();
 
     return false;
   }
@@ -3849,7 +4076,9 @@ function buildOrderData({
   const initialStatus = isEmergency
     ? "nova-solicitacao"
     : currentProfile === "admin"
-      ? document.getElementById("statusInicial")?.value || "nova-solicitacao"
+      ? isInspection && inspectionSchedulingSelected
+        ? "agendada"
+        : document.getElementById("statusInicial")?.value || "nova-solicitacao"
       : "nova-solicitacao";
 
   const clientUid =
@@ -3871,6 +4100,31 @@ function buildOrderData({
 
   const orderAddress = getOrderAddressData();
 
+  const assignedEmployeeUid =
+    isInspection && inspectionSchedulingSelected
+      ? String(selectedEmployee?.usuarioUid || "").trim()
+      : "";
+
+  const employeeAssignment = assignedEmployeeUid
+    ? {
+        funcionarioId: selectedEmployee.id || "",
+
+        usuarioUid: assignedEmployeeUid,
+
+        codigo: String(selectedEmployee.codigo || "").trim(),
+
+        nome: String(selectedEmployee.nome || "").trim(),
+
+        cargo: String(selectedEmployee.cargo || "").trim(),
+
+        designadoEm: serverTimestamp(),
+
+        designadoPorUid: currentSession?.uid || "",
+
+        designadoPorNome: creatorName,
+      }
+    : null;
+
   return {
     id,
 
@@ -3889,6 +4143,14 @@ function buildOrderData({
     criadoPorUid: currentSession?.uid || "",
 
     criadoPorNome: creatorName,
+
+    ...(employeeAssignment
+      ? {
+          funcionarioResponsavelUid: assignedEmployeeUid,
+
+          funcionarioResponsavel: employeeAssignment,
+        }
+      : {}),
 
     clienteUid: clientUid,
 
@@ -3924,6 +4186,16 @@ function buildOrderData({
       nome: selectedCondominium.nome || "",
 
       cnpj: selectedCondominium.cnpj || "",
+
+      endereco: selectedCondominium.endereco || {},
+
+      estruturaAmbientes: Array.isArray(selectedCondominium.estruturaAmbientes)
+        ? selectedCondominium.estruturaAmbientes
+        : [],
+
+      equipamentos: Array.isArray(selectedCondominium.equipamentos)
+        ? selectedCondominium.equipamentos
+        : [],
     },
 
     endereco: orderAddress,
@@ -3946,11 +4218,18 @@ function buildOrderData({
           ? horarioPreferido.value
           : "",
 
-      dataConfirmada: "",
+      dataConfirmada:
+        isInspection && inspectionSchedulingSelected ? dataPreferida.value : "",
 
-      periodoConfirmado: "",
+      periodoConfirmado:
+        isInspection && inspectionSchedulingSelected
+          ? getSelectedPeriod() || ""
+          : "",
 
-      horarioConfirmado: "",
+      horarioConfirmado:
+        isInspection && inspectionSchedulingSelected
+          ? horarioPreferido.value
+          : "",
     },
 
     observacoes: {
@@ -4026,7 +4305,7 @@ function buildOrderData({
         : {
             tipo: mainService?.servico || "Vistoria técnica",
 
-            status: "solicitada",
+            status: inspectionSchedulingSelected ? "agendada" : "solicitada",
 
             progresso: 0,
 
@@ -4307,6 +4586,13 @@ if (startInspectionNowButton) {
 
 if (scheduleInspectionButton) {
   scheduleInspectionButton.addEventListener("click", scheduleInspection);
+}
+
+if (employeeResponsibleSelect) {
+  employeeResponsibleSelect.addEventListener(
+    "change",
+    handleInspectionEmployeeChange,
+  );
 }
 
 closeInspectionLinkModalButtons.forEach((button) => {

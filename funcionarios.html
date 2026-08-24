@@ -755,6 +755,599 @@
 
           </section>
 
+          <!-- DADOS CONFIDENCIAIS -->
+
+          <section class="employee-form-section employee-form-section--private">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                  <circle cx="12" cy="15" r="1"></circle>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Somente Administração
+                </span>
+
+                <h3>
+                  Dados confidenciais
+                </h3>
+
+              </div>
+
+            </div>
+
+            <div class="employee-private-notice">
+
+              <span class="employee-private-notice__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3 4 6v6c0 4.8 3.2 8 8 9 4.8-1 8-4.2 8-9V6l-8-3Z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <strong>
+                  Área protegida
+                </strong>
+
+                <p>
+                  Estas informações são administrativas e não serão disponibilizadas nas Ordens de Serviço, Agenda, Vistorias ou Área do Funcionário.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div class="employee-form-grid">
+
+              <div class="employee-form-field">
+
+                <label for="employee-cpf">
+                  CPF
+                </label>
+
+                <input type="text" id="employee-cpf" maxlength="14" placeholder="000.000.000-00" inputmode="numeric" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-rg">
+                  RG
+                </label>
+
+                <input type="text" id="employee-rg" maxlength="30" placeholder="Número do RG" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-birth-date">
+                  Data de nascimento
+                </label>
+
+                <input type="date" id="employee-birth-date" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-cnh">
+                  CNH
+                </label>
+
+                <input type="text" id="employee-cnh" maxlength="30" placeholder="Número da CNH" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-cnh-expiration">
+                  Validade da CNH
+                </label>
+
+                <input type="date" id="employee-cnh-expiration" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-zip">
+                  CEP
+                </label>
+
+                <input type="text" id="employee-address-zip" maxlength="9" placeholder="00000-000" inputmode="numeric" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field employee-form-field--full">
+
+                <label for="employee-address-street">
+                  Endereço
+                </label>
+
+                <input type="text" id="employee-address-street" maxlength="180" placeholder="Rua, avenida ou outro logradouro" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-number">
+                  Número
+                </label>
+
+                <input type="text" id="employee-address-number" maxlength="20" placeholder="Número" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-complement">
+                  Complemento
+                </label>
+
+                <input type="text" id="employee-address-complement" maxlength="100" placeholder="Casa, apartamento, bloco..." autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-neighborhood">
+                  Bairro
+                </label>
+
+                <input type="text" id="employee-address-neighborhood" maxlength="100" placeholder="Bairro" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-city">
+                  Cidade
+                </label>
+
+                <input type="text" id="employee-address-city" maxlength="100" placeholder="Cidade" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-address-state">
+                  Estado
+                </label>
+
+                <input type="text" id="employee-address-state" maxlength="2" placeholder="UF" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-emergency-name">
+                  Contato de emergência
+                </label>
+
+                <input type="text" id="employee-emergency-name" maxlength="160" placeholder="Nome do contato" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-emergency-relation">
+                  Relação
+                </label>
+
+                <input type="text" id="employee-emergency-relation" maxlength="80" placeholder="Ex: Esposa, irmão, mãe..." autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-emergency-phone">
+                  Telefone de emergência
+                </label>
+
+                <input type="tel" id="employee-emergency-phone" maxlength="20" placeholder="(44) 99999-9999" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- CONTRATO E PAGAMENTO -->
+
+          <section class="employee-form-section employee-form-section--private">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="6" width="18" height="14" rx="2"></rect>
+                  <path d="M7 6V4h10v2"></path>
+                  <path d="M3 11h18"></path>
+                  <path d="M8 15h3"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Somente Administração
+                </span>
+
+                <h3>
+                  Contrato e pagamento
+                </h3>
+
+              </div>
+
+            </div>
+
+            <p class="employee-form-section__description">
+              Registre o vínculo profissional e as informações financeiras utilizadas pela administração.
+            </p>
+
+            <div class="employee-form-grid">
+
+              <div class="employee-form-field">
+
+                <label for="employee-contract-type">
+                  Tipo de vínculo
+                </label>
+
+                <select id="employee-contract-type">
+
+                  <option value="">
+                    Não informado
+                  </option>
+
+                  <option value="clt">
+                    CLT
+                  </option>
+
+                  <option value="pj">
+                    PJ
+                  </option>
+
+                  <option value="autonomo">
+                    Autônomo
+                  </option>
+
+                  <option value="contrato">
+                    Contrato
+                  </option>
+
+                  <option value="outro">
+                    Outro
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-payment-value">
+                  Salário / valor
+                </label>
+
+                <input type="number" id="employee-payment-value" min="0" step="0.01" placeholder="0,00" inputmode="decimal" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-payment-periodicity">
+                  Periodicidade
+                </label>
+
+                <select id="employee-payment-periodicity">
+
+                  <option value="">
+                    Não informada
+                  </option>
+
+                  <option value="mensal">
+                    Mensal
+                  </option>
+
+                  <option value="quinzenal">
+                    Quinzenal
+                  </option>
+
+                  <option value="semanal">
+                    Semanal
+                  </option>
+
+                  <option value="diaria">
+                    Diária
+                  </option>
+
+                  <option value="por-servico">
+                    Por serviço
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-payment-method">
+                  Forma de pagamento
+                </label>
+
+                <select id="employee-payment-method">
+
+                  <option value="">
+                    Não informada
+                  </option>
+
+                  <option value="pix">
+                    Pix
+                  </option>
+
+                  <option value="transferencia">
+                    Transferência bancária
+                  </option>
+
+                  <option value="deposito">
+                    Depósito
+                  </option>
+
+                  <option value="dinheiro">
+                    Dinheiro
+                  </option>
+
+                  <option value="outro">
+                    Outro
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field employee-form-field--full">
+
+                <label for="employee-bank">
+                  Banco
+                </label>
+
+                <input type="text" id="employee-bank" maxlength="100" placeholder="Nome ou código do banco" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-bank-agency">
+                  Agência
+                </label>
+
+                <input type="text" id="employee-bank-agency" maxlength="30" placeholder="Agência" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-bank-account">
+                  Conta
+                </label>
+
+                <input type="text" id="employee-bank-account" maxlength="40" placeholder="Conta com dígito" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-bank-account-type">
+                  Tipo de conta
+                </label>
+
+                <select id="employee-bank-account-type">
+
+                  <option value="">
+                    Não informado
+                  </option>
+
+                  <option value="corrente">
+                    Conta corrente
+                  </option>
+
+                  <option value="poupanca">
+                    Poupança
+                  </option>
+
+                  <option value="pagamento">
+                    Conta de pagamento
+                  </option>
+
+                </select>
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+              <div class="employee-form-field">
+
+                <label for="employee-pix-key">
+                  Chave Pix
+                </label>
+
+                <input type="text" id="employee-pix-key" maxlength="160" placeholder="CPF, e-mail, telefone ou chave aleatória" autocomplete="off" />
+
+                <span class="employee-form-field__error"></span>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- DOCUMENTOS PRIVADOS -->
+
+          <section class="employee-form-section employee-form-section--private">
+
+            <div class="employee-form-section__header">
+
+              <span class="employee-form-section__icon">
+
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 3h8l4 4v14H6V3Z"></path>
+                  <path d="M14 3v5h5"></path>
+                  <path d="M9 13h6"></path>
+                  <path d="M9 17h6"></path>
+                </svg>
+
+              </span>
+
+              <div>
+
+                <span>
+                  Arquivos protegidos
+                </span>
+
+                <h3>
+                  Documentos do funcionário
+                </h3>
+
+              </div>
+
+            </div>
+
+            <p class="employee-form-section__description">
+              Anexe documentos administrativos. Os arquivos serão armazenados em uma área privada e acessível somente pela Administração.
+            </p>
+
+            <div class="employee-private-documents-grid">
+
+              <label class="employee-private-upload">
+
+                <span>
+                  Documentos de identificação
+                </span>
+
+                <small>
+                  RG, CPF, CNH ou documentos equivalentes
+                </small>
+
+                <input type="file" id="employee-document-identification" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple />
+
+              </label>
+
+              <label class="employee-private-upload">
+
+                <span>
+                  Contrato
+                </span>
+
+                <small>
+                  Contrato de trabalho, prestação ou vínculo
+                </small>
+
+                <input type="file" id="employee-document-contract" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+
+              </label>
+
+              <label class="employee-private-upload">
+
+                <span>
+                  Certificados e NRs
+                </span>
+
+                <small>
+                  NR-10, NR-35, certificados e capacitações
+                </small>
+
+                <input type="file" id="employee-document-certificates" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple />
+
+              </label>
+
+              <label class="employee-private-upload">
+
+                <span>
+                  Outros documentos
+                </span>
+
+                <small>
+                  Outros arquivos administrativos
+                </small>
+
+                <input type="file" id="employee-document-other" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple />
+
+              </label>
+
+            </div>
+
+            <div class="employee-private-documents-current" id="employee-private-documents-current" hidden>
+
+              <span>
+                Documentos já cadastrados
+              </span>
+
+              <div id="employee-private-documents-list"></div>
+
+            </div>
+
+          </section>
+
           <!-- ESPECIALIDADES -->
 
           <section class="employee-form-section">
@@ -929,9 +1522,8 @@
               <strong>
                 Acesso ao sistema
               </strong>
-
               <p>
-                O cadastro do funcionário é independente do acesso à plataforma. A criação da conta de funcionário será configurada em uma próxima etapa.
+                O cadastro profissional é independente do acesso à plataforma. Quando necessário, a Administração poderá criar ou gerenciar a conta individual deste funcionário.
               </p>
 
             </div>
@@ -1092,11 +1684,371 @@
           </p>
 
         </section>
-
         <div class="employee-details-actions">
+
+          <button type="button" class="employee-modal__button employee-modal__button--secondary employee-private-data-button" id="open-employee-private-button">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+
+            Dados confidenciais
+          </button>
 
           <button type="button" class="employee-modal__button employee-modal__button--primary" id="edit-employee-from-details-button">
             Editar funcionário
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =====================================
+         DADOS CONFIDENCIAIS DO FUNCIONÁRIO
+    ====================================== -->
+
+    <div class="employee-private-modal" id="employee-private-modal" hidden>
+
+      <div class="employee-private-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="employee-private-title">
+
+        <div class="employee-private-modal__header">
+
+          <div class="employee-private-modal__identity">
+
+            <span class="employee-private-modal__lock">
+
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+              </svg>
+
+            </span>
+
+            <div>
+
+              <span id="employee-private-code">
+                FUNC-0001
+              </span>
+
+              <h2 id="employee-private-title">
+                Dados confidenciais
+              </h2>
+
+              <p id="employee-private-name">
+                Funcionário
+              </p>
+
+            </div>
+
+          </div>
+
+          <button type="button" class="employee-modal__close" id="close-employee-private-modal-button" aria-label="Fechar">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6 6 18"></path>
+            </svg>
+
+          </button>
+
+        </div>
+
+        <div class="employee-private-modal__notice">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 6v6c0 4.8 3.2 8 8 9 4.8-1 8-4.2 8-9V6l-8-3Z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+
+          <p>
+            Informações privadas. Acesso exclusivo da Administração Salvateck.
+          </p>
+
+        </div>
+
+        <section class="employee-private-section">
+
+          <div class="employee-private-section__header">
+
+            <span>
+              Identificação
+            </span>
+
+            <h3>
+              Dados pessoais
+            </h3>
+
+          </div>
+
+          <div class="employee-private-details-grid">
+
+            <article>
+
+              <span>
+                CPF
+              </span>
+
+              <strong id="employee-private-cpf">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                RG
+              </span>
+
+              <strong id="employee-private-rg">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Nascimento
+              </span>
+
+              <strong id="employee-private-birth-date">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                CNH
+              </span>
+
+              <strong id="employee-private-cnh">
+                Não informada
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Validade da CNH
+              </span>
+
+              <strong id="employee-private-cnh-expiration">
+                Não informada
+              </strong>
+
+            </article>
+
+          </div>
+
+          <div class="employee-private-address">
+
+            <span>
+              Endereço residencial
+            </span>
+
+            <strong id="employee-private-address">
+              Não informado
+            </strong>
+
+          </div>
+
+          <div class="employee-private-address">
+
+            <span>
+              Contato de emergência
+            </span>
+
+            <strong id="employee-private-emergency">
+              Não informado
+            </strong>
+
+          </div>
+
+        </section>
+
+        <section class="employee-private-section">
+
+          <div class="employee-private-section__header">
+
+            <span>
+              Financeiro
+            </span>
+
+            <h3>
+              Contrato e pagamento
+            </h3>
+
+          </div>
+
+          <div class="employee-private-details-grid">
+
+            <article>
+
+              <span>
+                Tipo de vínculo
+              </span>
+
+              <strong id="employee-private-contract-type">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Salário / valor
+              </span>
+
+              <strong id="employee-private-payment-value">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Periodicidade
+              </span>
+
+              <strong id="employee-private-payment-periodicity">
+                Não informada
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Forma de pagamento
+              </span>
+
+              <strong id="employee-private-payment-method">
+                Não informada
+              </strong>
+
+            </article>
+
+          </div>
+
+        </section>
+
+        <section class="employee-private-section">
+
+          <div class="employee-private-section__header">
+
+            <span>
+              Dados bancários
+            </span>
+
+            <h3>
+              Conta para pagamento
+            </h3>
+
+          </div>
+
+          <div class="employee-private-details-grid">
+
+            <article>
+
+              <span>
+                Banco
+              </span>
+
+              <strong id="employee-private-bank">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Agência
+              </span>
+
+              <strong id="employee-private-bank-agency">
+                Não informada
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Conta
+              </span>
+
+              <strong id="employee-private-bank-account">
+                Não informada
+              </strong>
+
+            </article>
+
+            <article>
+
+              <span>
+                Tipo de conta
+              </span>
+
+              <strong id="employee-private-bank-account-type">
+                Não informado
+              </strong>
+
+            </article>
+
+            <article class="employee-private-details-grid__full">
+
+              <span>
+                Chave Pix
+              </span>
+
+              <strong id="employee-private-pix-key">
+                Não informada
+              </strong>
+
+            </article>
+
+          </div>
+
+        </section>
+
+        <section class="employee-private-section">
+
+          <div class="employee-private-section__header">
+
+            <span>
+              Arquivos
+            </span>
+
+            <h3>
+              Documentos privados
+            </h3>
+
+          </div>
+
+          <div class="employee-private-files" id="employee-private-files">
+
+            <p id="employee-private-files-empty">
+              Nenhum documento cadastrado.
+            </p>
+
+          </div>
+
+        </section>
+
+        <div class="employee-private-modal__actions">
+
+          <button type="button" class="employee-modal__button employee-modal__button--primary" id="edit-employee-from-private-button">
+            Editar cadastro
           </button>
 
         </div>

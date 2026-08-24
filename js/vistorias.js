@@ -100,6 +100,24 @@ const viewConfig = {
    ELEMENTOS
 ========================================= */
 
+const backToMainButton = document.getElementById("back-to-main-button");
+
+const inspectionsPageTitle = document.getElementById("inspections-page-title");
+
+const inspectionsIntroBadge = document.getElementById(
+  "inspections-intro-badge",
+);
+
+const inspectionsIntroTitle = document.getElementById(
+  "inspections-intro-title",
+);
+
+const inspectionsIntroDescription = document.getElementById(
+  "inspections-intro-description",
+);
+
+const newInspectionButton = document.getElementById("new-inspection-button");
+
 const summaryScheduled = document.getElementById("summary-scheduled");
 
 const summaryProgress = document.getElementById("summary-progress");
@@ -171,6 +189,8 @@ const feedbackMessage = document.getElementById("feedback-message");
 /* =========================================
    ESTADO
 ========================================= */
+
+let currentSession = null;
 
 let inspectionOrders = [];
 
@@ -276,7 +296,6 @@ function formatQuantity(quantity, singular, plural) {
 function formatInspectionQuantity(quantity) {
   return formatQuantity(quantity, "vistoria", "vistorias");
 }
-
 function showFeedback(message) {
   window.clearTimeout(feedbackTimeout);
 
@@ -289,15 +308,95 @@ function showFeedback(message) {
   }, 3000);
 }
 
+function renderProfileExperience() {
+  const isFuncionario = currentSession.role === "funcionario";
+
+  document.body.dataset.profile = currentSession.role;
+
+  backToMainButton.href = `principal.html?perfil=${currentSession.role}`;
+
+  newInspectionButton.hidden = isFuncionario;
+
+  if (!isFuncionario) {
+    return;
+  }
+
+  document.title = "Minhas Vistorias | Salvateck";
+
+  inspectionsPageTitle.textContent = "Minhas Vistorias";
+
+  inspectionsIntroBadge.textContent = "Área do funcionário";
+
+  inspectionsIntroTitle.textContent = "Vistorias atribuídas a você";
+
+  inspectionsIntroDescription.textContent =
+    "Acompanhe as vistorias sob sua responsabilidade, consulte os dados do atendimento e acesse a execução técnica.";
+
+  viewConfig.all.eyebrow = "Sua operação";
+
+  viewConfig.all.title = "Minhas vistorias";
+
+  viewConfig.scheduled.eyebrow = "Próximos atendimentos";
+
+  viewConfig.scheduled.title = "Minhas vistorias programadas";
+
+  viewConfig.progress.eyebrow = "Execução técnica";
+
+  viewConfig.progress.title = "Minhas vistorias em andamento";
+
+  viewConfig.pending.eyebrow = "Revisão necessária";
+
+  viewConfig.pending.title = "Minhas vistorias devolvidas";
+
+  viewConfig.validation.eyebrow = "Execução enviada";
+
+  viewConfig.validation.title = "Minhas vistorias aguardando validação";
+
+  const returnedSummaryLabel = document.querySelector(
+    '[data-inspection-view="pending"] span',
+  );
+
+  if (returnedSummaryLabel) {
+    returnedSummaryLabel.textContent = "Devolvidas";
+  }
+}
+
 /* =========================================
    LEITURA DAS ORDENS
 ========================================= */
 
 async function loadInspectionOrdersFromFirestore() {
-  const inspectionsQuery = query(
-    collection(db, "ordens"),
+  const ordersReference = collection(db, "ordens");
+
+  let inspectionsQuery = query(
+    ordersReference,
     where("tipoAtendimento", "==", "vistoria"),
   );
+
+  if (currentSession.role === "funcionario") {
+    inspectionsQuery = query(
+      ordersReference,
+      where("tipoAtendimento", "==", "vistoria"),
+      where("funcionarioResponsavelUid", "==", currentSession.uid),
+    );
+
+    const ordersSnapshot = await getDocs(inspectionsQuery);
+
+    inspectionOrders = ordersSnapshot.docs
+      .map((documentSnapshot) => ({
+        id: documentSnapshot.id,
+        ...documentSnapshot.data(),
+      }))
+      .filter(isInspectionOrder)
+      .map(normalizeInspectionOrder);
+
+    console.info("[Vistorias] Vistorias do funcionário carregadas:", {
+      funcionarioUid: currentSession.uid,
+      total: inspectionOrders.length,
+    });
+
+    return;
+  }
 
   const [ordersSnapshot, inspectionsSnapshot] = await Promise.all([
     getDocs(inspectionsQuery),
@@ -464,6 +563,7 @@ function getInspectionMainName(order) {
 
 function getResponsibleName(order) {
   return (
+    order.funcionarioResponsavel?.nome ||
     order.responsavel?.nome ||
     order.executor?.nome ||
     order.vistoria?.responsavel ||
@@ -555,6 +655,15 @@ function normalizeInspectionOrder(order, index) {
     ordemId: order.id || "",
 
     codigoOS: order.codigo || "",
+
+    vistoriaId: cleanText(order.vistoria?.id || order.vistoria?.vistoriaId),
+
+    funcionarioResponsavelUid: cleanText(
+      order.funcionarioResponsavelUid ||
+        order.funcionarioResponsavel?.usuarioUid,
+    ),
+
+    statusOS: cleanText(order.status),
   };
 }
 
@@ -649,6 +758,22 @@ function getStatusData(inspection) {
     };
   }
 
+  if (status === "aguardando-validacao") {
+    return {
+      grupo: "validation",
+      nome: "Aguardando validação",
+      classe: "status--validation",
+    };
+  }
+
+  if (status === "devolvida") {
+    return {
+      grupo: "returned",
+      nome: "Devolvida",
+      classe: "status--returned",
+    };
+  }
+
   if (inspection.origemRegistro === "vistoria" && inspection.ordemVinculada) {
     return {
       grupo: "completed",
@@ -738,6 +863,12 @@ function updateSummary() {
   ).length;
 
   const pending = inspectionOrders.filter((inspection) => {
+    const statusGroup = getStatusData(inspection).grupo;
+
+    if (currentSession.role === "funcionario") {
+      return statusGroup === "returned";
+    }
+
     const requiresOrder =
       inspection.origemRegistro === "vistoria" &&
       !inspection.ordemVinculada &&
@@ -746,8 +877,6 @@ function updateSummary() {
     if (requiresOrder) {
       return true;
     }
-
-    const statusGroup = getStatusData(inspection).grupo;
 
     const isClosed = statusGroup === "completed" || statusGroup === "cancelled";
 
@@ -765,8 +894,7 @@ function updateSummary() {
   ).length;
 
   const awaitingValidation = inspectionOrders.filter(
-    (inspection) =>
-      inspection.origemRegistro === "vistoria" && !inspection.ordemVinculada,
+    (inspection) => getStatusData(inspection).grupo === "validation",
   ).length;
 
   summaryScheduled.textContent = String(scheduled);
@@ -958,12 +1086,14 @@ function matchesCurrentView(inspection) {
   }
 
   if (currentView === "validation") {
-    return (
-      inspection.origemRegistro === "vistoria" && !inspection.ordemVinculada
-    );
+    return statusGroup === "validation";
   }
 
   if (currentView === "pending") {
+    if (currentSession.role === "funcionario") {
+      return statusGroup === "returned";
+    }
+
     const requiresOrder =
       inspection.origemRegistro === "vistoria" &&
       !inspection.ordemVinculada &&
@@ -1007,9 +1137,10 @@ function sortInspections(first, second) {
   const statusOrder = {
     overdue: 1,
     progress: 2,
-    scheduled: 3,
-    completed: 4,
-    cancelled: 5,
+    validation: 3,
+    scheduled: 4,
+    completed: 5,
+    cancelled: 6,
   };
 
   const firstStatus = getStatusData(first).grupo;
@@ -1201,7 +1332,7 @@ function clearSearchAndFilters() {
 
 function createInspectionDetailsURL(inspection) {
   const parameters = new URLSearchParams({
-    perfil: "admin",
+    perfil: currentSession.role,
     vistoria: inspection.id,
     modo: "consulta",
   });
@@ -1211,7 +1342,7 @@ function createInspectionDetailsURL(inspection) {
 
 function createOrderDetailsURL(inspection) {
   const parameters = new URLSearchParams({
-    perfil: "admin",
+    perfil: currentSession.role,
     id: inspection.id,
     ordem: inspection.id,
   });
@@ -1439,22 +1570,57 @@ function createInspectionItem(inspection) {
 
     orderAction.hidden = true;
   } else {
-    viewAction.href = createOrderDetailsURL(inspection);
+    const isFuncionario = currentSession.role === "funcionario";
 
-    viewAction.textContent = "Abrir OS";
+    const inspectionOrderStatus = normalizeText(inspection.statusOS);
+
+    const inspectionStatus = normalizeText(inspection.statusOriginal);
+
+    const isReturnedInspection =
+      isFuncionario &&
+      ["agendada", "agendado"].includes(inspectionOrderStatus) &&
+      inspectionStatus === "devolvida" &&
+      Boolean(inspection.vistoriaId);
+
+    const canExecuteInspection =
+      isFuncionario &&
+      ["agendada", "agendado"].includes(inspectionOrderStatus) &&
+      (!inspection.vistoriaId || isReturnedInspection);
+
+    if (canExecuteInspection) {
+      const parameters = new URLSearchParams({
+        perfil: "funcionario",
+        ordem: inspection.ordemId || inspection.id,
+        modo: "execucao",
+      });
+
+      viewAction.href = `nova-vistoria.html?${parameters.toString()}`;
+
+      viewAction.textContent = isReturnedInspection
+        ? "Revisar vistoria"
+        : "Executar vistoria";
+    } else {
+      viewAction.href = createOrderDetailsURL(inspection);
+
+      viewAction.textContent = "Abrir OS";
+    }
 
     continueAction.hidden = true;
 
-    const canGenerateCorrectiveOrder =
-      statusData.grupo === "completed" && inspection.naoConformidades > 0;
+    if (isFuncionario) {
+      orderAction.hidden = true;
+    } else {
+      const canGenerateCorrectiveOrder =
+        statusData.grupo === "completed" && inspection.naoConformidades > 0;
 
-    orderAction.hidden = !canGenerateCorrectiveOrder;
+      orderAction.hidden = !canGenerateCorrectiveOrder;
 
-    orderAction.textContent = "Gerar OS corretiva";
+      orderAction.textContent = "Gerar OS corretiva";
 
-    orderAction.addEventListener("click", () => {
-      window.location.href = createCorrectiveOrderURL(inspection);
-    });
+      orderAction.addEventListener("click", () => {
+        window.location.href = createCorrectiveOrderURL(inspection);
+      });
+    }
   }
 
   return fragment;
@@ -1644,7 +1810,9 @@ document.addEventListener("keydown", (event) => {
 
 async function initializeInspectionsPage() {
   try {
-    await window.salvateckSessionReady;
+    currentSession = await window.salvateckSessionReady;
+
+    renderProfileExperience();
 
     await loadInspectionOrdersFromFirestore();
   } catch (error) {
@@ -1667,7 +1835,7 @@ async function initializeInspectionsPage() {
 
   updateSummary();
 
-  changeView("", {
+  changeView(currentSession?.role === "funcionario" ? "all" : "", {
     forceOpen: true,
     scroll: false,
   });

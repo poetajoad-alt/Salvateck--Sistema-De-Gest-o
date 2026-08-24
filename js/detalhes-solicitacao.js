@@ -44,6 +44,11 @@ const statusConfig = {
     classe: "status--agendada",
   },
 
+  "aguardando-validacao": {
+    nome: "Aguardando validação",
+    classe: "status--aguardando-validacao",
+  },
+
   concluida: {
     nome: "Concluída",
     classe: "status--concluida",
@@ -364,6 +369,49 @@ const reschedulePeriod = document.getElementById("reschedule-period");
 const rescheduleTime = document.getElementById("reschedule-time");
 
 const rescheduleMessage = document.getElementById("reschedule-message");
+
+/* Execução do funcionário */
+
+const employeeExecutionCard = document.getElementById(
+  "employee-execution-card",
+);
+
+const employeeExecutionStatusMessage = document.getElementById(
+  "employee-execution-status-message",
+);
+
+const employeeExecutionNotes = document.getElementById(
+  "employee-execution-notes",
+);
+
+const submitEmployeeExecutionButton = document.getElementById(
+  "submit-employee-execution-button",
+);
+
+/* Validação da execução */
+
+const adminValidationCard = document.getElementById("admin-validation-card");
+
+const adminValidationEmployee = document.getElementById(
+  "admin-validation-employee",
+);
+
+const adminValidationDate = document.getElementById("admin-validation-date");
+
+const adminValidationNotes = document.getElementById("admin-validation-notes");
+
+const reviewInspectionChecklistButton = document.getElementById(
+  "review-inspection-checklist-button",
+);
+
+const validateEmployeeExecutionButton = document.getElementById(
+  "validate-employee-execution-button",
+);
+
+const returnEmployeeExecutionButton = document.getElementById(
+  "return-employee-execution-button",
+);
+
 /* Ações do cliente */
 
 const clientActionsCard = document.getElementById("client-actions-card");
@@ -555,6 +603,8 @@ function normalizeStatus(status) {
     agendada: "agendada",
 
     agendado: "agendada",
+
+    "aguardando-validacao": "aguardando-validacao",
 
     concluida: "concluida",
 
@@ -1028,6 +1078,38 @@ function normalizeOrder(snapshot) {
           }
         : null,
 
+    execucaoFuncionario:
+      order.execucaoFuncionario && typeof order.execucaoFuncionario === "object"
+        ? {
+            status: String(order.execucaoFuncionario.status || "").trim(),
+
+            funcionarioUid: String(
+              order.execucaoFuncionario.funcionarioUid || "",
+            ).trim(),
+
+            funcionarioId: String(
+              order.execucaoFuncionario.funcionarioId || "",
+            ).trim(),
+
+            funcionarioCodigo: String(
+              order.execucaoFuncionario.funcionarioCodigo || "",
+            ).trim(),
+
+            funcionarioNome: String(
+              order.execucaoFuncionario.funcionarioNome || "",
+            ).trim(),
+
+            observacao: String(
+              order.execucaoFuncionario.observacao || "",
+            ).trim(),
+
+            finalizadoEm: order.execucaoFuncionario.finalizadoEm || null,
+
+            enviadoParaValidacaoEm:
+              order.execucaoFuncionario.enviadoParaValidacaoEm || null,
+          }
+        : null,
+
     responsabilidadeTecnica: {
       nome: String(order.responsabilidadeTecnica?.nome || "").trim(),
 
@@ -1235,6 +1317,13 @@ async function loadRequest() {
   if (
     currentSession.role === "cliente" &&
     request.clienteId !== currentSession.uid
+  ) {
+    throw new Error("REQUEST_ACCESS_DENIED");
+  }
+
+  if (
+    currentSession.role === "funcionario" &&
+    request.funcionarioResponsavelUid !== currentSession.uid
   ) {
     throw new Error("REQUEST_ACCESS_DENIED");
   }
@@ -1540,7 +1629,7 @@ function renderTimeline() {
     return;
   }
 
-  if (currentRequest.status === "agendada") {
+  if (["agendada", "aguardando-validacao"].includes(currentRequest.status)) {
     items[0]?.classList.add("is-completed");
     items[1]?.classList.add("is-completed");
     items[2]?.classList.add("is-completed");
@@ -2773,6 +2862,32 @@ function renderObservations() {
   internalObservation.textContent =
     observations.interna || "Nenhuma observação interna registrada.";
 }
+
+/* =========================================
+   VALIDAÇÃO DA EXECUÇÃO
+========================================= */
+
+function renderAdminValidation() {
+  const execution = currentRequest.execucaoFuncionario || {};
+
+  const employeeLabel =
+    [execution.funcionarioCodigo, execution.funcionarioNome]
+      .filter(Boolean)
+      .join(" — ") ||
+    currentRequest.funcionarioResponsavel?.nome ||
+    "Funcionário não identificado";
+
+  adminValidationEmployee.textContent = employeeLabel;
+
+  adminValidationDate.textContent = formatDateTime(
+    execution.enviadoParaValidacaoEm || execution.finalizadoEm,
+  );
+
+  adminValidationNotes.textContent =
+    execution.observacao ||
+    "Nenhuma observação foi registrada pelo funcionário.";
+}
+
 /* =========================================
    RESPONSABILIDADE TÉCNICA
 ========================================= */
@@ -4418,6 +4533,12 @@ function syncPriority() {
 function renderProfile() {
   const isAdmin = currentSession.role === "admin";
 
+  const isFuncionario = currentSession.role === "funcionario";
+
+  const isAssignedEmployee =
+    isFuncionario &&
+    currentRequest.funcionarioResponsavelUid === currentSession.uid;
+
   const status = currentRequest.status;
 
   const isNewOrAnalysis = ["nova-solicitacao", "em-analise"].includes(status);
@@ -4425,6 +4546,8 @@ function renderProfile() {
   const isAwaitingConfirmation = status === "aguardando-confirmacao";
 
   const isScheduled = status === "agendada";
+
+  const isAwaitingValidation = status === "aguardando-validacao";
 
   const isInspection = currentRequest.tipoAtendimento === "vistoria";
 
@@ -4445,11 +4568,55 @@ function renderProfile() {
   });
 
   clientOnlyElements.forEach((element) => {
-    element.hidden = isAdmin;
+    element.hidden = currentSession.role !== "cliente";
   });
 
-  priorityCard.hidden = !isAdmin || isFinalStatus;
+  const canSubmitEmployeeExecution =
+    isAssignedEmployee && isScheduled && !isInspection;
 
+  employeeExecutionCard.hidden =
+    !isAssignedEmployee || isFinalStatus || isInspection;
+
+  employeeExecutionNotes.disabled = !canSubmitEmployeeExecution;
+
+  submitEmployeeExecutionButton.disabled = !canSubmitEmployeeExecution;
+
+  if (isAssignedEmployee && !isInspection) {
+    if (isAwaitingValidation) {
+      employeeExecutionStatusMessage.textContent =
+        "O serviço foi enviado para validação da Administração.";
+
+      employeeExecutionNotes.value =
+        currentRequest.execucaoFuncionario?.observacao || "";
+    } else if (isScheduled) {
+      const wasReturned =
+        currentRequest.execucaoFuncionario?.status === "devolvida";
+
+      employeeExecutionStatusMessage.textContent = wasReturned
+        ? "A Administração devolveu esta OS para revisão. Confira a execução, ajuste a observação se necessário e envie novamente para validação."
+        : "O atendimento está liberado para execução. Após concluir o serviço, envie a OS para validação da Administração.";
+
+      employeeExecutionNotes.value =
+        currentRequest.execucaoFuncionario?.observacao || "";
+    } else {
+      employeeExecutionStatusMessage.textContent =
+        "Aguarde a confirmação e o agendamento da OS pela Administração antes de finalizar o serviço.";
+    }
+  }
+
+  adminValidationCard.hidden = !isAdmin || !isAwaitingValidation;
+
+  reviewInspectionChecklistButton.hidden =
+    !isAdmin || !isAwaitingValidation || !isInspection || !hasLinkedInspection;
+
+  reviewInspectionChecklistButton.disabled =
+    !isAdmin || !isAwaitingValidation || !isInspection || !hasLinkedInspection;
+
+  validateEmployeeExecutionButton.disabled = !isAdmin || !isAwaitingValidation;
+
+  returnEmployeeExecutionButton.disabled = !isAdmin || !isAwaitingValidation;
+
+  priorityCard.hidden = !isAdmin || isFinalStatus;
   priorityInputs.forEach((input) => {
     input.disabled = !isAdmin || isFinalStatus;
   });
@@ -4462,11 +4629,13 @@ function renderProfile() {
 
   saveOrderValueButton.disabled = !isAdmin || orderValueLocked;
 
-  employeeAssignmentCard.hidden = !isAdmin || isFinalStatus;
+  employeeAssignmentCard.hidden =
+    !isAdmin || isFinalStatus || isAwaitingValidation;
 
-  assignedEmployee.disabled = !isAdmin || isFinalStatus;
+  assignedEmployee.disabled = !isAdmin || isFinalStatus || isAwaitingValidation;
 
-  saveEmployeeAssignmentButton.disabled = !isAdmin || isFinalStatus;
+  saveEmployeeAssignmentButton.disabled =
+    !isAdmin || isFinalStatus || isAwaitingValidation;
 
   technicalResponsibilityCard.hidden = !isAdmin || isFinalStatus;
 
@@ -4518,7 +4687,8 @@ function renderProfile() {
 
   rejectRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
 
-  clientActionsCard.hidden = isAdmin || isFinalStatus || status === "agendada";
+  clientActionsCard.hidden =
+    currentSession.role !== "cliente" || isFinalStatus || status === "agendada";
 
   internalObservationBox.hidden = !isAdmin;
 
@@ -4547,6 +4717,8 @@ function renderAll() {
   renderPhotos();
 
   renderObservations();
+
+  renderAdminValidation();
 
   renderOrderValue();
 
@@ -5506,6 +5678,186 @@ function buildFinalDocument(
     },
   };
 }
+
+/* =========================================
+   EXECUÇÃO DO FUNCIONÁRIO
+========================================= */
+
+let enviadorExecucaoParaValidacao = null;
+
+async function obterEnviadorExecucaoParaValidacao() {
+  if (enviadorExecucaoParaValidacao) {
+    return enviadorExecucaoParaValidacao;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  enviadorExecucaoParaValidacao = functionsModule.httpsCallable(
+    functions,
+    "enviarExecucaoParaValidacao",
+  );
+
+  return enviadorExecucaoParaValidacao;
+}
+
+function getEmployeeExecutionErrorMessage(error) {
+  const code = String(error?.code || "");
+
+  if (code === "functions/unauthenticated") {
+    return "Sua sessão expirou. Entre novamente no sistema.";
+  }
+
+  if (code === "functions/permission-denied") {
+    return (
+      error?.message ||
+      "Você não possui permissão para enviar esta Ordem de Serviço."
+    );
+  }
+
+  if (code === "functions/failed-precondition") {
+    return (
+      error?.message ||
+      "Esta Ordem de Serviço não pode ser enviada para validação."
+    );
+  }
+
+  if (code === "functions/not-found") {
+    return "A Ordem de Serviço não foi encontrada.";
+  }
+
+  if (code === "functions/invalid-argument") {
+    return error?.message || "Revise os dados informados.";
+  }
+
+  return (
+    error?.message ||
+    "Não foi possível enviar o serviço para validação da Administração."
+  );
+}
+
+async function sendEmployeeExecutionForValidation() {
+  if (
+    savingChanges ||
+    currentSession.role !== "funcionario" ||
+    currentRequest.funcionarioResponsavelUid !== currentSession.uid ||
+    currentRequest.status !== "agendada" ||
+    currentRequest.tipoAtendimento === "vistoria"
+  ) {
+    return;
+  }
+
+  const observacao = String(employeeExecutionNotes.value || "").trim();
+
+  if (observacao.length > 1000) {
+    showFeedback(
+      "A observação da execução deve ter no máximo 1000 caracteres.",
+    );
+
+    return;
+  }
+
+  const originalText = submitEmployeeExecutionButton.textContent;
+
+  savingChanges = true;
+
+  submitEmployeeExecutionButton.disabled = true;
+
+  submitEmployeeExecutionButton.textContent = "Enviando...";
+
+  try {
+    const enviarExecucao = await obterEnviadorExecucaoParaValidacao();
+
+    const resposta = await enviarExecucao({
+      ordemId: currentRequest.documentId,
+      observacao,
+    });
+
+    const resultado = resposta.data || {};
+
+    if (
+      resultado.sucesso !== true ||
+      resultado.status !== "aguardando-validacao"
+    ) {
+      throw new Error("RESPOSTA_INVALIDA_DA_EXECUCAO");
+    }
+
+    await loadRequest();
+
+    renderAll();
+
+    showFeedback(
+      "Serviço executado. A OS foi enviada para validação da Administração.",
+    );
+  } catch (error) {
+    console.error(
+      "[Detalhes] Não foi possível enviar a execução para validação:",
+      error,
+    );
+
+    showFeedback(getEmployeeExecutionErrorMessage(error));
+
+    throw error;
+  } finally {
+    savingChanges = false;
+
+    submitEmployeeExecutionButton.textContent = originalText;
+
+    if (currentRequest?.status === "agendada") {
+      submitEmployeeExecutionButton.disabled = false;
+    }
+  }
+}
+
+function confirmEmployeeExecution() {
+  if (currentSession.role !== "funcionario") {
+    return;
+  }
+
+  if (currentRequest.funcionarioResponsavelUid !== currentSession.uid) {
+    showFeedback("Esta Ordem de Serviço não está atribuída a você.");
+
+    return;
+  }
+
+  if (currentRequest.tipoAtendimento === "vistoria") {
+    showFeedback(
+      "Vistorias devem ser concluídas pelo fluxo próprio de checklist.",
+    );
+
+    return;
+  }
+
+  if (currentRequest.status !== "agendada") {
+    showFeedback(
+      "Somente uma Ordem de Serviço agendada pode ser enviada para validação.",
+    );
+
+    return;
+  }
+
+  openModal({
+    title: "Serviço executado",
+
+    description:
+      "Confirme que o serviço foi realizado. A OS será enviada para a Administração revisar antes da conclusão definitiva.",
+
+    confirmationText: "Enviar para validação",
+
+    confirm: sendEmployeeExecutionForValidation,
+  });
+}
+
 /* =========================================
    ABRIR OU INICIAR VISTORIA
 ========================================= */
@@ -5638,11 +5990,69 @@ async function openInspectionExecution() {
 }
 
 /* =========================================
+   DEVOLVER EXECUÇÃO AO FUNCIONÁRIO
+========================================= */
+
+function returnEmployeeExecution() {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.status !== "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  openModal({
+    title: "Devolver ao funcionário",
+
+    description:
+      "A OS voltará para Agendada e ficará novamente liberada para o funcionário revisar a execução e reenviar para validação.",
+
+    confirmationText: "Devolver ao funcionário",
+
+    danger: true,
+
+    confirm: async () => {
+      const adminName =
+        currentSession.nome ||
+        currentSession.profile?.nome ||
+        currentSession.email ||
+        "Administrador";
+
+      await saveChanges(
+        {
+          status: "agendada",
+
+          execucaoFuncionario: {
+            ...(currentRequest.execucaoFuncionario || {}),
+
+            status: "devolvida",
+
+            devolvidaEm: serverTimestamp(),
+
+            devolvidaPorUid: currentSession.uid,
+
+            devolvidaPorNome: adminName,
+          },
+        },
+
+        "OS devolvida ao funcionário para revisão.",
+      );
+    },
+  });
+}
+
+/* =========================================
    CONCLUIR ORDEM DE SERVIÇO
 ========================================= */
 
 function completeRequest() {
-  if (currentSession.role !== "admin" || currentRequest.status !== "agendada") {
+  const isValidation = currentRequest.status === "aguardando-validacao";
+
+  const canComplete = ["agendada", "aguardando-validacao"].includes(
+    currentRequest.status,
+  );
+
+  if (currentSession.role !== "admin" || !canComplete) {
     return;
   }
 
@@ -5662,12 +6072,15 @@ function completeRequest() {
   }
 
   openModal({
-    title: "Concluir ordem de serviço",
+    title: isValidation
+      ? "Validar e concluir ordem de serviço"
+      : "Concluir ordem de serviço",
 
-    description:
-      "Confirme que o atendimento foi realizado. A OS será movida para Concluídas e não poderá mais ser alterada por esta tela.",
+    description: isValidation
+      ? "Confirme que a execução enviada pelo funcionário foi revisada e aprovada. A OS será concluída definitivamente."
+      : "Confirme que o atendimento foi realizado. A OS será movida para Concluídas e não poderá mais ser alterada por esta tela.",
 
-    confirmationText: "Concluir OS",
+    confirmationText: isValidation ? "Validar e concluir OS" : "Concluir OS",
 
     confirm: async () => {
       const responsibleName =
@@ -5707,7 +6120,6 @@ function completeRequest() {
 
         atualizadoEm: serverTimestamp(),
       };
-
       const changes = {
         status: "concluida",
 
@@ -5725,6 +6137,20 @@ function completeRequest() {
           technicalResponsibility,
         ),
       };
+
+      if (isValidation && currentRequest.execucaoFuncionario) {
+        changes.execucaoFuncionario = {
+          ...currentRequest.execucaoFuncionario,
+
+          status: "validada",
+
+          validadaEm: serverTimestamp(),
+
+          validadaPorUid: currentSession.uid,
+
+          validadaPorNome: responsibleName,
+        };
+      }
 
       if (currentRequest.tipoAtendimento === "vistoria") {
         changes["vistoria.status"] = "concluida";
@@ -5847,6 +6273,10 @@ function submitRejection(event) {
 ========================================= */
 
 function cancelRequest() {
+  if (currentSession.role !== "cliente") {
+    return;
+  }
+
   openModal({
     title: "Cancelar solicitação",
 
@@ -5957,6 +6387,46 @@ rescheduleRequestButton.addEventListener("click", () => {
 });
 
 startInspectionButton.addEventListener("click", openInspectionExecution);
+
+submitEmployeeExecutionButton.addEventListener(
+  "click",
+  confirmEmployeeExecution,
+);
+
+reviewInspectionChecklistButton.addEventListener("click", () => {
+  if (
+    currentSession.role !== "admin" ||
+    currentRequest.tipoAtendimento !== "vistoria" ||
+    currentRequest.status !== "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  const linkedInspectionId = getLinkedInspectionId();
+
+  if (!linkedInspectionId) {
+    showFeedback(
+      "Não foi possível localizar a vistoria enviada pelo funcionário.",
+    );
+
+    return;
+  }
+
+  const parameters = new URLSearchParams({
+    perfil: "admin",
+    vistoria: linkedInspectionId,
+    modo: "consulta",
+  });
+
+  window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+});
+
+validateEmployeeExecutionButton.addEventListener("click", completeRequest);
+
+returnEmployeeExecutionButton.addEventListener(
+  "click",
+  returnEmployeeExecution,
+);
 
 completeRequestButton.addEventListener("click", completeRequest);
 

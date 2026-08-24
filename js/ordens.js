@@ -587,10 +587,21 @@ async function carregarSolicitacoesDoFirestore() {
 
   const ordensReference = collection(db, "ordens");
 
-  const consulta =
-    perfilAtual === "cliente"
-      ? query(ordensReference, where("clienteUid", "==", sessaoAtual.uid))
-      : ordensReference;
+  let consulta = ordensReference;
+
+  if (perfilAtual === "cliente") {
+    consulta = query(
+      ordensReference,
+      where("clienteUid", "==", sessaoAtual.uid),
+    );
+  }
+
+  if (perfilAtual === "funcionario") {
+    consulta = query(
+      ordensReference,
+      where("funcionarioResponsavelUid", "==", sessaoAtual.uid),
+    );
+  }
 
   const resultado = await getDocs(consulta);
 
@@ -608,7 +619,13 @@ async function carregarSolicitacoesDoFirestore() {
 function configurarTextosDoPerfil() {
   const isAdmin = perfilAtual === "admin";
 
+  const isFuncionario = perfilAtual === "funcionario";
+
   body.dataset.profile = perfilAtual;
+
+  newRequestButton.hidden = isFuncionario;
+
+  emptyStateButton.hidden = isFuncionario;
 
   requestsBackButton.href = "principal.html";
 
@@ -641,6 +658,26 @@ function configurarTextosDoPerfil() {
       "Não existem ordens correspondentes à pesquisa ou aos filtros selecionados.";
 
     emptyStateButton.textContent = "Criar ordem de serviço";
+  } else if (isFuncionario) {
+    document.title = "Minhas OS | Salvateck";
+
+    pageTitle.textContent = "Minhas OS";
+    profileBadge.textContent = "Área do funcionário";
+
+    introTitle.textContent = "Ordens atribuídas a você";
+
+    introDescription.textContent =
+      "Consulte as ordens de serviço sob sua responsabilidade e acompanhe os atendimentos atribuídos.";
+
+    requestSearch.placeholder = "Pesquisar OS atribuída";
+
+    listEyebrow.textContent = "Sua operação";
+    listTitle.textContent = "Ordens atribuídas";
+
+    emptyStateTitle.textContent = "Nenhuma OS atribuída";
+
+    emptyStateDescription.textContent =
+      "Quando uma ordem de serviço for atribuída a você, ela aparecerá nesta página.";
   } else {
     document.title = "Minhas Solicitações | Salvateck";
 
@@ -678,7 +715,11 @@ function configurarTextosDoPerfil() {
 }
 
 function aplicarPerfilDaSessao(sessao) {
-  if (sessao.role !== "cliente" && sessao.role !== "admin") {
+  if (
+    sessao.role !== "cliente" &&
+    sessao.role !== "admin" &&
+    sessao.role !== "funcionario"
+  ) {
     return;
   }
 
@@ -840,7 +881,7 @@ function limparFiltros() {
 ========================================= */
 
 function obterSolicitacoesDoPerfil() {
-  if (perfilAtual === "admin") {
+  if (perfilAtual === "admin" || perfilAtual === "funcionario") {
     return [...ordens];
   }
 
@@ -1131,7 +1172,17 @@ function preencherCard(solicitacao) {
   expandedAddress.textContent =
     solicitacao.endereco || "Endereço não informado";
 
-  adminArea.hidden = perfilAtual !== "admin";
+  const isAdmin = perfilAtual === "admin";
+
+  const isFuncionario = perfilAtual === "funcionario";
+
+  adminArea.hidden = !isAdmin && !isFuncionario;
+
+  const priorityBox = priority.closest(".request-card__priority");
+
+  if (priorityBox) {
+    priorityBox.hidden = !isAdmin;
+  }
 
   const textoDaAcaoPorStatus = {
     "nova-solicitacao": "Analisar ordem",
@@ -1143,8 +1194,9 @@ function preencherCard(solicitacao) {
     cancelada: "Consultar ordem",
   };
 
-  analyzeButton.textContent =
-    textoDaAcaoPorStatus[solicitacao.status] || "Abrir ordem";
+  analyzeButton.textContent = isFuncionario
+    ? "Abrir ordem"
+    : textoDaAcaoPorStatus[solicitacao.status] || "Abrir ordem";
 
   priority.textContent = priorityData.nome;
   priority.classList.add(priorityData.classe);

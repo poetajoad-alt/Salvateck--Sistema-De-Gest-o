@@ -194,6 +194,48 @@ service firebase.storage {
         && condominioExiste(condominioId);
     }
 
+        /* =====================================
+       DOCUMENTOS PRIVADOS DOS FUNCIONÁRIOS
+    ===================================== */
+
+    function funcionarioExiste(funcionarioId) {
+      return firestore.exists(
+        /databases/(default)/documents/funcionarios/$(funcionarioId)
+      );
+    }
+
+    function documentoFuncionarioValido(funcionarioId, categoria) {
+      return categoria in [
+        "identificacao",
+        "contrato",
+        "certificados",
+        "outros"
+      ]
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType in [
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ]
+        && request.resource.metadata.funcionarioId == funcionarioId
+        && request.resource.metadata.categoria == categoria
+        && request.resource.metadata.enviadoPorUid == request.auth.uid;
+    }
+
+    match /funcionarios-privados/{funcionarioId}/documentos/{categoria}/{arquivo} {
+      allow read: if eAdministrador();
+
+      allow create: if eAdministrador()
+        && funcionarioExiste(funcionarioId)
+        && documentoFuncionarioValido(funcionarioId, categoria);
+
+      allow update: if false;
+
+      allow delete: if eAdministrador();
+    }
+
     /* =====================================
        BLOQUEIO GERAL
     ===================================== */

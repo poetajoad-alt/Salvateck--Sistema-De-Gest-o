@@ -11,9 +11,16 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
-  setDoc,
-  updateDoc,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+import {
+  deleteObject,
+  getBlob,
+  getStorage,
+  ref,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
 
 import {
   getFunctions,
@@ -26,6 +33,8 @@ const criarAcessoFuncionarioCallable = httpsCallable(
   functions,
   "criarAcessoFuncionario",
 );
+
+const storage = getStorage(auth.app);
 
 /* =========================================================
    SALVATECK
@@ -52,6 +61,62 @@ const availabilityLabels = {
   indisponivel: "Indisponível",
 };
 
+const contractTypeLabels = {
+  clt: "CLT",
+  pj: "PJ",
+  autonomo: "Autônomo",
+  contrato: "Contrato",
+  outro: "Outro",
+};
+
+const paymentPeriodicityLabels = {
+  mensal: "Mensal",
+  quinzenal: "Quinzenal",
+  semanal: "Semanal",
+  diaria: "Diária",
+  "por-servico": "Por serviço",
+};
+
+const paymentMethodLabels = {
+  pix: "Pix",
+  transferencia: "Transferência bancária",
+  deposito: "Depósito",
+  dinheiro: "Dinheiro",
+  outro: "Outro",
+};
+
+const bankAccountTypeLabels = {
+  corrente: "Conta corrente",
+  poupanca: "Poupança",
+  pagamento: "Conta de pagamento",
+};
+
+const privateDocumentCategoryLabels = {
+  identificacao: "Identificação",
+  contrato: "Contrato",
+  certificados: "Certificados e NRs",
+  outros: "Outros documentos",
+};
+
+const maxPrivateDocumentSize = 10 * 1024 * 1024;
+
+const maxPrivateDocumentsPerEmployee = 30;
+
+const acceptedPrivateDocumentTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const acceptedPrivateDocumentExtensions = new Set([
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+]);
+
 /* =========================================================
    ESTADO
 ========================================================= */
@@ -65,6 +130,10 @@ let filteredEmployees = [];
 let editingEmployeeId = null;
 
 let detailsEmployeeId = null;
+
+let privateEmployeeId = null;
+
+let editingPrivateEmployeeData = null;
 
 let feedbackTimer = null;
 
@@ -162,6 +231,100 @@ const employeeSpecialtyInputs = Array.from(
   document.querySelectorAll('input[name="employeeSpecialty"]'),
 );
 
+const employeeCpf = document.getElementById("employee-cpf");
+
+const employeeRg = document.getElementById("employee-rg");
+
+const employeeBirthDate = document.getElementById("employee-birth-date");
+
+const employeeCnh = document.getElementById("employee-cnh");
+
+const employeeCnhExpiration = document.getElementById(
+  "employee-cnh-expiration",
+);
+
+const employeeAddressZip = document.getElementById("employee-address-zip");
+
+const employeeAddressStreet = document.getElementById(
+  "employee-address-street",
+);
+
+const employeeAddressNumber = document.getElementById(
+  "employee-address-number",
+);
+
+const employeeAddressComplement = document.getElementById(
+  "employee-address-complement",
+);
+
+const employeeAddressNeighborhood = document.getElementById(
+  "employee-address-neighborhood",
+);
+
+const employeeAddressCity = document.getElementById("employee-address-city");
+
+const employeeAddressState = document.getElementById("employee-address-state");
+
+const employeeEmergencyName = document.getElementById(
+  "employee-emergency-name",
+);
+
+const employeeEmergencyRelation = document.getElementById(
+  "employee-emergency-relation",
+);
+
+const employeeEmergencyPhone = document.getElementById(
+  "employee-emergency-phone",
+);
+
+const employeeContractType = document.getElementById("employee-contract-type");
+
+const employeePaymentValue = document.getElementById("employee-payment-value");
+
+const employeePaymentPeriodicity = document.getElementById(
+  "employee-payment-periodicity",
+);
+
+const employeePaymentMethod = document.getElementById(
+  "employee-payment-method",
+);
+
+const employeeBank = document.getElementById("employee-bank");
+
+const employeeBankAgency = document.getElementById("employee-bank-agency");
+
+const employeeBankAccount = document.getElementById("employee-bank-account");
+
+const employeeBankAccountType = document.getElementById(
+  "employee-bank-account-type",
+);
+
+const employeePixKey = document.getElementById("employee-pix-key");
+
+const employeeDocumentIdentification = document.getElementById(
+  "employee-document-identification",
+);
+
+const employeeDocumentContract = document.getElementById(
+  "employee-document-contract",
+);
+
+const employeeDocumentCertificates = document.getElementById(
+  "employee-document-certificates",
+);
+
+const employeeDocumentOther = document.getElementById(
+  "employee-document-other",
+);
+
+const employeePrivateDocumentsCurrent = document.getElementById(
+  "employee-private-documents-current",
+);
+
+const employeePrivateDocumentsList = document.getElementById(
+  "employee-private-documents-list",
+);
+
 /* =========================================================
    MODAL DE DETALHES
 ========================================================= */
@@ -210,6 +373,90 @@ const employeeDetailsNotes = document.getElementById("employee-details-notes");
 
 const editEmployeeFromDetailsButton = document.getElementById(
   "edit-employee-from-details-button",
+);
+
+const openEmployeePrivateButton = document.getElementById(
+  "open-employee-private-button",
+);
+
+/* =========================================================
+   MODAL CONFIDENCIAL
+========================================================= */
+
+const employeePrivateModal = document.getElementById("employee-private-modal");
+
+const closeEmployeePrivateModalButton = document.getElementById(
+  "close-employee-private-modal-button",
+);
+
+const employeePrivateCode = document.getElementById("employee-private-code");
+
+const employeePrivateName = document.getElementById("employee-private-name");
+
+const employeePrivateCpf = document.getElementById("employee-private-cpf");
+
+const employeePrivateRg = document.getElementById("employee-private-rg");
+
+const employeePrivateBirthDate = document.getElementById(
+  "employee-private-birth-date",
+);
+
+const employeePrivateCnh = document.getElementById("employee-private-cnh");
+
+const employeePrivateCnhExpiration = document.getElementById(
+  "employee-private-cnh-expiration",
+);
+
+const employeePrivateAddress = document.getElementById(
+  "employee-private-address",
+);
+
+const employeePrivateEmergency = document.getElementById(
+  "employee-private-emergency",
+);
+
+const employeePrivateContractType = document.getElementById(
+  "employee-private-contract-type",
+);
+
+const employeePrivatePaymentValue = document.getElementById(
+  "employee-private-payment-value",
+);
+
+const employeePrivatePaymentPeriodicity = document.getElementById(
+  "employee-private-payment-periodicity",
+);
+
+const employeePrivatePaymentMethod = document.getElementById(
+  "employee-private-payment-method",
+);
+
+const employeePrivateBank = document.getElementById("employee-private-bank");
+
+const employeePrivateBankAgency = document.getElementById(
+  "employee-private-bank-agency",
+);
+
+const employeePrivateBankAccount = document.getElementById(
+  "employee-private-bank-account",
+);
+
+const employeePrivateBankAccountType = document.getElementById(
+  "employee-private-bank-account-type",
+);
+
+const employeePrivatePixKey = document.getElementById(
+  "employee-private-pix-key",
+);
+
+const employeePrivateFiles = document.getElementById("employee-private-files");
+
+const employeePrivateFilesEmpty = document.getElementById(
+  "employee-private-files-empty",
+);
+
+const editEmployeeFromPrivateButton = document.getElementById(
+  "edit-employee-from-private-button",
 );
 
 /* =========================================================
@@ -337,6 +584,212 @@ function getNextEmployeeCode() {
   return `FUNC-${String(highestNumber + 1).padStart(4, "0")}`;
 }
 
+function formatCpf(value) {
+  const digits = String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, 11);
+
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  }
+
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(
+    6,
+    9,
+  )}-${digits.slice(9)}`;
+}
+
+function formatZipCode(value) {
+  const digits = String(value || "")
+    .replace(/\D/g, "")
+    .slice(0, 8);
+
+  if (digits.length <= 5) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function formatCurrency(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return "Não informado";
+  }
+
+  return number.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function getFileExtension(fileName) {
+  const parts = String(fileName || "")
+    .trim()
+    .toLowerCase()
+    .split(".");
+
+  return parts.length > 1 ? parts.pop() : "";
+}
+
+function sanitizePrivateFileName(fileName) {
+  const normalizedName = String(fileName || "documento")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalizedName || "documento";
+}
+
+function createPrivateDocumentId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getPrivateDocumentCategoryLabel(value) {
+  return privateDocumentCategoryLabels[value] || "Documento";
+}
+
+function getContractTypeLabel(value) {
+  return contractTypeLabels[value] || "Não informado";
+}
+
+function getPaymentPeriodicityLabel(value) {
+  return paymentPeriodicityLabels[value] || "Não informada";
+}
+
+function getPaymentMethodLabel(value) {
+  return paymentMethodLabels[value] || "Não informada";
+}
+
+function getBankAccountTypeLabel(value) {
+  return bankAccountTypeLabels[value] || "Não informado";
+}
+
+function buildPrivateAddress(data) {
+  const address = data?.endereco || {};
+
+  const firstLine = [
+    String(address.logradouro || "").trim(),
+    String(address.numero || "").trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const secondLine = [
+    String(address.complemento || "").trim(),
+    String(address.bairro || "").trim(),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const cityState = [
+    String(address.cidade || "").trim(),
+    String(address.estado || "")
+      .trim()
+      .toUpperCase(),
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  const zipCode = String(address.cep || "").trim();
+
+  return [firstLine, secondLine, cityState, zipCode]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function buildEmergencyContact(data) {
+  const emergency = data?.contatoEmergencia || {};
+
+  const identification = [
+    String(emergency.nome || "").trim(),
+    String(emergency.relacao || "").trim(),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const phone = String(emergency.telefone || "").trim();
+
+  return [identification, phone].filter(Boolean).join(" · ");
+}
+
+function getPrivateDocumentInputs() {
+  return [
+    {
+      category: "identificacao",
+      input: employeeDocumentIdentification,
+    },
+    {
+      category: "contrato",
+      input: employeeDocumentContract,
+    },
+    {
+      category: "certificados",
+      input: employeeDocumentCertificates,
+    },
+    {
+      category: "outros",
+      input: employeeDocumentOther,
+    },
+  ];
+}
+
+function getPendingPrivateDocuments() {
+  return getPrivateDocumentInputs().flatMap(({ category, input }) =>
+    Array.from(input.files || []).map((file) => ({
+      category,
+      file,
+    })),
+  );
+}
+
+function validatePrivateDocuments(existingDocuments = []) {
+  const pendingDocuments = getPendingPrivateDocuments();
+
+  if (
+    existingDocuments.length + pendingDocuments.length >
+    maxPrivateDocumentsPerEmployee
+  ) {
+    throw new Error(
+      `Cada funcionário pode possuir no máximo ${maxPrivateDocumentsPerEmployee} documentos privados.`,
+    );
+  }
+
+  pendingDocuments.forEach(({ file }) => {
+    const extension = getFileExtension(file.name);
+
+    if (
+      !acceptedPrivateDocumentTypes.has(file.type) &&
+      !acceptedPrivateDocumentExtensions.has(extension)
+    ) {
+      throw new Error(
+        `O arquivo "${file.name}" possui um formato não permitido.`,
+      );
+    }
+
+    if (file.size > maxPrivateDocumentSize) {
+      throw new Error(`O arquivo "${file.name}" ultrapassa o limite de 10 MB.`);
+    }
+  });
+
+  return pendingDocuments;
+}
+
 /* =========================================================
    NORMALIZAÇÃO DO FIRESTORE
 ========================================================= */
@@ -393,6 +846,149 @@ function normalizeEmployee(snapshot) {
 
     atualizadoEm: employee.atualizadoEm || null,
   };
+}
+
+function normalizePrivateEmployee(snapshot) {
+  if (!snapshot?.exists()) {
+    return {
+      funcionarioId: snapshot?.id || "",
+      cpf: "",
+      rg: "",
+      dataNascimento: "",
+      cnh: "",
+      cnhValidade: "",
+      endereco: {
+        cep: "",
+        logradouro: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
+      },
+      contatoEmergencia: {
+        nome: "",
+        relacao: "",
+        telefone: "",
+      },
+      contrato: {
+        tipo: "",
+      },
+      pagamento: {
+        valor: null,
+        periodicidade: "",
+        forma: "",
+      },
+      dadosBancarios: {
+        banco: "",
+        agencia: "",
+        conta: "",
+        tipoConta: "",
+        chavePix: "",
+      },
+      documentos: [],
+      criadoEm: null,
+      atualizadoEm: null,
+    };
+  }
+
+  const data = snapshot.data();
+
+  const address = data.endereco || {};
+
+  const emergency = data.contatoEmergencia || {};
+
+  const contract = data.contrato || {};
+
+  const payment = data.pagamento || {};
+
+  const bank = data.dadosBancarios || {};
+
+  return {
+    funcionarioId: snapshot.id,
+
+    cpf: String(data.cpf || "").trim(),
+
+    rg: String(data.rg || "").trim(),
+
+    dataNascimento: String(data.dataNascimento || "").trim(),
+
+    cnh: String(data.cnh || "").trim(),
+
+    cnhValidade: String(data.cnhValidade || "").trim(),
+
+    endereco: {
+      cep: String(address.cep || "").trim(),
+      logradouro: String(address.logradouro || "").trim(),
+      numero: String(address.numero || "").trim(),
+      complemento: String(address.complemento || "").trim(),
+      bairro: String(address.bairro || "").trim(),
+      cidade: String(address.cidade || "").trim(),
+      estado: String(address.estado || "")
+        .trim()
+        .toUpperCase(),
+    },
+
+    contatoEmergencia: {
+      nome: String(emergency.nome || "").trim(),
+      relacao: String(emergency.relacao || "").trim(),
+      telefone: String(emergency.telefone || "").trim(),
+    },
+
+    contrato: {
+      tipo: String(contract.tipo || "").trim(),
+    },
+
+    pagamento: {
+      valor: Number.isFinite(Number(payment.valor))
+        ? Number(payment.valor)
+        : null,
+      periodicidade: String(payment.periodicidade || "").trim(),
+      forma: String(payment.forma || "").trim(),
+    },
+
+    dadosBancarios: {
+      banco: String(bank.banco || "").trim(),
+      agencia: String(bank.agencia || "").trim(),
+      conta: String(bank.conta || "").trim(),
+      tipoConta: String(bank.tipoConta || "").trim(),
+      chavePix: String(bank.chavePix || "").trim(),
+    },
+
+    documentos: Array.isArray(data.documentos)
+      ? data.documentos
+          .map((document) => ({
+            id: String(document?.id || "").trim(),
+            categoria: String(document?.categoria || "").trim(),
+            nome: String(document?.nome || "").trim(),
+            caminho: String(document?.caminho || "").trim(),
+            tipo: String(document?.tipo || "").trim(),
+            tamanho: Number(document?.tamanho || 0),
+            enviadoEm: String(document?.enviadoEm || "").trim(),
+          }))
+          .filter((document) => document.id && document.caminho)
+      : [],
+
+    criadoEm: data.criadoEm || null,
+
+    atualizadoEm: data.atualizadoEm || null,
+  };
+}
+
+async function loadPrivateEmployeeData(employeeDocumentId) {
+  if (!employeeDocumentId) {
+    return normalizePrivateEmployee(null);
+  }
+
+  if (!currentSession || currentSession.role !== "admin") {
+    throw new Error("PRIVATE_EMPLOYEE_ACCESS_DENIED");
+  }
+
+  const privateReference = doc(db, "funcionariosPrivados", employeeDocumentId);
+
+  const snapshot = await getDoc(privateReference);
+
+  return normalizePrivateEmployee(snapshot);
 }
 
 /* =========================================================
@@ -996,10 +1592,164 @@ function validateEmployeeForm() {
 }
 
 /* =========================================================
+   DADOS PRIVADOS DO FORMULÁRIO
+========================================================= */
+
+function getPrivateEmployeeFormData() {
+  const paymentValueText = String(employeePaymentValue.value || "").trim();
+
+  const paymentValue = paymentValueText
+    ? Number(paymentValueText.replace(",", "."))
+    : null;
+
+  return {
+    cpf: formatCpf(employeeCpf.value),
+
+    rg: employeeRg.value.trim(),
+
+    dataNascimento: employeeBirthDate.value,
+
+    cnh: employeeCnh.value.trim(),
+
+    cnhValidade: employeeCnhExpiration.value,
+
+    endereco: {
+      cep: formatZipCode(employeeAddressZip.value),
+      logradouro: employeeAddressStreet.value.trim(),
+      numero: employeeAddressNumber.value.trim(),
+      complemento: employeeAddressComplement.value.trim(),
+      bairro: employeeAddressNeighborhood.value.trim(),
+      cidade: employeeAddressCity.value.trim(),
+      estado: employeeAddressState.value.trim().toUpperCase().slice(0, 2),
+    },
+
+    contatoEmergencia: {
+      nome: employeeEmergencyName.value.trim(),
+      relacao: employeeEmergencyRelation.value.trim(),
+      telefone: formatPhone(employeeEmergencyPhone.value),
+    },
+
+    contrato: {
+      tipo: employeeContractType.value,
+    },
+
+    pagamento: {
+      valor:
+        paymentValue === null || !Number.isFinite(paymentValue)
+          ? null
+          : Math.max(0, paymentValue),
+      periodicidade: employeePaymentPeriodicity.value,
+      forma: employeePaymentMethod.value,
+    },
+
+    dadosBancarios: {
+      banco: employeeBank.value.trim(),
+      agencia: employeeBankAgency.value.trim(),
+      conta: employeeBankAccount.value.trim(),
+      tipoConta: employeeBankAccountType.value,
+      chavePix: employeePixKey.value.trim(),
+    },
+  };
+}
+
+function renderCurrentPrivateDocuments(documents = []) {
+  employeePrivateDocumentsList.replaceChildren();
+
+  if (!documents.length) {
+    employeePrivateDocumentsCurrent.hidden = true;
+
+    return;
+  }
+
+  employeePrivateDocumentsCurrent.hidden = false;
+
+  documents.forEach((privateDocument) => {
+    const wrapper = document.createElement("div");
+
+    wrapper.className = "employee-private-document-current";
+
+    const copy = document.createElement("div");
+
+    const category = document.createElement("span");
+
+    category.textContent = getPrivateDocumentCategoryLabel(
+      privateDocument.categoria,
+    );
+
+    const name = document.createElement("strong");
+
+    name.textContent = privateDocument.nome || "Documento";
+
+    copy.append(category, name);
+
+    wrapper.append(copy);
+
+    employeePrivateDocumentsList.append(wrapper);
+  });
+}
+
+function applyPrivateEmployeeToForm(privateData) {
+  employeeCpf.value = formatCpf(privateData.cpf);
+
+  employeeRg.value = privateData.rg;
+
+  employeeBirthDate.value = privateData.dataNascimento;
+
+  employeeCnh.value = privateData.cnh;
+
+  employeeCnhExpiration.value = privateData.cnhValidade;
+
+  employeeAddressZip.value = formatZipCode(privateData.endereco.cep);
+
+  employeeAddressStreet.value = privateData.endereco.logradouro;
+
+  employeeAddressNumber.value = privateData.endereco.numero;
+
+  employeeAddressComplement.value = privateData.endereco.complemento;
+
+  employeeAddressNeighborhood.value = privateData.endereco.bairro;
+
+  employeeAddressCity.value = privateData.endereco.cidade;
+
+  employeeAddressState.value = privateData.endereco.estado;
+
+  employeeEmergencyName.value = privateData.contatoEmergencia.nome;
+
+  employeeEmergencyRelation.value = privateData.contatoEmergencia.relacao;
+
+  employeeEmergencyPhone.value = formatPhone(
+    privateData.contatoEmergencia.telefone,
+  );
+
+  employeeContractType.value = privateData.contrato.tipo;
+
+  employeePaymentValue.value =
+    privateData.pagamento.valor === null
+      ? ""
+      : String(privateData.pagamento.valor);
+
+  employeePaymentPeriodicity.value = privateData.pagamento.periodicidade;
+
+  employeePaymentMethod.value = privateData.pagamento.forma;
+
+  employeeBank.value = privateData.dadosBancarios.banco;
+
+  employeeBankAgency.value = privateData.dadosBancarios.agencia;
+
+  employeeBankAccount.value = privateData.dadosBancarios.conta;
+
+  employeeBankAccountType.value = privateData.dadosBancarios.tipoConta;
+
+  employeePixKey.value = privateData.dadosBancarios.chavePix;
+
+  renderCurrentPrivateDocuments(privateData.documentos);
+}
+
+/* =========================================================
    ABERTURA DO MODAL
 ========================================================= */
 
-function openEmployeeModal(employeeDocumentId = null) {
+async function openEmployeeModal(employeeDocumentId = null) {
   editingEmployeeId = employeeDocumentId;
 
   employeeForm.reset();
@@ -1050,12 +1800,38 @@ function openEmployeeModal(employeeDocumentId = null) {
     employeeSpecialtyInputs.forEach((input) => {
       input.checked = employee.especialidades.includes(input.value);
     });
+
+    try {
+      editingPrivateEmployeeData = await loadPrivateEmployeeData(
+        employee.documentId,
+      );
+
+      applyPrivateEmployeeToForm(editingPrivateEmployeeData);
+    } catch (error) {
+      console.error(
+        "[Funcionários] Não foi possível carregar os dados confidenciais:",
+        error,
+      );
+
+      editingPrivateEmployeeData = normalizePrivateEmployee(null);
+
+      applyPrivateEmployeeToForm(editingPrivateEmployeeData);
+
+      showFeedback(
+        "Não foi possível carregar os dados confidenciais deste funcionário.",
+        true,
+      );
+    }
   } else {
     employeeModalEyebrow.textContent = "Novo cadastro";
 
     employeeModalTitle.textContent = "Cadastrar funcionário";
 
     saveEmployeeButton.textContent = "Salvar funcionário";
+
+    editingPrivateEmployeeData = normalizePrivateEmployee(null);
+
+    applyPrivateEmployeeToForm(editingPrivateEmployeeData);
   }
 
   employeeModal.hidden = false;
@@ -1076,6 +1852,8 @@ function closeEmployeeModal() {
 
   editingEmployeeId = null;
 
+  editingPrivateEmployeeData = null;
+
   employeeForm.reset();
 
   clearFormErrors();
@@ -1084,9 +1862,83 @@ function closeEmployeeModal() {
     input.checked = false;
   });
 
+  employeePrivateDocumentsList.replaceChildren();
+
+  employeePrivateDocumentsCurrent.hidden = true;
+
   saveEmployeeButton.disabled = false;
 
   document.body.classList.remove("modal-open");
+}
+
+/* =========================================================
+   DOCUMENTOS PRIVADOS
+========================================================= */
+
+async function removeUploadedPrivateDocuments(documents = []) {
+  if (!documents.length) {
+    return;
+  }
+
+  await Promise.allSettled(
+    documents.map((privateDocument) =>
+      deleteObject(ref(storage, privateDocument.caminho)),
+    ),
+  );
+}
+
+async function uploadPrivateDocuments(
+  employeeDocumentId,
+  pendingDocuments = [],
+) {
+  if (!pendingDocuments.length) {
+    return [];
+  }
+
+  const uploadedDocuments = [];
+
+  try {
+    for (const { category, file } of pendingDocuments) {
+      const documentId = createPrivateDocumentId();
+
+      const safeFileName = sanitizePrivateFileName(file.name);
+
+      const storagePath = [
+        "funcionarios-privados",
+        employeeDocumentId,
+        "documentos",
+        category,
+        `${documentId}-${safeFileName}`,
+      ].join("/");
+
+      const storageReference = ref(storage, storagePath);
+
+      await uploadBytes(storageReference, file, {
+        contentType: file.type || undefined,
+        customMetadata: {
+          funcionarioId: employeeDocumentId,
+          categoria: category,
+          enviadoPorUid: currentSession.uid,
+        },
+      });
+
+      uploadedDocuments.push({
+        id: documentId,
+        categoria: category,
+        nome: file.name,
+        caminho: storagePath,
+        tipo: file.type || "",
+        tamanho: file.size,
+        enviadoEm: new Date().toISOString(),
+      });
+    }
+
+    return uploadedDocuments;
+  } catch (error) {
+    await removeUploadedPrivateDocuments(uploadedDocuments);
+
+    throw error;
+  }
 }
 
 /* =========================================================
@@ -1110,6 +1962,24 @@ async function saveEmployee(event) {
 
   const existingEmployee = getEmployeeById(editingEmployeeId);
 
+  const existingPrivateDocuments = Array.isArray(
+    editingPrivateEmployeeData?.documentos,
+  )
+    ? editingPrivateEmployeeData.documentos
+    : [];
+
+  let pendingPrivateDocuments = [];
+
+  try {
+    pendingPrivateDocuments = validatePrivateDocuments(
+      existingPrivateDocuments,
+    );
+  } catch (error) {
+    showFeedback(error.message || "Revise os documentos selecionados.", true);
+
+    return;
+  }
+
   const originalButtonText = saveEmployeeButton.textContent;
 
   saveEmployeeButton.disabled = true;
@@ -1118,7 +1988,7 @@ async function saveEmployee(event) {
     ? "Atualizando..."
     : "Salvando...";
 
-  const data = {
+  const operationalData = {
     nome: employeeName.value.trim(),
 
     telefone: formatPhone(employeePhone.value),
@@ -1144,19 +2014,28 @@ async function saveEmployee(event) {
     atualizadoPorUid: currentSession.uid,
   };
 
+  const privateFormData = getPrivateEmployeeFormData();
+
+  const employeeReference = existingEmployee
+    ? doc(db, "funcionarios", existingEmployee.documentId)
+    : doc(collection(db, "funcionarios"));
+
+  const employeeDocumentId = employeeReference.id;
+
+  const privateReference = doc(db, "funcionariosPrivados", employeeDocumentId);
+
+  let uploadedPrivateDocuments = [];
+
+  let newEmployeeBaseCreated = false;
+
   try {
-    if (existingEmployee) {
-      await updateDoc(
-        doc(db, "funcionarios", existingEmployee.documentId),
-        data,
-      );
-    } else {
-      const employeeReference = doc(collection(db, "funcionarios"));
+    if (!existingEmployee) {
+      const creationBatch = writeBatch(db);
 
-      await setDoc(employeeReference, {
-        ...data,
+      creationBatch.set(employeeReference, {
+        ...operationalData,
 
-        id: employeeReference.id,
+        id: employeeDocumentId,
 
         codigo: getNextEmployeeCode(),
 
@@ -1168,7 +2047,69 @@ async function saveEmployee(event) {
 
         criadoPorUid: currentSession.uid,
       });
+
+      creationBatch.set(privateReference, {
+        ...privateFormData,
+
+        funcionarioId: employeeDocumentId,
+
+        documentos: [],
+
+        criadoEm: serverTimestamp(),
+
+        criadoPorUid: currentSession.uid,
+
+        atualizadoEm: serverTimestamp(),
+
+        atualizadoPorUid: currentSession.uid,
+      });
+
+      await creationBatch.commit();
+
+      newEmployeeBaseCreated = true;
     }
+
+    uploadedPrivateDocuments = await uploadPrivateDocuments(
+      employeeDocumentId,
+      pendingPrivateDocuments,
+    );
+
+    const allPrivateDocuments = [
+      ...existingPrivateDocuments,
+      ...uploadedPrivateDocuments,
+    ];
+
+    const batch = writeBatch(db);
+
+    if (existingEmployee) {
+      batch.set(employeeReference, operationalData, {
+        merge: true,
+      });
+    }
+
+    const privateData = {
+      ...privateFormData,
+
+      funcionarioId: employeeDocumentId,
+
+      documentos: allPrivateDocuments,
+
+      atualizadoEm: serverTimestamp(),
+
+      atualizadoPorUid: currentSession.uid,
+    };
+
+    if (existingEmployee && !editingPrivateEmployeeData?.criadoEm) {
+      privateData.criadoEm = serverTimestamp();
+
+      privateData.criadoPorUid = currentSession.uid;
+    }
+
+    batch.set(privateReference, privateData, {
+      merge: true,
+    });
+
+    await batch.commit();
 
     await loadEmployees();
 
@@ -1176,8 +2117,8 @@ async function saveEmployee(event) {
 
     showFeedback(
       existingEmployee
-        ? "Funcionário atualizado com sucesso."
-        : "Funcionário cadastrado com sucesso.",
+        ? "Funcionário e dados confidenciais atualizados com sucesso."
+        : "Funcionário cadastrado com os dados confidenciais protegidos.",
     );
   } catch (error) {
     console.error(
@@ -1185,10 +2126,35 @@ async function saveEmployee(event) {
       error,
     );
 
+    if (uploadedPrivateDocuments.length) {
+      await removeUploadedPrivateDocuments(uploadedPrivateDocuments);
+    }
+
+    if (newEmployeeBaseCreated) {
+      try {
+        const cleanupBatch = writeBatch(db);
+
+        cleanupBatch.delete(privateReference);
+
+        cleanupBatch.delete(employeeReference);
+
+        await cleanupBatch.commit();
+      } catch (cleanupError) {
+        console.error(
+          "[Funcionários] Não foi possível limpar o cadastro incompleto:",
+          cleanupError,
+        );
+      }
+    }
+
+    const permissionDenied =
+      error?.code === "permission-denied" ||
+      error?.code === "storage/unauthorized";
+
     showFeedback(
-      error?.code === "permission-denied"
-        ? "O Firebase bloqueou a gravação do funcionário."
-        : "Não foi possível salvar o funcionário.",
+      permissionDenied
+        ? "O Firebase bloqueou o acesso à área confidencial."
+        : "Não foi possível salvar o funcionário e os dados confidenciais.",
       true,
     );
   } finally {
@@ -1272,6 +2238,415 @@ function closeEmployeeDetails() {
 }
 
 /* =========================================================
+   DADOS CONFIDENCIAIS
+========================================================= */
+
+function formatPrivateFileSize(bytes) {
+  const size = Number(bytes);
+
+  if (!Number.isFinite(size) || size <= 0) {
+    return "Tamanho não informado";
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function openPrivateDocument(privateDocument, button) {
+  if (!currentSession || currentSession.role !== "admin") {
+    showFeedback("Acesso restrito à Administração.", true);
+
+    return;
+  }
+
+  if (!privateDocument?.caminho) {
+    showFeedback("O caminho deste documento não foi encontrado.", true);
+
+    return;
+  }
+
+  const originalButtonText = button.textContent;
+
+  button.disabled = true;
+
+  button.textContent = "Abrindo...";
+
+  try {
+    const storageReference = ref(storage, privateDocument.caminho);
+
+    const blob = await getBlob(storageReference);
+
+    const objectUrl = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+
+    link.target = "_blank";
+
+    link.rel = "noopener noreferrer";
+
+    link.click();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 60000);
+  } catch (error) {
+    console.error(
+      "[Funcionários] Não foi possível abrir o documento privado:",
+      error,
+    );
+
+    showFeedback(
+      error?.code === "storage/unauthorized"
+        ? "O Firebase bloqueou o acesso a este documento."
+        : "Não foi possível abrir o documento.",
+      true,
+    );
+  } finally {
+    button.disabled = false;
+
+    button.textContent = originalButtonText;
+  }
+}
+
+async function deletePrivateDocument(privateDocument, button) {
+  if (!currentSession || currentSession.role !== "admin") {
+    showFeedback("Acesso restrito à Administração.", true);
+
+    return;
+  }
+
+  const employeeDocumentId = privateEmployeeId;
+
+  if (
+    !employeeDocumentId ||
+    !privateDocument?.id ||
+    !privateDocument?.caminho
+  ) {
+    showFeedback("Não foi possível identificar este documento.", true);
+
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Excluir o documento "${privateDocument.nome || "Documento"}"?\n\nEsta ação removerá o arquivo permanentemente.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const originalButtonText = button.textContent;
+
+  button.disabled = true;
+
+  button.textContent = "Excluindo...";
+
+  try {
+    const employee = getEmployeeById(employeeDocumentId);
+
+    if (!employee) {
+      throw new Error("EMPLOYEE_NOT_FOUND");
+    }
+
+    const privateData = await loadPrivateEmployeeData(employeeDocumentId);
+
+    const documentToDelete = privateData.documentos.find(
+      (document) =>
+        document.id === privateDocument.id &&
+        document.caminho === privateDocument.caminho,
+    );
+
+    if (!documentToDelete) {
+      showFeedback("Este documento não está mais cadastrado.", true);
+
+      renderPrivateEmployeeData(employee, privateData);
+
+      return;
+    }
+
+    const remainingDocuments = privateData.documentos.filter(
+      (document) => document.id !== documentToDelete.id,
+    );
+
+    const privateReference = doc(
+      db,
+      "funcionariosPrivados",
+      employeeDocumentId,
+    );
+
+    const batch = writeBatch(db);
+
+    batch.set(
+      privateReference,
+      {
+        documentos: remainingDocuments,
+        atualizadoEm: serverTimestamp(),
+        atualizadoPorUid: currentSession.uid,
+      },
+      {
+        merge: true,
+      },
+    );
+
+    await batch.commit();
+
+    try {
+      await deleteObject(ref(storage, documentToDelete.caminho));
+    } catch (storageError) {
+      if (storageError?.code !== "storage/object-not-found") {
+        const rollbackBatch = writeBatch(db);
+
+        rollbackBatch.set(
+          privateReference,
+          {
+            documentos: privateData.documentos,
+            atualizadoEm: serverTimestamp(),
+            atualizadoPorUid: currentSession.uid,
+          },
+          {
+            merge: true,
+          },
+        );
+
+        await rollbackBatch.commit();
+
+        throw storageError;
+      }
+    }
+
+    renderPrivateEmployeeData(employee, {
+      ...privateData,
+      documentos: remainingDocuments,
+    });
+
+    showFeedback("Documento excluído com sucesso.");
+  } catch (error) {
+    console.error(
+      "[Funcionários] Não foi possível excluir o documento privado:",
+      error,
+    );
+
+    showFeedback(
+      error?.code === "storage/unauthorized" ||
+        error?.code === "permission-denied"
+        ? "O Firebase bloqueou a exclusão deste documento."
+        : "Não foi possível excluir o documento.",
+      true,
+    );
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+
+      button.textContent = originalButtonText;
+    }
+  }
+}
+
+function renderPrivateEmployeeFiles(privateData) {
+  employeePrivateFiles.replaceChildren();
+
+  const documents = Array.isArray(privateData?.documentos)
+    ? privateData.documentos
+    : [];
+
+  employeePrivateFilesEmpty.hidden = documents.length > 0;
+
+  if (!documents.length) {
+    return;
+  }
+
+  documents.forEach((privateDocument) => {
+    const item = document.createElement("article");
+
+    item.className = "employee-private-file";
+
+    const copy = document.createElement("div");
+
+    copy.className = "employee-private-file__copy";
+
+    const category = document.createElement("span");
+
+    category.className = "employee-private-file__category";
+
+    category.textContent = getPrivateDocumentCategoryLabel(
+      privateDocument.categoria,
+    );
+
+    const name = document.createElement("strong");
+
+    name.className = "employee-private-file__name";
+
+    name.textContent = privateDocument.nome || "Documento";
+
+    const metadata = document.createElement("small");
+
+    metadata.className = "employee-private-file__meta";
+
+    metadata.textContent = formatPrivateFileSize(privateDocument.tamanho);
+
+    copy.append(category, name, metadata);
+
+    const actions = document.createElement("div");
+
+    actions.className = "employee-private-file__actions";
+
+    const openButton = document.createElement("button");
+
+    openButton.type = "button";
+
+    openButton.className =
+      "employee-modal__button employee-modal__button--secondary employee-private-file__button";
+
+    openButton.textContent = "Abrir";
+
+    openButton.addEventListener("click", () => {
+      openPrivateDocument(privateDocument, openButton);
+    });
+
+    const deleteButton = document.createElement("button");
+
+    deleteButton.type = "button";
+
+    deleteButton.className =
+      "employee-modal__button employee-modal__button--secondary employee-private-file__button employee-private-file__delete-button";
+
+    deleteButton.textContent = "Excluir";
+
+    deleteButton.addEventListener("click", () => {
+      deletePrivateDocument(privateDocument, deleteButton);
+    });
+
+    actions.append(openButton, deleteButton);
+
+    item.append(copy, actions);
+
+    employeePrivateFiles.append(item);
+  });
+}
+
+function renderPrivateEmployeeData(employee, privateData) {
+  employeePrivateCode.textContent = employee.codigo;
+
+  employeePrivateName.textContent = employee.nome || "Funcionário";
+
+  employeePrivateCpf.textContent = privateData.cpf || "Não informado";
+
+  employeePrivateRg.textContent = privateData.rg || "Não informado";
+
+  employeePrivateBirthDate.textContent = formatDate(privateData.dataNascimento);
+
+  employeePrivateCnh.textContent = privateData.cnh || "Não informada";
+
+  employeePrivateCnhExpiration.textContent = formatDate(
+    privateData.cnhValidade,
+  );
+
+  employeePrivateAddress.textContent =
+    buildPrivateAddress(privateData) || "Não informado";
+
+  employeePrivateEmergency.textContent =
+    buildEmergencyContact(privateData) || "Não informado";
+
+  employeePrivateContractType.textContent = getContractTypeLabel(
+    privateData.contrato.tipo,
+  );
+
+  employeePrivatePaymentValue.textContent =
+    privateData.pagamento.valor === null
+      ? "Não informado"
+      : formatCurrency(privateData.pagamento.valor);
+
+  employeePrivatePaymentPeriodicity.textContent = getPaymentPeriodicityLabel(
+    privateData.pagamento.periodicidade,
+  );
+
+  employeePrivatePaymentMethod.textContent = getPaymentMethodLabel(
+    privateData.pagamento.forma,
+  );
+
+  employeePrivateBank.textContent =
+    privateData.dadosBancarios.banco || "Não informado";
+
+  employeePrivateBankAgency.textContent =
+    privateData.dadosBancarios.agencia || "Não informada";
+
+  employeePrivateBankAccount.textContent =
+    privateData.dadosBancarios.conta || "Não informada";
+
+  employeePrivateBankAccountType.textContent = getBankAccountTypeLabel(
+    privateData.dadosBancarios.tipoConta,
+  );
+
+  employeePrivatePixKey.textContent =
+    privateData.dadosBancarios.chavePix || "Não informada";
+
+  renderPrivateEmployeeFiles(privateData);
+}
+
+async function openEmployeePrivateModal(employeeDocumentId) {
+  if (!currentSession || currentSession.role !== "admin") {
+    showFeedback("Acesso restrito à Administração.", true);
+
+    return;
+  }
+
+  const employee = getEmployeeById(employeeDocumentId);
+
+  if (!employee) {
+    showFeedback("Funcionário não encontrado.", true);
+
+    return;
+  }
+
+  privateEmployeeId = employee.documentId;
+
+  try {
+    const privateData = await loadPrivateEmployeeData(employee.documentId);
+
+    renderPrivateEmployeeData(employee, privateData);
+
+    employeePrivateModal.hidden = false;
+
+    document.body.classList.add("modal-open");
+  } catch (error) {
+    console.error(
+      "[Funcionários] Não foi possível abrir os dados confidenciais:",
+      error,
+    );
+
+    privateEmployeeId = null;
+
+    showFeedback(
+      error?.code === "permission-denied"
+        ? "O Firebase bloqueou o acesso aos dados confidenciais."
+        : "Não foi possível carregar os dados confidenciais.",
+      true,
+    );
+  }
+}
+
+function closeEmployeePrivateModal() {
+  employeePrivateModal.hidden = true;
+
+  privateEmployeeId = null;
+
+  employeePrivateFiles.replaceChildren();
+
+  employeePrivateFilesEmpty.hidden = false;
+
+  document.body.classList.remove("modal-open");
+}
+
+/* =========================================================
    EVENTOS DOS FILTROS
 ========================================================= */
 
@@ -1289,6 +2664,33 @@ employeePhone.addEventListener("input", () => {
   employeePhone.value = formatPhone(employeePhone.value);
 
   clearFieldError(employeePhone);
+});
+
+employeeCpf.addEventListener("input", () => {
+  employeeCpf.value = formatCpf(employeeCpf.value);
+
+  clearFieldError(employeeCpf);
+});
+
+employeeAddressZip.addEventListener("input", () => {
+  employeeAddressZip.value = formatZipCode(employeeAddressZip.value);
+
+  clearFieldError(employeeAddressZip);
+});
+
+employeeEmergencyPhone.addEventListener("input", () => {
+  employeeEmergencyPhone.value = formatPhone(employeeEmergencyPhone.value);
+
+  clearFieldError(employeeEmergencyPhone);
+});
+
+employeeAddressState.addEventListener("input", () => {
+  employeeAddressState.value = employeeAddressState.value
+    .replace(/[^a-zA-Z]/g, "")
+    .toUpperCase()
+    .slice(0, 2);
+
+  clearFieldError(employeeAddressState);
 });
 
 /* =========================================================
@@ -1363,6 +2765,37 @@ editEmployeeFromDetailsButton.addEventListener("click", () => {
   }
 });
 
+openEmployeePrivateButton.addEventListener("click", () => {
+  const employeeDocumentId = detailsEmployeeId;
+
+  closeEmployeeDetails();
+
+  if (employeeDocumentId) {
+    openEmployeePrivateModal(employeeDocumentId);
+  }
+});
+
+closeEmployeePrivateModalButton.addEventListener(
+  "click",
+  closeEmployeePrivateModal,
+);
+
+employeePrivateModal.addEventListener("click", (event) => {
+  if (event.target === employeePrivateModal) {
+    closeEmployeePrivateModal();
+  }
+});
+
+editEmployeeFromPrivateButton.addEventListener("click", () => {
+  const employeeDocumentId = privateEmployeeId;
+
+  closeEmployeePrivateModal();
+
+  if (employeeDocumentId) {
+    openEmployeeModal(employeeDocumentId);
+  }
+});
+
 /* =========================================================
    TECLA ESC
 ========================================================= */
@@ -1374,6 +2807,12 @@ document.addEventListener("keydown", (event) => {
 
   if (!employeeModal.hidden) {
     closeEmployeeModal();
+
+    return;
+  }
+
+  if (!employeePrivateModal.hidden) {
+    closeEmployeePrivateModal();
 
     return;
   }

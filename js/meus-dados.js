@@ -1,9 +1,13 @@
 import "./auth-guard.js";
 
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   updateDoc,
+  where,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
@@ -235,6 +239,93 @@ function populateStateOptions() {
   stateInput.value = currentValue;
 }
 
+function applyEmployeeProfileExperience(employee) {
+  document.body.dataset.profile = "funcionario";
+
+  document.title = "Meu Perfil | Salvateck";
+
+  const backButton = document.querySelector(".profile-header .header-button");
+
+  const headerEyebrow = document.querySelector(".profile-header__eyebrow");
+
+  const pageTitle = document.querySelector(".profile-header h1");
+
+  const introBadge = document.querySelector(".profile-intro__badge");
+
+  const introTitle = document.querySelector(".profile-intro__copy h2");
+
+  const introDescription = document.querySelector(".profile-intro__copy p");
+
+  const profileType = document.querySelector(
+    ".profile-summary__identity > span",
+  );
+
+  const profileCompletion = document.querySelector(
+    ".profile-summary__completion",
+  );
+
+  const formSections = document.querySelectorAll(".profile-form .form-section");
+
+  if (backButton) {
+    backButton.href = "principal.html?perfil=funcionario";
+
+    backButton.setAttribute(
+      "aria-label",
+      "Voltar para o painel do funcionário",
+    );
+  }
+
+  if (headerEyebrow) {
+    headerEyebrow.textContent = "Área do Funcionário";
+  }
+
+  if (pageTitle) {
+    pageTitle.textContent = "Meu Perfil";
+  }
+
+  if (introBadge) {
+    introBadge.textContent = "Meu cadastro";
+  }
+
+  if (introTitle) {
+    introTitle.textContent = "Informações do seu perfil profissional";
+  }
+
+  if (introDescription) {
+    introDescription.textContent =
+      "Consulte seus dados de identificação, contato e acesso ao sistema.";
+  }
+
+  if (profileType) {
+    profileType.textContent = [
+      employee.cargo || "Funcionário Salvateck",
+      employee.codigo || "",
+    ]
+      .filter(Boolean)
+      .join(" • ");
+  }
+
+  if (profileCompletion) {
+    profileCompletion.hidden = true;
+  }
+
+  formSections.forEach((section, index) => {
+    if (index === 0) {
+      const sectionTitle = section.querySelector("h2");
+
+      if (sectionTitle) {
+        sectionTitle.textContent = "Dados profissionais";
+      }
+
+      return;
+    }
+
+    section.hidden = true;
+  });
+
+  editProfileButton.hidden = true;
+}
+
 /* =========================================
    NORMALIZAÇÃO DO PERFIL
 ========================================= */
@@ -441,6 +532,24 @@ function updateProfileSummary() {
 ========================================= */
 
 function setEditingMode(active) {
+  if (currentSession?.role === "funcionario") {
+    editingProfile = false;
+
+    formControls.forEach((control) => {
+      control.disabled = true;
+    });
+
+    searchPostalCodeButton.disabled = true;
+
+    formActions.hidden = true;
+
+    editProfileButton.hidden = true;
+
+    document.body.classList.remove("profile-editing");
+
+    return;
+  }
+
   editingProfile = active;
 
   formControls.forEach((control) => {
@@ -744,6 +853,45 @@ function buildProfileUpdate(data) {
 }
 
 async function loadProfile() {
+  if (currentSession.role === "funcionario") {
+    const employeeQuery = query(
+      collection(db, "funcionarios"),
+      where("usuarioUid", "==", currentSession.uid),
+    );
+
+    const employeeSnapshot = await getDocs(employeeQuery);
+
+    if (employeeSnapshot.empty) {
+      throw new Error("PROFILE_NOT_FOUND");
+    }
+
+    const employeeDocument = employeeSnapshot.docs[0];
+
+    const employee = employeeDocument.data();
+
+    if (employee.ativo !== true || employee.status === "inativo") {
+      throw new Error("PROFILE_ACCESS_DENIED");
+    }
+
+    const normalizedData = normalizeProfileData({
+      nome: employee.nome || "",
+      email: employee.email || currentSession.email || "",
+      telefone: employee.telefone || "",
+    });
+
+    profileSnapshot = normalizedData;
+
+    applyFormData(normalizedData);
+
+    applyEmployeeProfileExperience({
+      ...employee,
+
+      id: employeeDocument.id,
+    });
+
+    return;
+  }
+
   const snapshot = await getDoc(profileReference);
 
   if (!snapshot.exists()) {
@@ -1008,19 +1156,26 @@ async function initializePage() {
 
     currentSession = await window.salvateckSessionReady;
 
-    if (!currentSession || currentSession.role !== "cliente") {
+    if (
+      !currentSession ||
+      !["cliente", "funcionario"].includes(currentSession.role)
+    ) {
       throw new Error("PROFILE_ACCESS_DENIED");
     }
 
-    profileReference = doc(db, "usuarios", currentSession.uid);
+    if (currentSession.role === "cliente") {
+      profileReference = doc(db, "usuarios", currentSession.uid);
 
-    /*
-      Remove os dados antigos que eram salvos
-      somente neste navegador.
-    */
-    localStorage.removeItem("salvateckPerfilClienteTemporario");
+      /*
+        Remove os dados antigos que eram salvos
+        somente neste navegador.
+      */
+      localStorage.removeItem("salvateckPerfilClienteTemporario");
 
-    applyFormData(normalizeProfileData(currentSession.profile || {}));
+      applyFormData(normalizeProfileData(currentSession.profile || {}));
+    } else {
+      profileReference = null;
+    }
 
     await loadProfile();
 

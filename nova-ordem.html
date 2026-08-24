@@ -719,13 +719,75 @@
 
       </section>
 
+      <!-- Funcionário responsável pela vistoria -->
+      <section class="form-card admin-only" id="inspection-employee-section" data-section="funcionario" hidden>
+
+        <div class="form-card__header">
+
+          <span class="form-card__number">
+            6
+          </span>
+
+          <div>
+
+            <p class="form-card__eyebrow">
+              Responsável pela execução
+            </p>
+
+            <h2 class="form-card__title">
+              Escolher funcionário
+            </h2>
+
+          </div>
+
+        </div>
+
+        <p class="form-card__description">
+          Selecione o funcionário que ficará responsável por executar esta vistoria técnica.
+        </p>
+
+        <div class="form-group">
+
+          <label class="form-label" for="funcionarioResponsavel">
+            Funcionário responsável
+          </label>
+
+          <select id="funcionarioResponsavel" name="funcionarioResponsavel" class="input" disabled>
+
+            <option value="">
+              Carregando funcionários...
+            </option>
+
+          </select>
+
+          <p class="form-help" id="funcionarioResponsavelAjuda">
+            Somente funcionários ativos e com acesso configurado serão apresentados.
+          </p>
+
+        </div>
+
+        <div class="information-box">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 11v6M12 7h.01"></path>
+          </svg>
+
+          <p>
+            A vistoria aparecerá automaticamente em Minhas Vistorias para o funcionário selecionado.
+          </p>
+
+        </div>
+
+      </section>
+
       <!-- Fotos -->
       <section class="form-card" data-section="fotos">
 
         <div class="form-card__header">
 
           <span class="form-card__number">
-            6
+            7
           </span>
 
           <div>
@@ -799,7 +861,7 @@
         <div class="form-card__header">
 
           <span class="form-card__number">
-            7
+            8
           </span>
 
           <div>
@@ -873,7 +935,7 @@
         <div class="form-card__header">
 
           <span class="form-card__number">
-            8
+            9
           </span>
 
           <div>
@@ -960,6 +1022,18 @@
 
             <strong id="summary-schedule">
               Data e período não informados
+            </strong>
+
+          </div>
+
+          <div class="order-summary__item admin-only" id="summary-employee-item" hidden>
+
+            <span>
+              Funcionário responsável
+            </span>
+
+            <strong id="summary-employee">
+              Funcionário não selecionado
             </strong>
 
           </div>
@@ -1290,7 +1364,7 @@
     Solicitação enviada com sucesso!
   </div>
 
-  <script type="module" src="js/nova-ordem.js?v=1.0.16"></script>
+  <script type="module" src="js/nova-ordem.js?v=1.0.18"></script>
 </body>
 
 </html>

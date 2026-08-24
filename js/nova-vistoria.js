@@ -202,6 +202,36 @@ const exportInspectionPdfButton = document.getElementById(
   "btnExportarPdfVistoria",
 );
 
+const inspectionAdminValidationActions = document.getElementById(
+  "inspection-admin-validation-actions",
+);
+
+const validateInspectionButton = document.getElementById(
+  "validate-inspection-button",
+);
+
+const returnInspectionButton = document.getElementById(
+  "return-inspection-button",
+);
+
+const inspectionAdminModal = document.getElementById("inspection-admin-modal");
+
+const inspectionAdminModalTitle = document.getElementById(
+  "inspection-admin-modal-title",
+);
+
+const inspectionAdminModalDescription = document.getElementById(
+  "inspection-admin-modal-description",
+);
+
+const confirmInspectionAdminActionButton = document.getElementById(
+  "confirm-inspection-admin-action",
+);
+
+const closeInspectionAdminModalButtons = document.querySelectorAll(
+  "[data-close-inspection-admin-modal]",
+);
+
 const inspectionPdfModal = document.getElementById("inspection-pdf-modal");
 
 const confirmInspectionPdfButton = document.getElementById(
@@ -233,6 +263,8 @@ let currentLinkedOrder = null;
 let currentInspectionDocument = null;
 
 let generatingInspectionPdf = false;
+
+let pendingInspectionAdminAction = null;
 
 let feedbackTimeout;
 
@@ -506,14 +538,52 @@ async function loadOrderForExecution(orderId) {
     throw new Error("ORDER_NOT_INSPECTION");
   }
 
+  if (currentSession.role === "funcionario") {
+    const assignedEmployeeUid = String(
+      order.funcionarioResponsavelUid ||
+        order.funcionarioResponsavel?.usuarioUid ||
+        "",
+    ).trim();
+
+    if (!assignedEmployeeUid || assignedEmployeeUid !== currentSession.uid) {
+      throw new Error("ORDER_ACCESS_DENIED");
+    }
+  }
+
   const normalizedStatus = normalizeInspectionText(order.status);
 
   if (!["agendada", "agendado"].includes(normalizedStatus)) {
     throw new Error("ORDER_NOT_SCHEDULED");
   }
 
-  if (getOrderLinkedInspectionId(order)) {
-    throw new Error("ORDER_ALREADY_HAS_INSPECTION");
+  const linkedInspectionId = getOrderLinkedInspectionId(order);
+
+  let returnedInspection = null;
+
+  if (linkedInspectionId) {
+    const linkedInspectionSnapshot = await getDoc(
+      doc(db, "vistorias", linkedInspectionId),
+    );
+
+    if (!linkedInspectionSnapshot.exists()) {
+      throw new Error("INSPECTION_NOT_FOUND");
+    }
+
+    const linkedInspectionData = linkedInspectionSnapshot.data();
+
+    const isReturnedEmployeeInspection =
+      currentSession.role === "funcionario" &&
+      normalizeInspectionText(linkedInspectionData.status) === "devolvida";
+
+    if (!isReturnedEmployeeInspection) {
+      throw new Error("ORDER_ALREADY_HAS_INSPECTION");
+    }
+
+    returnedInspection = {
+      ...linkedInspectionData,
+
+      id: linkedInspectionSnapshot.id,
+    };
   }
 
   const condominiumId = String(
@@ -524,15 +594,67 @@ async function loadOrderForExecution(orderId) {
     throw new Error("ORDER_WITHOUT_CONDOMINIUM");
   }
 
-  const condominiumSnapshot = await getDoc(
-    doc(db, "condominios", condominiumId),
-  );
+  if (currentSession.role === "funcionario") {
+    const orderCondominium = order.condominio || {};
 
-  if (!condominiumSnapshot.exists()) {
-    throw new Error("CONDOMINIUM_NOT_FOUND");
+    console.log("[DEBUG VISTORIA] DADOS DA OS:", {
+      ordemId: orderSnapshot.id,
+      condominio: orderCondominium,
+      estruturaDentroCondominio: orderCondominium.estruturaAmbientes,
+      equipamentosDentroCondominio: orderCondominium.equipamentos,
+      estruturaNaRaiz: order.estruturaAmbientes,
+      equipamentosNaRaiz: order.equipamentos,
+    });
+
+    selectedCondominium = {
+      id: condominiumId,
+
+      codigo: String(orderCondominium.codigo || "").trim(),
+
+      nome: String(orderCondominium.nome || "Condomínio não informado").trim(),
+
+      cnpj: String(orderCondominium.cnpj || "").trim(),
+
+      status: "ativo",
+
+      endereco: orderCondominium.endereco || order.endereco || {},
+
+      clientesIds: [],
+
+      clientesVinculados: [],
+
+      equipamentos: Array.isArray(orderCondominium.equipamentos)
+        ? orderCondominium.equipamentos
+        : Array.isArray(order.equipamentos)
+          ? order.equipamentos
+          : [],
+
+      estruturaAmbientes: normalizeCondominiumStructure(
+        orderCondominium.estruturaAmbientes ||
+          orderCondominium.ambientesEquipamentos ||
+          order.estruturaAmbientes ||
+          order.ambientesEquipamentos ||
+          [],
+      ),
+    };
+
+    console.log("[DEBUG VISTORIA] CONDOMÍNIO NORMALIZADO:", {
+      id: selectedCondominium.id,
+      equipamentos: selectedCondominium.equipamentos,
+      estruturaAmbientes: selectedCondominium.estruturaAmbientes,
+      quantidadeAmbientes: selectedCondominium.estruturaAmbientes.length,
+    });
+  } else {
+    const condominiumSnapshot = await getDoc(
+      doc(db, "condominios", condominiumId),
+    );
+
+    if (!condominiumSnapshot.exists()) {
+      throw new Error("CONDOMINIUM_NOT_FOUND");
+    }
+
+    selectedCondominium = mapCondominiumSnapshot(condominiumSnapshot);
   }
-
-  selectedCondominium = mapCondominiumSnapshot(condominiumSnapshot);
 
   const responsibleUid = String(
     order.clienteUid || order.cliente?.id || "",
@@ -542,19 +664,29 @@ async function loadOrderForExecution(orderId) {
     throw new Error("ORDER_WITHOUT_RESPONSIBLE");
   }
 
-  const responsibleSnapshot = await getDoc(doc(db, "usuarios", responsibleUid));
+  if (currentSession.role === "funcionario") {
+    selectedResponsible = {
+      ...(order.cliente || {}),
 
-  selectedResponsible = responsibleSnapshot.exists()
-    ? {
-        ...responsibleSnapshot.data(),
+      uid: responsibleUid,
+    };
+  } else {
+    const responsibleSnapshot = await getDoc(
+      doc(db, "usuarios", responsibleUid),
+    );
 
-        uid: responsibleSnapshot.id,
-      }
-    : {
-        ...(order.cliente || {}),
+    selectedResponsible = responsibleSnapshot.exists()
+      ? {
+          ...responsibleSnapshot.data(),
 
-        uid: responsibleUid,
-      };
+          uid: responsibleSnapshot.id,
+        }
+      : {
+          ...(order.cliente || {}),
+
+          uid: responsibleUid,
+        };
+  }
 
   currentLinkedOrder = {
     id: orderSnapshot.id,
@@ -604,9 +736,52 @@ async function loadOrderForExecution(orderId) {
 
   responsibleSelect.disabled = true;
 
-  loadChecklistFromCondominium();
+  if (returnedInspection) {
+    currentInspectionDocument = returnedInspection;
+
+    checklistItems = Array.isArray(returnedInspection.checklist)
+      ? returnedInspection.checklist.map((item) => ({
+          ambienteId: String(item.ambienteId || "sem-ambiente-definido").trim(),
+
+          ambienteNome: String(
+            item.ambienteNome || "Sem ambiente definido",
+          ).trim(),
+
+          categoriaAmbiente: String(
+            item.categoriaAmbiente || "Cadastro anterior",
+          ).trim(),
+
+          equipamentoId: String(item.equipamentoId || "").trim(),
+
+          nome: String(item.nome || "").trim() || "Equipamento sem nome",
+
+          categoria:
+            String(item.categoria || "").trim() || "Outros equipamentos",
+
+          quantidade: Math.max(1, Number(item.quantidade) || 1),
+
+          localizacao: String(item.localizacao || "").trim(),
+
+          resultado: String(item.resultado || "").trim(),
+
+          observacao: String(item.observacao || "").trim(),
+        }))
+      : [];
+
+    renderChecklist();
+
+    applyStoredChecklistState();
+  } else {
+    loadChecklistFromCondominium();
+  }
 
   updatePageState();
+
+  if (currentSession.role === "funcionario") {
+    saveInspectionButton.textContent = returnedInspection
+      ? "Revisar e reenviar para validação"
+      : "Executar e enviar para validação";
+  }
 
   if (inspectionOrderSummary) {
     inspectionOrderSummary.hidden = false;
@@ -638,7 +813,7 @@ async function loadOrderForExecution(orderId) {
 
   const backLink = document.getElementById("inspection-back-link");
 
-  const cancelLink = form.querySelector(".inspection-cancel-button");
+  const cancelLink = form.querySelector("a.inspection-cancel-button");
 
   const orderDetailsUrl = `detalhes-solicitacao.html?id=${encodeURIComponent(
     currentLinkedOrder.id,
@@ -848,7 +1023,16 @@ async function loadExistingInspection(inspectionId) {
 
   saveInspectionButton.onclick = null;
 
-  if (hasLinkedOrder && linkedOrderId) {
+  const isLinkedInspectionConsultation =
+    currentSession?.role === "admin" &&
+    inspectionPageMode === "consulta" &&
+    hasLinkedOrder;
+
+  if (isLinkedInspectionConsultation) {
+    saveInspectionButton.hidden = true;
+  } else if (hasLinkedOrder && linkedOrderId) {
+    saveInspectionButton.hidden = false;
+
     saveInspectionButton.disabled = false;
 
     saveInspectionButton.onclick = () => {
@@ -887,6 +1071,23 @@ async function loadExistingInspection(inspectionId) {
     exportInspectionPdfButton.hidden = false;
   }
 
+  const canAdminValidateInspection =
+    currentSession?.role === "admin" &&
+    inspectionPageMode === "consulta" &&
+    normalizeInspectionText(inspection.status) === "aguardando-validacao";
+
+  if (inspectionAdminValidationActions) {
+    inspectionAdminValidationActions.hidden = !canAdminValidateInspection;
+  }
+
+  if (validateInspectionButton) {
+    validateInspectionButton.disabled = !canAdminValidateInspection;
+  }
+
+  if (returnInspectionButton) {
+    returnInspectionButton.disabled = !canAdminValidateInspection;
+  }
+
   const pageTitle = document.getElementById("inspection-page-title");
 
   const introTitle = document.getElementById("inspection-intro-title");
@@ -897,7 +1098,7 @@ async function loadExistingInspection(inspectionId) {
 
   const backLink = document.getElementById("inspection-back-link");
 
-  const cancelLink = form.querySelector(".inspection-cancel-button");
+  const cancelLink = form.querySelector("a.inspection-cancel-button");
 
   if (pageTitle) {
     pageTitle.textContent = inspection.codigo || "Vistoria";
@@ -2222,6 +2423,88 @@ async function saveInspectionInFirestore() {
   });
 }
 
+let enviarVistoriaParaValidacaoFunction = null;
+
+async function getEnviarVistoriaParaValidacaoFunction() {
+  if (enviarVistoriaParaValidacaoFunction) {
+    return enviarVistoriaParaValidacaoFunction;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  enviarVistoriaParaValidacaoFunction = functionsModule.httpsCallable(
+    functions,
+    "enviarVistoriaParaValidacao",
+  );
+
+  return enviarVistoriaParaValidacaoFunction;
+}
+
+async function saveEmployeeInspectionForValidation() {
+  if (currentSession?.role !== "funcionario" || !currentLinkedOrder?.id) {
+    throw new Error("EMPLOYEE_INSPECTION_NOT_ALLOWED");
+  }
+
+  const enviarVistoria = await getEnviarVistoriaParaValidacaoFunction();
+
+  const response = await enviarVistoria({
+    ordemId: currentLinkedOrder.id,
+
+    checklist: checklistItems.map((item) => ({
+      ambienteId: item.ambienteId || "",
+
+      ambienteNome: item.ambienteNome || "",
+
+      categoriaAmbiente: item.categoriaAmbiente || "",
+
+      equipamentoId: item.equipamentoId || "",
+
+      nome: item.nome || "",
+
+      categoria: item.categoria || "",
+
+      quantidade: Number(item.quantidade) || 1,
+
+      localizacao: item.localizacao || "",
+
+      resultado: item.resultado || "",
+
+      observacao: item.observacao || "",
+    })),
+  });
+
+  const result = response.data || {};
+
+  if (result.sucesso !== true) {
+    throw new Error("EMPLOYEE_INSPECTION_SUBMIT_FAILED");
+  }
+
+  return {
+    id: result.vistoriaId || "",
+
+    codigo: result.codigoVistoria || "Vistoria",
+
+    ordemId: result.ordemId || currentLinkedOrder.id,
+
+    codigoOS: result.codigo || currentLinkedOrder.codigo || "",
+
+    status: result.status || "aguardando-validacao",
+
+    naoConformidades: Number(result.naoConformidades) || 0,
+  };
+}
+
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -2300,9 +2583,31 @@ async function handleSubmit(event) {
   saveInspectionButton.textContent = "Salvando vistoria...";
 
   try {
-    const savedInspection = await saveInspectionInFirestore();
+    const isEmployeeInspection = currentSession?.role === "funcionario";
+
+    const savedInspection = isEmployeeInspection
+      ? await saveEmployeeInspectionForValidation()
+      : await saveInspectionInFirestore();
 
     console.log("[Nova Vistoria] Vistoria salva:", savedInspection);
+
+    if (isEmployeeInspection) {
+      saveInspectionButton.textContent = "Enviada para validação";
+
+      form.querySelectorAll("input, select, textarea").forEach((field) => {
+        field.disabled = true;
+      });
+
+      showFeedback(
+        `${savedInspection.codigo} enviada ao administrador para validação!`,
+      );
+
+      window.setTimeout(() => {
+        window.location.href = "vistorias.html?perfil=funcionario";
+      }, 900);
+
+      return;
+    }
 
     saveInspectionButton.textContent = `${savedInspection.codigo} salva`;
 
@@ -3415,6 +3720,688 @@ async function shareInspectionPdf() {
   }
 }
 /* =========================================
+   MODAL ADMINISTRATIVO DA VISTORIA
+========================================= */
+
+function openInspectionAdminModal({
+  title,
+  description,
+  confirmationText,
+  confirm,
+}) {
+  if (!inspectionAdminModal) {
+    return;
+  }
+
+  pendingInspectionAdminAction = confirm;
+
+  inspectionAdminModalTitle.textContent = title;
+
+  inspectionAdminModalDescription.textContent = description;
+
+  confirmInspectionAdminActionButton.textContent = confirmationText;
+
+  inspectionAdminModal.hidden = false;
+
+  inspectionAdminModal.setAttribute("aria-hidden", "false");
+
+  document.body.classList.add("inspection-pdf-modal-open");
+
+  confirmInspectionAdminActionButton.focus();
+}
+
+function closeInspectionAdminModal() {
+  if (!inspectionAdminModal) {
+    return;
+  }
+
+  inspectionAdminModal.hidden = true;
+
+  inspectionAdminModal.setAttribute("aria-hidden", "true");
+
+  pendingInspectionAdminAction = null;
+
+  if (!inspectionPdfModal || inspectionPdfModal.hidden) {
+    document.body.classList.remove("inspection-pdf-modal-open");
+  }
+
+  validateInspectionButton?.focus();
+}
+
+async function confirmInspectionAdminModalAction() {
+  const action = pendingInspectionAdminAction;
+
+  if (typeof action !== "function") {
+    closeInspectionAdminModal();
+
+    return;
+  }
+
+  closeInspectionAdminModal();
+
+  await action();
+}
+
+function openInspectionValidationConfirmation() {
+  if (
+    currentSession?.role !== "admin" ||
+    inspectionPageMode !== "consulta" ||
+    !currentInspectionDocument?.id ||
+    normalizeInspectionText(currentInspectionDocument.status) !==
+      "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  openInspectionAdminModal({
+    title: "Validar e concluir vistoria?",
+
+    description:
+      "A VST será validada e a Ordem de Serviço vinculada será concluída. Confirme após revisar todo o checklist enviado pelo funcionário.",
+
+    confirmationText: "Validar e concluir",
+
+    confirm: validateInspectionAndLinkedOrder,
+  });
+}
+
+function openInspectionReturnConfirmation() {
+  if (
+    currentSession?.role !== "admin" ||
+    inspectionPageMode !== "consulta" ||
+    !currentInspectionDocument?.id ||
+    normalizeInspectionText(currentInspectionDocument.status) !==
+      "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  openInspectionAdminModal({
+    title: "Devolver ao funcionário?",
+
+    description:
+      "A vistoria voltará para o funcionário revisar o checklist e reenviar para validação. As informações já preenchidas serão preservadas.",
+
+    confirmationText: "Devolver vistoria",
+
+    confirm: returnInspectionToEmployee,
+  });
+}
+
+async function returnInspectionToEmployee() {
+  if (
+    currentSession?.role !== "admin" ||
+    inspectionPageMode !== "consulta" ||
+    !currentInspectionDocument?.id ||
+    normalizeInspectionText(currentInspectionDocument.status) !==
+      "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  const inspectionId = String(currentInspectionDocument.id || "").trim();
+
+  const linkedOrderId = String(
+    currentInspectionDocument.ordemId ||
+      currentInspectionDocument.origem?.ordemId ||
+      "",
+  ).trim();
+
+  if (!linkedOrderId) {
+    showFeedback(
+      "A vistoria não possui uma Ordem de Serviço vinculada.",
+      "error",
+    );
+
+    return;
+  }
+
+  const inspectionReference = doc(db, "vistorias", inspectionId);
+
+  const orderReference = doc(db, "ordens", linkedOrderId);
+
+  const originalReturnText = returnInspectionButton.textContent;
+
+  validateInspectionButton.disabled = true;
+
+  returnInspectionButton.disabled = true;
+
+  returnInspectionButton.textContent = "Devolvendo vistoria...";
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const inspectionSnapshot = await transaction.get(inspectionReference);
+
+      if (!inspectionSnapshot.exists()) {
+        throw new Error("INSPECTION_NOT_FOUND");
+      }
+
+      const orderSnapshot = await transaction.get(orderReference);
+
+      if (!orderSnapshot.exists()) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
+
+      const inspectionData = inspectionSnapshot.data();
+
+      const orderData = orderSnapshot.data();
+
+      if (
+        normalizeInspectionText(inspectionData.status) !==
+        "aguardando-validacao"
+      ) {
+        throw new Error("INSPECTION_NOT_AWAITING_VALIDATION");
+      }
+
+      if (
+        normalizeInspectionText(orderData.status) !== "aguardando-validacao"
+      ) {
+        throw new Error("ORDER_NOT_AWAITING_VALIDATION");
+      }
+
+      const orderLinkedInspectionId = getOrderLinkedInspectionId(orderData);
+
+      if (orderLinkedInspectionId !== inspectionSnapshot.id) {
+        throw new Error("INSPECTION_ORDER_LINK_MISMATCH");
+      }
+
+      const adminName = String(
+        currentSession?.profile?.nome ||
+          currentSession?.user?.displayName ||
+          currentSession?.email ||
+          currentSession?.user?.email ||
+          "Administrador",
+      ).trim();
+
+      const currentEmployeeExecution =
+        orderData.execucaoFuncionario &&
+        typeof orderData.execucaoFuncionario === "object"
+          ? orderData.execucaoFuncionario
+          : {};
+
+      transaction.update(inspectionReference, {
+        status: "devolvida",
+
+        validada: false,
+
+        devolvidaEm: serverTimestamp(),
+
+        devolvidaPorUid: currentSession.uid,
+
+        devolvidaPorNome: adminName,
+
+        atualizadoEm: serverTimestamp(),
+
+        statusAtualizadoEm: serverTimestamp(),
+      });
+
+      transaction.update(orderReference, {
+        status: "agendada",
+
+        "vistoria.status": "devolvida",
+
+        "vistoria.validada": false,
+
+        "vistoria.devolvidaEm": serverTimestamp(),
+
+        "vistoria.devolvidaPorUid": currentSession.uid,
+
+        "vistoria.devolvidaPorNome": adminName,
+
+        execucaoFuncionario: {
+          ...currentEmployeeExecution,
+
+          status: "devolvida",
+
+          devolvidaEm: serverTimestamp(),
+
+          devolvidaPorUid: currentSession.uid,
+
+          devolvidaPorNome: adminName,
+        },
+
+        atualizadoEm: serverTimestamp(),
+
+        statusAtualizadoEm: serverTimestamp(),
+      });
+    });
+
+    currentInspectionDocument = {
+      ...currentInspectionDocument,
+
+      status: "devolvida",
+
+      validada: false,
+    };
+
+    returnInspectionButton.textContent = "Vistoria devolvida";
+
+    showFeedback("Vistoria devolvida ao funcionário para revisão.");
+
+    window.setTimeout(() => {
+      window.location.href = "vistorias.html?perfil=admin";
+    }, 1000);
+  } catch (error) {
+    console.error(
+      "[Nova Vistoria] Não foi possível devolver a vistoria:",
+      error,
+    );
+
+    if (error.message === "INSPECTION_NOT_FOUND") {
+      showFeedback("A vistoria não foi encontrada.", "error");
+    } else if (error.message === "ORDER_NOT_FOUND") {
+      showFeedback("A Ordem de Serviço vinculada não foi encontrada.", "error");
+    } else if (
+      error.message === "INSPECTION_NOT_AWAITING_VALIDATION" ||
+      error.message === "ORDER_NOT_AWAITING_VALIDATION"
+    ) {
+      showFeedback(
+        "Esta vistoria não está mais aguardando validação.",
+        "error",
+      );
+    } else if (error.message === "INSPECTION_ORDER_LINK_MISMATCH") {
+      showFeedback(
+        "O vínculo entre a Vistoria e a Ordem de Serviço não corresponde.",
+        "error",
+      );
+    } else if (error.code === "permission-denied") {
+      showFeedback("O Firebase bloqueou a devolução administrativa.", "error");
+    } else {
+      showFeedback(
+        "Não foi possível devolver a vistoria. Tente novamente.",
+        "error",
+      );
+    }
+
+    validateInspectionButton.disabled = false;
+
+    returnInspectionButton.disabled = false;
+
+    returnInspectionButton.textContent = originalReturnText;
+  }
+}
+
+/* =========================================
+   VALIDAÇÃO ADMINISTRATIVA DA VISTORIA
+========================================= */
+
+async function validateInspectionAndLinkedOrder() {
+  if (
+    currentSession?.role !== "admin" ||
+    inspectionPageMode !== "consulta" ||
+    !currentInspectionDocument?.id ||
+    normalizeInspectionText(currentInspectionDocument.status) !==
+      "aguardando-validacao"
+  ) {
+    return;
+  }
+
+  const inspectionId = String(currentInspectionDocument.id || "").trim();
+
+  const linkedOrderId = String(
+    currentInspectionDocument.ordemId ||
+      currentInspectionDocument.origem?.ordemId ||
+      "",
+  ).trim();
+
+  if (!linkedOrderId) {
+    showFeedback(
+      "A vistoria não possui uma Ordem de Serviço vinculada.",
+      "error",
+    );
+
+    return;
+  }
+
+  const inspectionReference = doc(db, "vistorias", inspectionId);
+
+  const orderReference = doc(db, "ordens", linkedOrderId);
+
+  const originalValidateText = validateInspectionButton.textContent;
+
+  validateInspectionButton.disabled = true;
+
+  returnInspectionButton.disabled = true;
+
+  validateInspectionButton.textContent = "Validando vistoria...";
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const inspectionSnapshot = await transaction.get(inspectionReference);
+
+      if (!inspectionSnapshot.exists()) {
+        throw new Error("INSPECTION_NOT_FOUND");
+      }
+
+      const orderSnapshot = await transaction.get(orderReference);
+
+      if (!orderSnapshot.exists()) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
+
+      const inspectionData = inspectionSnapshot.data();
+
+      const orderData = orderSnapshot.data();
+
+      if (
+        normalizeInspectionText(inspectionData.status) !==
+        "aguardando-validacao"
+      ) {
+        throw new Error("INSPECTION_NOT_AWAITING_VALIDATION");
+      }
+
+      if (
+        normalizeInspectionText(orderData.status) !== "aguardando-validacao"
+      ) {
+        throw new Error("ORDER_NOT_AWAITING_VALIDATION");
+      }
+
+      const orderLinkedInspectionId = getOrderLinkedInspectionId(orderData);
+
+      if (orderLinkedInspectionId !== inspectionSnapshot.id) {
+        throw new Error("INSPECTION_ORDER_LINK_MISMATCH");
+      }
+
+      const adminName = String(
+        currentSession?.profile?.nome ||
+          currentSession?.user?.displayName ||
+          currentSession?.email ||
+          currentSession?.user?.email ||
+          "Administrador",
+      ).trim();
+
+      const currentEmployeeExecution =
+        orderData.execucaoFuncionario &&
+        typeof orderData.execucaoFuncionario === "object"
+          ? orderData.execucaoFuncionario
+          : {};
+
+      const checklist = Array.isArray(inspectionData.checklist)
+        ? inspectionData.checklist.map((item) => ({
+            ambienteId: String(item.ambienteId || "").trim(),
+
+            ambienteNome: String(item.ambienteNome || "").trim(),
+
+            categoriaAmbiente: String(item.categoriaAmbiente || "").trim(),
+
+            equipamentoId: String(item.equipamentoId || "").trim(),
+
+            nome: String(item.nome || "").trim(),
+
+            categoria: String(item.categoria || "").trim(),
+
+            quantidade: Math.max(1, Number(item.quantidade) || 1),
+
+            localizacao: String(item.localizacao || "").trim(),
+
+            resultado: String(item.resultado || "").trim(),
+
+            observacao: String(item.observacao || "").trim(),
+          }))
+        : [];
+
+      const inspectionFinalDocument = {
+        id: inspectionSnapshot.id,
+
+        numero: Number(inspectionData.numero || 0),
+
+        codigo: String(inspectionData.codigo || "").trim(),
+
+        tecnico: {
+          uid: String(
+            inspectionData.tecnico?.uid || inspectionData.criadoPorUid || "",
+          ).trim(),
+
+          nome: String(
+            inspectionData.tecnico?.nome || inspectionData.criadoPorNome || "",
+          ).trim(),
+
+          email: String(inspectionData.tecnico?.email || "").trim(),
+        },
+
+        validadaEm: serverTimestamp(),
+
+        concluidaEm: serverTimestamp(),
+
+        totalItens: Number(inspectionData.totalItens || checklist.length),
+
+        itensConcluidos: Number(
+          inspectionData.itensConcluidos || checklist.length,
+        ),
+
+        equipamentosAvaliados: Number(
+          inspectionData.equipamentosAvaliados ||
+            inspectionData.itensConcluidos ||
+            checklist.length,
+        ),
+
+        naoConformidades: Number(inspectionData.naoConformidades || 0),
+
+        pendenciasCriticas: Number(inspectionData.pendenciasCriticas || 0),
+
+        quantidadeFotos: Number(inspectionData.quantidadeFotos || 0),
+
+        checklist,
+      };
+
+      const categories =
+        Array.isArray(orderData.categorias) && orderData.categorias.length > 0
+          ? [...orderData.categorias]
+          : [orderData.categoriaPrincipal].filter(Boolean);
+
+      const services = Array.isArray(orderData.servicos)
+        ? orderData.servicos
+            .map((service) => {
+              if (typeof service === "string") {
+                return service;
+              }
+
+              return String(service?.servico || service?.nome || "").trim();
+            })
+            .filter(Boolean)
+        : [orderData.servicoPrincipal].filter(Boolean);
+
+      const technicalResponsibility =
+        orderData.responsabilidadeTecnica &&
+        typeof orderData.responsabilidadeTecnica === "object"
+          ? orderData.responsabilidadeTecnica
+          : {};
+
+      const finalDocument = {
+        versao: 3,
+
+        ordemId: orderSnapshot.id,
+
+        codigo: String(orderData.codigo || orderSnapshot.id).trim(),
+
+        numero: Number(orderData.numero || 0),
+
+        titulo: String(
+          orderData.titulo || orderData.servicoPrincipal || "Vistoria técnica",
+        ).trim(),
+
+        tipoAtendimento: "vistoria",
+
+        status: "concluida",
+
+        cliente: {
+          id: String(
+            orderData.clienteUid || orderData.cliente?.id || "",
+          ).trim(),
+
+          nome: String(orderData.cliente?.nome || "").trim(),
+
+          telefone: String(orderData.cliente?.telefone || "").trim(),
+
+          email: String(orderData.cliente?.email || "").trim(),
+        },
+
+        condominio: {
+          id: String(
+            orderData.condominio?.id || orderData.condominioId || "",
+          ).trim(),
+
+          codigo: String(orderData.condominio?.codigo || "").trim(),
+
+          nome: String(orderData.condominio?.nome || "").trim(),
+
+          cnpj: String(
+            orderData.condominio?.cnpj || orderData.condominioCnpj || "",
+          ).trim(),
+        },
+
+        responsabilidadeTecnica: {
+          nome: String(technicalResponsibility.nome || "").trim(),
+
+          crea: String(technicalResponsibility.crea || "").trim(),
+
+          trt: String(technicalResponsibility.trt || "").trim(),
+        },
+
+        vistoria: inspectionFinalDocument,
+
+        categorias: categories,
+
+        servicos: services,
+
+        endereco: orderData.endereco || {},
+
+        atendimento: orderData.atendimento || {},
+
+        observacoes: {
+          cliente: String(orderData.observacoes?.cliente || "").trim(),
+
+          resposta: String(orderData.observacoes?.resposta || "").trim(),
+        },
+
+        prioridade: String(orderData.prioridade || "normal").trim(),
+
+        criadaEm: orderData.criadoEm || null,
+
+        concluidaEm: serverTimestamp(),
+
+        concluidaPor: {
+          uid: currentSession.uid,
+
+          nome: adminName,
+        },
+      };
+
+      transaction.update(inspectionReference, {
+        status: "concluida",
+
+        validada: true,
+
+        progresso: 100,
+
+        validadaEm: serverTimestamp(),
+
+        concluidaEm: serverTimestamp(),
+
+        validadaPorUid: currentSession.uid,
+
+        validadaPorNome: adminName,
+
+        atualizadoEm: serverTimestamp(),
+
+        statusAtualizadoEm: serverTimestamp(),
+      });
+
+      transaction.update(orderReference, {
+        status: "concluida",
+
+        concluidaEm: serverTimestamp(),
+
+        concluidaPorUid: currentSession.uid,
+
+        concluidaPorNome: adminName,
+
+        documentoFinal: finalDocument,
+
+        "vistoria.status": "concluida",
+
+        "vistoria.validada": true,
+
+        "vistoria.progresso": 100,
+
+        "vistoria.validadaEm": serverTimestamp(),
+
+        "vistoria.concluidaEm": serverTimestamp(),
+
+        execucaoFuncionario: {
+          ...currentEmployeeExecution,
+
+          status: "validada",
+
+          validadaEm: serverTimestamp(),
+
+          validadaPorUid: currentSession.uid,
+
+          validadaPorNome: adminName,
+        },
+
+        atualizadoEm: serverTimestamp(),
+
+        statusAtualizadoEm: serverTimestamp(),
+      });
+    });
+
+    currentInspectionDocument = {
+      ...currentInspectionDocument,
+
+      status: "concluida",
+
+      validada: true,
+    };
+
+    validateInspectionButton.textContent = "Vistoria validada";
+
+    showFeedback("Vistoria validada e Ordem de Serviço concluída com sucesso!");
+
+    window.setTimeout(() => {
+      window.location.href = "vistorias.html?perfil=admin";
+    }, 1000);
+  } catch (error) {
+    console.error(
+      "[Nova Vistoria] Não foi possível validar a vistoria:",
+      error,
+    );
+
+    if (error.message === "INSPECTION_NOT_FOUND") {
+      showFeedback("A vistoria não foi encontrada.", "error");
+    } else if (error.message === "ORDER_NOT_FOUND") {
+      showFeedback("A Ordem de Serviço vinculada não foi encontrada.", "error");
+    } else if (
+      error.message === "INSPECTION_NOT_AWAITING_VALIDATION" ||
+      error.message === "ORDER_NOT_AWAITING_VALIDATION"
+    ) {
+      showFeedback(
+        "Esta vistoria não está mais aguardando validação.",
+        "error",
+      );
+    } else if (error.message === "INSPECTION_ORDER_LINK_MISMATCH") {
+      showFeedback(
+        "O vínculo entre a Vistoria e a Ordem de Serviço não corresponde.",
+        "error",
+      );
+    } else if (error.code === "permission-denied") {
+      showFeedback("O Firebase bloqueou a validação administrativa.", "error");
+    } else {
+      showFeedback(
+        "Não foi possível validar a vistoria. Tente novamente.",
+        "error",
+      );
+    }
+
+    validateInspectionButton.disabled = false;
+
+    returnInspectionButton.disabled = false;
+
+    validateInspectionButton.textContent = originalValidateText;
+  }
+}
+
+/* =========================================
    INICIALIZAÇÃO
 ========================================= */
 
@@ -3422,11 +4409,31 @@ async function initializePage() {
   try {
     const session = await window.salvateckSessionReady;
 
-    if (!session || session.role !== "admin") {
-      throw new Error("ADMIN_SESSION_REQUIRED");
+    if (!session || !["admin", "funcionario"].includes(session.role)) {
+      throw new Error("SESSION_NOT_ALLOWED");
     }
 
     currentSession = session;
+
+    document.body.dataset.profile = currentSession.role;
+
+    if (currentSession.role === "funcionario") {
+      if (!orderIdFromURL || inspectionPageMode !== "execucao") {
+        throw new Error("EMPLOYEE_INSPECTION_ROUTE_REQUIRED");
+      }
+
+      await loadOrderForExecution(orderIdFromURL);
+
+      console.log("[Nova Vistoria] OS carregada para o funcionário:", {
+        ordemId: orderIdFromURL,
+
+        codigoOS: currentLinkedOrder?.codigo || "",
+
+        uid: currentSession.uid,
+      });
+
+      return;
+    }
 
     if (inspectionIdFromURL && inspectionPageMode === "consulta") {
       await loadExistingInspection(inspectionIdFromURL);
@@ -3480,7 +4487,7 @@ async function initializePage() {
       if (inspectionOriginFromURL === "condominio") {
         const backLink = document.getElementById("inspection-back-link");
 
-        const cancelLink = form.querySelector(".inspection-cancel-button");
+        const cancelLink = form.querySelector("a.inspection-cancel-button");
 
         if (backLink) {
           backLink.href = "condominios.html?perfil=admin";
@@ -3512,6 +4519,21 @@ async function initializePage() {
 
     if (error.message === "ORDER_NOT_FOUND") {
       showFeedback("A Ordem de Serviço não foi encontrada.", "error");
+
+      return;
+    }
+
+    if (error.message === "ORDER_ACCESS_DENIED") {
+      showFeedback(
+        "Esta vistoria não está atribuída a este funcionário.",
+        "error",
+      );
+
+      return;
+    }
+
+    if (error.message === "EMPLOYEE_INSPECTION_ROUTE_REQUIRED") {
+      showFeedback("Acesse a vistoria pela área Minhas Vistorias.", "error");
 
       return;
     }
@@ -3579,6 +4601,25 @@ checklistList.addEventListener("change", handleChecklistChange);
 
 checklistList.addEventListener("input", handleChecklistObservation);
 
+validateInspectionButton?.addEventListener(
+  "click",
+  openInspectionValidationConfirmation,
+);
+
+returnInspectionButton?.addEventListener(
+  "click",
+  openInspectionReturnConfirmation,
+);
+
+closeInspectionAdminModalButtons.forEach((button) => {
+  button.addEventListener("click", closeInspectionAdminModal);
+});
+
+confirmInspectionAdminActionButton?.addEventListener(
+  "click",
+  confirmInspectionAdminModalAction,
+);
+
 exportInspectionPdfButton?.addEventListener("click", openInspectionPdfModal);
 
 closeInspectionPdfModalButtons.forEach((button) => {
@@ -3588,6 +4629,16 @@ closeInspectionPdfModalButtons.forEach((button) => {
 confirmInspectionPdfButton?.addEventListener("click", shareInspectionPdf);
 
 document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    inspectionAdminModal &&
+    !inspectionAdminModal.hidden
+  ) {
+    closeInspectionAdminModal();
+
+    return;
+  }
+
   if (
     event.key === "Escape" &&
     inspectionPdfModal &&
