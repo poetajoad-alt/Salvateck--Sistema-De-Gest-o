@@ -507,7 +507,30 @@ function startNotificationsCenter(uid) {
   );
 }
 
-notificationButton.addEventListener("click", () => {
+notificationButton.addEventListener("click", async () => {
+  if (
+    auth.currentUser &&
+    "Notification" in window &&
+    Notification.permission === "default"
+  ) {
+    try {
+      await Notification.requestPermission();
+    } catch (error) {
+      console.warn(
+        "[Principal] Não foi possível solicitar permissão para notificações:",
+        error,
+      );
+    }
+  }
+
+  if (
+    auth.currentUser &&
+    "Notification" in window &&
+    Notification.permission === "granted"
+  ) {
+    await ativarNotificacoesUsuario(auth.currentUser);
+  }
+
   const shouldOpen = notificationsPanel.hidden;
 
   notificationsPanel.hidden = !shouldOpen;
