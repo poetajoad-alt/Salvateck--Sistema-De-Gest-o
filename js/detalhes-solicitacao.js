@@ -34,11 +34,6 @@ const statusConfig = {
     classe: "status--em-analise",
   },
 
-  "aguardando-confirmacao": {
-    nome: "Aguardando confirmação",
-    classe: "status--aguardando-confirmacao",
-  },
-
   agendada: {
     nome: "Agendada",
     classe: "status--agendada",
@@ -82,17 +77,18 @@ const periodoConfig = {
   horario: "Horário específico",
 };
 
+const duracaoAtendimento = Object.freeze({
+  servico: 120,
+  vistoria: 60,
+});
+
+const intervaloAgendaMinutos = 30;
+
 const prioridadeConfig = {
   baixa: "Baixa",
   normal: "Normal",
   alta: "Alta",
   urgente: "Urgente",
-};
-
-const statusPropostaConfig = {
-  aguardando: "Aguardando confirmação",
-  aceita: "Data aceita",
-  recusada: "Data recusada",
 };
 
 /* =========================================
@@ -370,6 +366,50 @@ const rescheduleTime = document.getElementById("reschedule-time");
 
 const rescheduleMessage = document.getElementById("reschedule-message");
 
+function prepararInterfaceAgendamentoDireto() {
+  acceptRequestButton.textContent = "Agendar atendimento";
+
+  if (confirmScheduleButton) {
+    confirmScheduleButton.hidden = true;
+  }
+
+  if (scheduledWhatsAppButton) {
+    scheduledWhatsAppButton.hidden = true;
+  }
+
+  const acceptHeader = acceptForm.querySelector(".action-form__header");
+  const rescheduleHeader = rescheduleForm.querySelector(".action-form__header");
+
+  if (acceptHeader) {
+    acceptHeader.querySelector("p").textContent = "Agendamento direto";
+    acceptHeader.querySelector("h3").textContent = "Agendar atendimento";
+  }
+
+  if (rescheduleHeader) {
+    rescheduleHeader.querySelector("p").textContent = "Alterar agendamento";
+  }
+
+  acceptForm.querySelector('[type="submit"]').textContent =
+    "Agendar atendimento";
+  rescheduleForm.querySelector('[type="submit"]').textContent =
+    "Salvar reagendamento";
+
+  acceptMessage.closest(".form-group").hidden = true;
+  rescheduleMessage.closest(".form-group").hidden = true;
+  acceptPeriod.closest(".form-group").hidden = true;
+  reschedulePeriod.closest(".form-group").hidden = true;
+
+  acceptPeriod.required = false;
+  reschedulePeriod.required = false;
+
+  [acceptTime, rescheduleTime].forEach((input) => {
+    input.min = "08:00";
+    input.step = String(intervaloAgendaMinutos * 60);
+  });
+}
+
+prepararInterfaceAgendamentoDireto();
+
 /* Execução do funcionário */
 
 const employeeExecutionCard = document.getElementById(
@@ -570,7 +610,6 @@ const acceptedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const statusesThatAllowPhotos = new Set([
   "nova-solicitacao",
   "em-analise",
-  "aguardando-confirmacao",
   "agendada",
 ]);
 
@@ -598,7 +637,7 @@ function normalizeStatus(status) {
 
     "em-analise": "em-analise",
 
-    "aguardando-confirmacao": "aguardando-confirmacao",
+    "aguardando-confirmacao": "em-analise",
 
     agendada: "agendada",
 
@@ -728,143 +767,61 @@ function getInitials(name) {
 
   return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
 }
-function normalizeWhatsAppPhone(phone) {
-  const digits = String(phone || "").replace(/\D/g, "");
 
-  if (!digits) {
+function obterDuracaoAtendimentoAtual() {
+  return currentRequest?.tipoAtendimento === "vistoria"
+    ? duracaoAtendimento.vistoria
+    : duracaoAtendimento.servico;
+}
+
+function obterPeriodoPeloHorario(horario) {
+  const horas = Number(String(horario || "").split(":")[0]);
+
+  return horas < 12 ? "manha" : "tarde";
+}
+
+function calcularHorarioFinal(horarioInicial, duracaoMinutos) {
+  const [horas, minutos] = String(horarioInicial || "")
+    .split(":")
+    .map(Number);
+
+  if (!Number.isInteger(horas) || !Number.isInteger(minutos)) {
     return "";
   }
 
-  if (digits.startsWith("55")) {
-    return digits;
-  }
+  const total = horas * 60 + minutos + duracaoMinutos;
 
-  return `55${digits}`;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(
+    total % 60,
+  ).padStart(2, "0")}`;
 }
 
-function formatWhatsAppTime(value) {
-  const time = String(value || "").trim();
+function montarAtendimentoAgendado({ data, horario, disponibilidade }) {
+  const duracaoMinutos =
+    Number(disponibilidade?.duracaoMinutos) || obterDuracaoAtendimentoAtual();
+  const horarioFinal =
+    String(disponibilidade?.horarioFinal || "").trim() ||
+    calcularHorarioFinal(horario, duracaoMinutos);
+  const periodo = obterPeriodoPeloHorario(horario);
 
-  if (!time) {
-    return "horário não informado";
-  }
-
-  const match = time.match(/^(\d{1,2}):(\d{2})$/);
-
-  if (!match) {
-    return time;
-  }
-
-  return `${match[1].padStart(2, "0")}h${match[2]}`;
+  return {
+    ...(currentRequest.atendimento || {}),
+    modo: "agendado",
+    dataPreferida: data,
+    periodo,
+    horarioPreferido: horario,
+    dataConfirmada: data,
+    periodoConfirmado: periodo,
+    horarioConfirmado: horario,
+    horarioFinal,
+    duracaoMinutos,
+    intervaloMinutos: intervaloAgendaMinutos,
+    fusoHorario: "America/Sao_Paulo",
+    agendadoEm: serverTimestamp(),
+    lembretesEnviados: {},
+  };
 }
 
-function getWhatsAppCondominiumName(condominium = currentRequest?.condominio) {
-  const name = String(condominium?.nome || "").trim();
-
-  if (!name) {
-    return "Condomínio não informado";
-  }
-
-  return /^condom[ií]nio\b/i.test(name) ? name : `Condomínio ${name}`;
-}
-
-function buildScheduleWhatsAppMessage({
-  introduction,
-  date,
-  period,
-  time,
-  requiresConfirmation = false,
-}) {
-  const clientName =
-    String(currentRequest.cliente?.nome || "").trim() || "cliente";
-
-  const periodName =
-    periodoConfig[period] ||
-    String(period || "").trim() ||
-    "Período não informado";
-
-  const messageLines = [
-    `Olá, ${clientName}!`,
-    "",
-    introduction || "Temos um horário disponível para o seu atendimento.",
-    "",
-    `OS: ${currentRequest.codigo}`,
-    `Serviço: ${currentRequest.titulo}`,
-    `Data: ${formatDate(date)}`,
-    `Horário: ${formatWhatsAppTime(time)} (${periodName})`,
-    `Local: ${getWhatsAppCondominiumName()}`,
-  ];
-
-  if (requiresConfirmation) {
-    messageLines.push(
-      "",
-      "Por favor, confirme se o horário funciona para você.",
-    );
-  }
-
-  messageLines.push("", "Agradecemos a confiança!");
-
-  return messageLines.join("\n");
-}
-
-function buildProposalWhatsAppMessage() {
-  return buildScheduleWhatsAppMessage({
-    introduction:
-      acceptMessage.value.trim() ||
-      "Temos um horário disponível para o seu atendimento.",
-
-    date: acceptDate.value,
-
-    period: acceptPeriod.value,
-
-    time: acceptTime.value,
-
-    requiresConfirmation: true,
-  });
-}
-
-function buildScheduledWhatsAppMessage() {
-  const attendance = currentRequest.atendimento || {};
-
-  return buildScheduleWhatsAppMessage({
-    introduction: "Seu atendimento está agendado:",
-
-    date: attendance.dataConfirmada,
-
-    period: attendance.periodoConfirmado,
-
-    time: attendance.horarioConfirmado,
-
-    requiresConfirmation: false,
-  });
-}
-
-function contactScheduledClient() {
-  openWhatsApp(buildScheduledWhatsAppMessage());
-}
-function openWhatsApp(message, popupWindow = null) {
-  const phone = normalizeWhatsAppPhone(currentRequest.cliente?.telefone);
-
-  if (!phone) {
-    popupWindow?.close();
-
-    showFeedback(
-      "A proposta foi salva, mas o cliente não possui telefone cadastrado.",
-    );
-
-    return;
-  }
-
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-
-  if (popupWindow && !popupWindow.closed) {
-    popupWindow.location.href = url;
-
-    return;
-  }
-
-  window.open(url, "_blank", "noopener,noreferrer");
-}
 function showFeedback(message) {
   window.clearTimeout(feedbackTimeout);
 
@@ -1159,6 +1116,18 @@ function normalizeOrder(snapshot) {
       periodoConfirmado: order.atendimento?.periodoConfirmado || "",
 
       horarioConfirmado: order.atendimento?.horarioConfirmado || "",
+
+      horarioFinal: order.atendimento?.horarioFinal || "",
+
+      duracaoMinutos: Number(order.atendimento?.duracaoMinutos || 0),
+
+      intervaloMinutos: Number(order.atendimento?.intervaloMinutos || 0),
+
+      fusoHorario: order.atendimento?.fusoHorario || "America/Sao_Paulo",
+
+      agendadoEm: order.atendimento?.agendadoEm || null,
+
+      lembretesEnviados: order.atendimento?.lembretesEnviados || {},
 
       modo: order.atendimento?.modo || "",
     },
@@ -1603,9 +1572,11 @@ function renderHero() {
 function renderTimeline() {
   timelineItems.forEach((item) => {
     item.classList.remove("is-completed", "is-active");
+
+    item.hidden = item.dataset.timelineStep === "confirmacao";
   });
 
-  const items = Array.from(timelineItems);
+  const items = Array.from(timelineItems).filter((item) => !item.hidden);
 
   if (currentRequest.status === "nova-solicitacao") {
     items[0]?.classList.add("is-completed");
@@ -1621,20 +1592,11 @@ function renderTimeline() {
     return;
   }
 
-  if (currentRequest.status === "aguardando-confirmacao") {
-    items[0]?.classList.add("is-completed");
-    items[1]?.classList.add("is-completed");
-    items[2]?.classList.add("is-active");
-
-    return;
-  }
-
   if (["agendada", "aguardando-validacao"].includes(currentRequest.status)) {
     items[0]?.classList.add("is-completed");
     items[1]?.classList.add("is-completed");
     items[2]?.classList.add("is-completed");
-    items[3]?.classList.add("is-completed");
-    items[4]?.classList.add("is-active");
+    items[3]?.classList.add("is-active");
 
     return;
   }
@@ -4543,8 +4505,6 @@ function renderProfile() {
 
   const isNewOrAnalysis = ["nova-solicitacao", "em-analise"].includes(status);
 
-  const isAwaitingConfirmation = status === "aguardando-confirmacao";
-
   const isScheduled = status === "agendada";
 
   const isAwaitingValidation = status === "aguardando-validacao";
@@ -4600,7 +4560,7 @@ function renderProfile() {
         currentRequest.execucaoFuncionario?.observacao || "";
     } else {
       employeeExecutionStatusMessage.textContent =
-        "Aguarde a confirmação e o agendamento da OS pela Administração antes de finalizar o serviço.";
+        "Aguarde o agendamento da OS pela Administração antes de finalizar o serviço.";
     }
   }
 
@@ -4650,8 +4610,7 @@ function renderProfile() {
     }
   });
 
-  adminActionsCard.hidden =
-    !isAdmin || (!isNewOrAnalysis && !isAwaitingConfirmation);
+  adminActionsCard.hidden = !isAdmin || !isNewOrAnalysis;
 
   const canStartImmediateInspection =
     isAdmin && isInspection && !hasLinkedInspection && isNewOrAnalysis;
@@ -4659,7 +4618,9 @@ function renderProfile() {
   scheduledActionsCard.hidden =
     !isAdmin || (!isScheduled && !canStartImmediateInspection);
 
-  scheduledWhatsAppButton.hidden = !isScheduled;
+  if (scheduledWhatsAppButton) {
+    scheduledWhatsAppButton.hidden = true;
+  }
 
   startInspectionButton.hidden =
     !isAdmin || !isInspection || (!isScheduled && !canStartImmediateInspection);
@@ -4683,7 +4644,9 @@ function renderProfile() {
 
   acceptRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
 
-  confirmScheduleButton.hidden = !isAdmin || !isAwaitingConfirmation;
+  if (confirmScheduleButton) {
+    confirmScheduleButton.hidden = true;
+  }
 
   rejectRequestButton.hidden = !isAdmin || !isNewOrAnalysis;
 
@@ -4848,8 +4811,6 @@ async function obterSincronizadorGoogleAgenda() {
 
 let verificadorDisponibilidadeAgenda = null;
 
-let confirmadorAgendamentoSeguro = null;
-
 async function obterVerificadorDisponibilidadeAgenda() {
   if (verificadorDisponibilidadeAgenda) {
     return verificadorDisponibilidadeAgenda;
@@ -4874,32 +4835,6 @@ async function obterVerificadorDisponibilidadeAgenda() {
   );
 
   return verificadorDisponibilidadeAgenda;
-}
-
-async function obterConfirmadorAgendamentoSeguro() {
-  if (confirmadorAgendamentoSeguro) {
-    return confirmadorAgendamentoSeguro;
-  }
-
-  const [appModule, functionsModule] = await Promise.all([
-    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
-    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
-  ]);
-
-  const apps = appModule.getApps();
-
-  if (!apps.length) {
-    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
-  }
-
-  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
-
-  confirmadorAgendamentoSeguro = functionsModule.httpsCallable(
-    functions,
-    "confirmarAgendamentoSeguro",
-  );
-
-  return confirmadorAgendamentoSeguro;
 }
 
 function montarMensagemConflitoAgenda(conflito = {}) {
@@ -4934,7 +4869,7 @@ async function verificarDisponibilidadeDoHorario(data, horario) {
     const resultado = resposta.data || {};
 
     if (resultado.disponivel === true) {
-      return true;
+      return resultado;
     }
 
     showFeedback(montarMensagemConflitoAgenda(resultado.conflito || {}));
@@ -4947,69 +4882,10 @@ async function verificarDisponibilidadeDoHorario(data, horario) {
     );
 
     showFeedback(
-      "Não foi possível verificar a disponibilidade deste horário. Tente novamente antes de enviar a proposta.",
+      "Não foi possível verificar a disponibilidade deste horário. Tente novamente antes de salvar o agendamento.",
     );
 
-    return false;
-  }
-}
-
-async function confirmarAgendamentoComBlindagem() {
-  if (savingChanges || !currentRequestReference) {
-    return false;
-  }
-
-  savingChanges = true;
-
-  try {
-    const confirmar = await obterConfirmadorAgendamentoSeguro();
-
-    const resposta = await confirmar({
-      ordemId: currentRequest.documentId,
-    });
-
-    const resultado = resposta.data || {};
-
-    if (resultado.sucesso !== true) {
-      throw new Error("CONFIRMACAO_SEGURA_INVALIDA");
-    }
-
-    await loadRequest();
-
-    closeActionForms();
-
-    renderAll();
-
-    showFeedback("Agendamento confirmado com sucesso.");
-
-    return true;
-  } catch (error) {
-    console.error("[Agenda] Não foi possível confirmar o agendamento:", error);
-
-    const conflito =
-      error?.details?.conflito || error?.customData?.details?.conflito || null;
-
-    if (error?.code === "functions/already-exists" || conflito) {
-      showFeedback(montarMensagemConflitoAgenda(conflito || {}));
-
-      return false;
-    }
-
-    if (error?.code === "functions/failed-precondition") {
-      showFeedback(
-        "Este agendamento não pode mais ser confirmado. Atualize a página e verifique os dados da OS.",
-      );
-
-      return false;
-    }
-
-    showFeedback(
-      "Não foi possível confirmar o agendamento. Nenhum horário foi reservado.",
-    );
-
-    return false;
-  } finally {
-    savingChanges = false;
+    return null;
   }
 }
 
@@ -5045,6 +4921,8 @@ function montarDadosDoEventoAgenda(acao, eventId = "") {
     endereco: obterEnderecoParaAgenda(),
     data: currentRequest.atendimento?.dataConfirmada || "",
     horario: currentRequest.atendimento?.horarioConfirmado || "",
+    horarioFinal: currentRequest.atendimento?.horarioFinal || "",
+    duracaoMinutos: Number(currentRequest.atendimento?.duracaoMinutos || 0),
   };
 }
 
@@ -5227,6 +5105,13 @@ async function changePriority(value) {
 function fillAcceptForm() {
   const attendance = currentRequest.atendimento;
 
+  acceptDate.min = getLocalDate();
+
+  acceptTime.max =
+    obterDuracaoAtendimentoAtual() === duracaoAtendimento.vistoria
+      ? "17:00"
+      : "16:00";
+
   acceptDate.value =
     currentRequest.proposta?.data || attendance.dataPreferida || "";
 
@@ -5235,6 +5120,10 @@ function fillAcceptForm() {
 
   acceptTime.value =
     currentRequest.proposta?.horario || attendance.horarioPreferido || "";
+
+  if (acceptTime.value) {
+    acceptPeriod.value = obterPeriodoPeloHorario(acceptTime.value);
+  }
 }
 
 /* =========================================
@@ -5292,117 +5181,64 @@ function closeModal() {
 async function submitAccept(event) {
   event.preventDefault();
 
+  if (
+    currentSession.role !== "admin" ||
+    !["nova-solicitacao", "em-analise"].includes(currentRequest.status)
+  ) {
+    return;
+  }
+
   if (!acceptForm.checkValidity()) {
     acceptForm.reportValidity();
 
     return;
   }
 
-  const horarioDisponivel = await verificarDisponibilidadeDoHorario(
+  const disponibilidade = await verificarDisponibilidadeDoHorario(
     acceptDate.value,
     acceptTime.value,
   );
 
-  if (!horarioDisponivel) {
+  if (!disponibilidade) {
     return;
   }
 
+  const periodo = obterPeriodoPeloHorario(acceptTime.value);
+  const horarioFinal =
+    disponibilidade.horarioFinal ||
+    calcularHorarioFinal(
+      acceptTime.value,
+      disponibilidade.duracaoMinutos || obterDuracaoAtendimentoAtual(),
+    );
+
   openModal({
-    title: "Enviar proposta ao cliente",
+    title: "Agendar atendimento",
 
     description:
-      "A data e o horário serão salvos como proposta. A OS ainda não entrará oficialmente na agenda.",
+      `A OS será agendada para ${formatDate(acceptDate.value)}, ` +
+      `das ${acceptTime.value} às ${horarioFinal}.`,
 
-    confirmationText: "Salvar e abrir WhatsApp",
+    confirmationText: "Confirmar agendamento",
 
     confirm: async () => {
-      const whatsappWindow = window.open("", "_blank");
-
-      const proposal = {
-        data: acceptDate.value,
-
-        periodo: acceptPeriod.value,
-
-        horario: acceptTime.value,
-
-        status: "aguardando",
-
-        enviadaEm: new Date().toISOString(),
-      };
-
-      const observations = {
-        cliente: currentRequest.observacoes.cliente,
-
-        resposta:
-          acceptMessage.value.trim() ||
-          "A Salvateck enviou uma proposta de data para o atendimento.",
-
-        interna: "",
-      };
-
-      const whatsappMessage = buildProposalWhatsAppMessage();
-
-      try {
-        await saveChanges(
-          {
-            status: "aguardando-confirmacao",
-
-            proposta: proposal,
-
-            observacoes: observations,
+      await saveChanges(
+        {
+          status: "agendada",
+          proposta: null,
+          atendimento: montarAtendimentoAgendado({
+            data: acceptDate.value,
+            horario: acceptTime.value,
+            disponibilidade,
+          }),
+          observacoes: {
+            ...(currentRequest.observacoes || {}),
+            resposta:
+              `Atendimento agendado para ${formatDate(acceptDate.value)}, ` +
+              `${periodo}, das ${acceptTime.value} às ${horarioFinal}.`,
           },
-
-          "Proposta salva. Aguardando confirmação do cliente.",
-        );
-
-        openWhatsApp(whatsappMessage, whatsappWindow);
-      } catch (error) {
-        whatsappWindow?.close();
-
-        throw error;
-      }
-    },
-  });
-}
-/* =========================================
-   CONFIRMAR AGENDAMENTO
-========================================= */
-
-function confirmSchedule() {
-  if (
-    currentSession.role !== "admin" ||
-    currentRequest.status !== "aguardando-confirmacao"
-  ) {
-    return;
-  }
-
-  const proposal = currentRequest.proposta || {};
-
-  if (!proposal.data || !proposal.periodo || !proposal.horario) {
-    showFeedback("A proposta não possui data e horário completos.");
-
-    return;
-  }
-
-  const proposalDate = formatDate(proposal.data);
-
-  const proposalPeriod = periodoConfig[proposal.periodo] || proposal.periodo;
-
-  openModal({
-    title: "Confirmar Agendamento",
-
-    description:
-      `O cliente confirmou o atendimento para ${proposalDate}, ` +
-      `${proposalPeriod}, às ${proposal.horario}?`,
-
-    confirmationText: "Confirmar Agendamento",
-
-    confirm: async () => {
-      const agendamentoConfirmado = await confirmarAgendamentoComBlindagem();
-
-      if (!agendamentoConfirmado) {
-        return;
-      }
+        },
+        "Agendamento salvo com sucesso.",
+      );
 
       await sincronizarAgendamentoGoogle();
     },
@@ -5429,83 +5265,56 @@ async function submitReschedule(event) {
     return;
   }
 
-  const horarioDisponivel = await verificarDisponibilidadeDoHorario(
+  const disponibilidade = await verificarDisponibilidadeDoHorario(
     rescheduleDate.value,
     rescheduleTime.value,
   );
 
-  if (!horarioDisponivel) {
+  if (!disponibilidade) {
     return;
   }
 
+  const horarioFinal =
+    disponibilidade.horarioFinal ||
+    calcularHorarioFinal(
+      rescheduleTime.value,
+      disponibilidade.duracaoMinutos || obterDuracaoAtendimentoAtual(),
+    );
+
   openModal({
-    title: "Enviar nova proposta",
+    title: "Reagendar atendimento",
 
     description:
-      "A OS voltará para Aguardando confirmação até o cliente aceitar a nova data.",
+      `A data será alterada para ${formatDate(rescheduleDate.value)}, ` +
+      `das ${rescheduleTime.value} às ${horarioFinal}.`,
 
-    confirmationText: "Salvar e abrir WhatsApp",
+    confirmationText: "Confirmar reagendamento",
 
     confirm: async () => {
-      const whatsappWindow = window.open("", "_blank");
-
-      const proposal = {
+      const atendimento = montarAtendimentoAgendado({
         data: rescheduleDate.value,
-
-        periodo: reschedulePeriod.value,
-
         horario: rescheduleTime.value,
-
-        status: "aguardando",
-
-        tipo: "reagendamento",
-
-        enviadaEm: new Date().toISOString(),
-      };
-
-      const customMessage = rescheduleMessage.value.trim();
-
-      const whatsappMessage = buildScheduleWhatsAppMessage({
-        introduction:
-          customMessage ||
-          "Temos uma nova opção de horário para o seu atendimento.",
-
-        date: rescheduleDate.value,
-
-        period: reschedulePeriod.value,
-
-        time: rescheduleTime.value,
-
-        requiresConfirmation: true,
+        disponibilidade,
       });
 
-      try {
-        await saveChanges(
-          {
-            status: "aguardando-confirmacao",
+      atendimento.reagendadoEm = serverTimestamp();
 
-            proposta: proposal,
-
-            observacoes: {
-              cliente: currentRequest.observacoes.cliente,
-
-              resposta:
-                customMessage ||
-                "A Salvateck enviou uma nova proposta de data para o atendimento.",
-
-              interna: "",
-            },
+      await saveChanges(
+        {
+          status: "agendada",
+          proposta: null,
+          atendimento,
+          observacoes: {
+            ...(currentRequest.observacoes || {}),
+            resposta: `Atendimento reagendado para ${formatDate(
+              rescheduleDate.value,
+            )}, das ${rescheduleTime.value} às ${horarioFinal}.`,
           },
+        },
+        "Reagendamento salvo com sucesso.",
+      );
 
-          "Nova proposta salva. Aguardando confirmação do cliente.",
-        );
-
-        openWhatsApp(whatsappMessage, whatsappWindow);
-      } catch (error) {
-        whatsappWindow?.close();
-
-        throw error;
-      }
+      await sincronizarAgendamentoGoogle();
     },
   });
 }
@@ -6369,9 +6178,6 @@ acceptRequestButton.addEventListener("click", () => {
   openActionForm(acceptForm);
 });
 
-confirmScheduleButton.addEventListener("click", confirmSchedule);
-scheduledWhatsAppButton.addEventListener("click", contactScheduledClient);
-
 rescheduleRequestButton.addEventListener("click", () => {
   if (hasExecutedInspection()) {
     return;
@@ -6379,9 +6185,20 @@ rescheduleRequestButton.addEventListener("click", () => {
 
   rescheduleDate.value = currentRequest.atendimento?.dataConfirmada || "";
 
+  rescheduleDate.min = getLocalDate();
+
   reschedulePeriod.value = currentRequest.atendimento?.periodoConfirmado || "";
 
   rescheduleTime.value = currentRequest.atendimento?.horarioConfirmado || "";
+
+  rescheduleTime.max =
+    obterDuracaoAtendimentoAtual() === duracaoAtendimento.vistoria
+      ? "17:00"
+      : "16:00";
+
+  if (rescheduleTime.value) {
+    reschedulePeriod.value = obterPeriodoPeloHorario(rescheduleTime.value);
+  }
 
   openActionForm(rescheduleForm);
 });

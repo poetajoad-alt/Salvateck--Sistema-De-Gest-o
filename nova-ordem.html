@@ -6,7 +6,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <meta name="description" content="Solicitação de nova ordem de serviço da Salvateck" />
+  <meta name="description" content="Agendamento de manutenção e vistoria técnica da Salvateck" />
 
   <meta name="theme-color" content="#0D3861" />
 
@@ -21,7 +21,7 @@
 
   <!-- CSS global e CSS da página -->
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/nova-ordem.css?v=1.0.6" />
+  <link rel="stylesheet" href="css/nova-ordem.css?v=1.1.0" />
 </head>
 
 <body data-page="nova-ordem" data-allowed-roles="admin,cliente">
@@ -609,8 +609,8 @@
         </button>
       </section>
 
-      <!-- Agendamento exclusivo do administrador -->
-      <section class="form-card admin-only" id="schedule-section" data-section="agenda" hidden>
+      <!-- Agendamento -->
+      <section class="form-card" id="schedule-section" data-section="agenda">
 
         <div class="form-card__header">
 
@@ -621,88 +621,210 @@
           <div>
 
             <p class="form-card__eyebrow">
-              Preferência de atendimento
+              Data e horário
             </p>
 
             <h2 class="form-card__title">
-              Quando podemos atender?
+              Escolha o melhor horário
             </h2>
 
           </div>
 
         </div>
 
-        <div class="form-group">
+        <p class="form-card__description">
+          Selecione primeiro o tipo de atendimento. Em seguida, escolha uma data e um horário realmente disponíveis na agenda da Salvateck.
+        </p>
 
-          <label class="form-label" for="dataPreferida">
-            Data de preferência
-          </label>
+        <div class="schedule-service-info" id="schedule-service-info" aria-live="polite">
 
-          <input id="dataPreferida" name="dataPreferida" type="date" class="input" required />
+          <span class="schedule-service-info__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v5l3 2"></path>
+            </svg>
+          </span>
 
-        </div>
+          <div class="schedule-service-info__content">
+            <span>
+              Duração do atendimento
+            </span>
 
-        <fieldset class="period-fieldset">
-
-          <legend class="form-label">
-            Melhor período
-          </legend>
-
-          <div class="period-grid">
-
-            <label class="period-option">
-
-              <input type="radio" name="periodo" value="manha" required />
-
-              <span>
-                Manhã
-              </span>
-
-            </label>
-
-            <label class="period-option">
-
-              <input type="radio" name="periodo" value="tarde" />
-
-              <span>
-                Tarde
-              </span>
-
-            </label>
-
-            <label class="period-option">
-
-              <input type="radio" name="periodo" value="noite" />
-
-              <span>
-                Noite
-              </span>
-
-            </label>
-
-            <label class="period-option">
-
-              <input type="radio" name="periodo" value="horario" />
-
-              <span>
-                Horário específico
-              </span>
-
-            </label>
-
+            <strong id="schedule-service-duration">
+              Selecione Manutenção geral ou Vistoria técnica
+            </strong>
           </div>
 
-        </fieldset>
+        </div>
 
-        <div class="form-group" id="specific-time-group" hidden>
+        <div class="schedule-picker" id="schedule-picker">
 
-          <label class="form-label" for="horarioPreferido">
-            Horário de preferência
-          </label>
+          <section class="schedule-calendar" aria-labelledby="schedule-calendar-title">
 
-          <input id="horarioPreferido" name="horarioPreferido" type="time" class="input" />
+            <div class="schedule-calendar__header">
+
+              <div>
+                <span class="schedule-calendar__eyebrow">
+                  Primeiro, escolha o dia
+                </span>
+
+                <h3 id="schedule-calendar-title">
+                  Data do atendimento
+                </h3>
+              </div>
+
+              <div class="schedule-calendar__navigation">
+
+                <button type="button" class="schedule-calendar__nav-button" id="schedule-previous-month" aria-label="Ver mês anterior">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6"></path>
+                  </svg>
+                </button>
+
+                <strong id="schedule-current-month" aria-live="polite">
+                  Carregando calendário...
+                </strong>
+
+                <button type="button" class="schedule-calendar__nav-button" id="schedule-next-month" aria-label="Ver próximo mês">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6"></path>
+                  </svg>
+                </button>
+
+              </div>
+
+            </div>
+
+            <div class="schedule-calendar__weekdays" aria-hidden="true">
+              <span>Dom</span>
+              <span>Seg</span>
+              <span>Ter</span>
+              <span>Qua</span>
+              <span>Qui</span>
+              <span>Sex</span>
+              <span>Sáb</span>
+            </div>
+
+            <div class="schedule-calendar__grid" id="schedule-calendar-grid" role="grid" aria-label="Datas disponíveis para atendimento"></div>
+
+            <div class="schedule-calendar__loading" id="schedule-calendar-loading" role="status" aria-live="polite" hidden>
+              Consultando a agenda...
+            </div>
+
+            <div class="schedule-calendar__legend" aria-label="Legenda do calendário">
+              <span>
+                <i class="schedule-calendar__legend-marker schedule-calendar__legend-marker--available"></i>
+                Disponível
+              </span>
+
+              <span>
+                <i class="schedule-calendar__legend-marker schedule-calendar__legend-marker--selected"></i>
+                Selecionado
+              </span>
+
+              <span>
+                <i class="schedule-calendar__legend-marker schedule-calendar__legend-marker--unavailable"></i>
+                Indisponível
+              </span>
+            </div>
+
+          </section>
+
+          <section class="schedule-times" aria-labelledby="schedule-times-title">
+
+            <div class="schedule-times__header">
+
+              <div>
+                <span class="schedule-times__eyebrow">
+                  Depois, escolha o início
+                </span>
+
+                <h3 id="schedule-times-title">
+                  Horários disponíveis
+                </h3>
+              </div>
+
+              <span class="schedule-times__date" id="schedule-selected-date">
+                Nenhuma data selecionada
+              </span>
+
+            </div>
+
+            <div class="schedule-times__empty" id="schedule-times-empty">
+
+              <span class="schedule-times__empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                  <path d="M16 3v4M8 3v4M3 11h18"></path>
+                </svg>
+              </span>
+
+              <strong>
+                Escolha uma data
+              </strong>
+
+              <p>
+                Os horários livres aparecerão aqui em intervalos de 30 minutos.
+              </p>
+
+            </div>
+
+            <div class="schedule-times__loading" id="schedule-times-loading" role="status" aria-live="polite" hidden>
+              Buscando horários disponíveis...
+            </div>
+
+            <div class="schedule-times__grid" id="schedule-times-grid" role="radiogroup" aria-label="Horários disponíveis" hidden></div>
+
+            <div class="schedule-times__unavailable" id="schedule-times-unavailable" role="status" hidden>
+              <strong>
+                Não há horários disponíveis nesta data.
+              </strong>
+
+              <p id="schedule-times-unavailable-description">
+                Escolha outro dia para continuar.
+              </p>
+            </div>
+
+          </section>
 
         </div>
+
+        <input id="dataPreferida" name="dataPreferida" type="hidden" />
+        <input id="horarioPreferido" name="horarioPreferido" type="hidden" />
+        <input id="periodoAtendimento" name="periodo" type="hidden" />
+        <input id="horarioFinal" name="horarioFinal" type="hidden" />
+
+        <div class="schedule-selection" id="schedule-selection" aria-live="polite" hidden>
+
+          <span class="schedule-selection__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 12l4 4L19 6"></path>
+            </svg>
+          </span>
+
+          <div class="schedule-selection__content">
+            <span>
+              Horário selecionado
+            </span>
+
+            <strong id="schedule-selection-title">
+              Data e horário
+            </strong>
+
+            <small id="schedule-selection-description">
+              O período completo ficará reservado para este atendimento.
+            </small>
+          </div>
+
+          <button type="button" class="schedule-selection__change" id="schedule-change-time">
+            Alterar
+          </button>
+
+        </div>
+
+        <p class="validation-message" id="schedule-error" role="alert" hidden>
+          Escolha uma data e um horário disponíveis.
+        </p>
 
         <div class="information-box">
 
@@ -712,7 +834,7 @@
           </svg>
 
           <p>
-            Defina a data somente depois de alinhar o atendimento, o orçamento e a disponibilidade com o cliente.
+            Atendimento de segunda a sexta-feira, das 08h às 18h, sem intervalo de almoço. Manutenções duram 2 horas e vistorias duram 1 hora, com limite de 4 vistorias por dia.
           </p>
 
         </div>
@@ -1014,14 +1136,14 @@
 
           </div>
 
-          <div class="order-summary__item admin-only" id="summary-schedule-item" hidden>
+          <div class="order-summary__item" id="summary-schedule-item">
 
             <span>
               Agendamento
             </span>
 
             <strong id="summary-schedule">
-              Data e período não informados
+              Data e horário não informados
             </strong>
 
           </div>
@@ -1062,7 +1184,7 @@
         </a>
 
         <button id="btnSalvarOrdem" type="submit" class="button button--primary">
-          Enviar solicitação
+          Confirmar agendamento
         </button>
 
       </div>
@@ -1080,16 +1202,16 @@
       </span>
 
       <span class="order-success__eyebrow">
-        Solicitação criada
+        Agendamento realizado
       </span>
 
       <h2>
-        <span id="success-order-code">OS criada</span>
+        <span id="success-order-code">Agendamento criado</span>
         com sucesso!
       </h2>
 
       <p id="success-order-description">
-        Envie a ordem pelo WhatsApp para conversar com a Salvateck sobre o orçamento e o agendamento.
+        Seu atendimento foi reservado. Você poderá acompanhar qualquer atualização diretamente pelo sistema.
       </p>
 
       <div class="order-success__summary">
@@ -1106,12 +1228,12 @@
 
       <div class="order-success__actions">
 
-        <button type="button" class="button button--primary order-success__whatsapp" id="whatsapp-order-button">
-          Enviar OS pelo WhatsApp
-        </button>
+        <a href="ordens.html" class="button button--primary">
+          Ver meus agendamentos
+        </a>
 
-        <a href="ordens.html" class="button button--secondary">
-          Ver minhas solicitações
+        <a href="principal.html" class="button button--secondary">
+          Voltar ao painel
         </a>
 
       </div>
@@ -1322,9 +1444,7 @@
       </h2>
 
       <p id="emergency-modal-description">
-        A ordem será registrada como prioridade máxima.
-        A Salvateck será avisada pelo WhatsApp, mas o atendimento
-        dependerá da disponibilidade da equipe.
+        A ordem será registrada como prioridade máxima e a equipe administrativa receberá uma notificação imediata pelo sistema. O atendimento dependerá da disponibilidade da equipe.
       </p>
 
       <label class="emergency-modal__field" for="emergency-description">
@@ -1364,7 +1484,7 @@
     Solicitação enviada com sucesso!
   </div>
 
-  <script type="module" src="js/nova-ordem.js?v=1.0.18"></script>
+  <script type="module" src="js/nova-ordem.js?v=1.1.0"></script>
 </body>
 
 </html>

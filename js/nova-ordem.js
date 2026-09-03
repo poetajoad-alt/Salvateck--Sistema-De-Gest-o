@@ -244,17 +244,69 @@ const serviceDescriptionCounter = document.getElementById(
 
 const serviceError = document.getElementById("service-error");
 
-/* Data e período */
+/* Agendamento */
 
 const dataPreferida = document.getElementById("dataPreferida");
 
-const periodInputs = document.querySelectorAll('input[name="periodo"]');
-
-const specificTimeGroup = document.getElementById("specific-time-group");
-
 const horarioPreferido = document.getElementById("horarioPreferido");
 
+const periodoAtendimento = document.getElementById("periodoAtendimento");
+
+const horarioFinal = document.getElementById("horarioFinal");
+
 const scheduleSection = document.getElementById("schedule-section");
+
+const scheduleServiceInfo = document.getElementById("schedule-service-info");
+
+const scheduleServiceDuration = document.getElementById(
+  "schedule-service-duration",
+);
+
+const schedulePicker = document.getElementById("schedule-picker");
+
+const schedulePreviousMonth = document.getElementById(
+  "schedule-previous-month",
+);
+
+const scheduleNextMonth = document.getElementById("schedule-next-month");
+
+const scheduleCurrentMonth = document.getElementById("schedule-current-month");
+
+const scheduleCalendarGrid = document.getElementById("schedule-calendar-grid");
+
+const scheduleCalendarLoading = document.getElementById(
+  "schedule-calendar-loading",
+);
+
+const scheduleSelectedDate = document.getElementById("schedule-selected-date");
+
+const scheduleTimesEmpty = document.getElementById("schedule-times-empty");
+
+const scheduleTimesLoading = document.getElementById("schedule-times-loading");
+
+const scheduleTimesGrid = document.getElementById("schedule-times-grid");
+
+const scheduleTimesUnavailable = document.getElementById(
+  "schedule-times-unavailable",
+);
+
+const scheduleTimesUnavailableDescription = document.getElementById(
+  "schedule-times-unavailable-description",
+);
+
+const scheduleSelection = document.getElementById("schedule-selection");
+
+const scheduleSelectionTitle = document.getElementById(
+  "schedule-selection-title",
+);
+
+const scheduleSelectionDescription = document.getElementById(
+  "schedule-selection-description",
+);
+
+const scheduleChangeTime = document.getElementById("schedule-change-time");
+
+const scheduleError = document.getElementById("schedule-error");
 
 /* Funcionário responsável */
 
@@ -326,7 +378,8 @@ const successOrderCode = document.getElementById("success-order-code");
 
 const successOrderTitle = document.getElementById("success-order-title");
 
-const whatsappOrderButton = document.getElementById("whatsapp-order-button");
+const successOrderEyebrow = document.querySelector(".order-success__eyebrow");
+
 const successOrderDescription = document.getElementById(
   "success-order-description",
 );
@@ -446,14 +499,42 @@ const maxPhotoDimension = 1920;
 
 const acceptedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-/*
-  WhatsApp da Salvateck:
-  use 55 + DDD + número, somente números.
-  Exemplo: 5511999999999
-*/
-const SALVATECK_WHATSAPP = "554499343808";
+const scheduleServiceRules = {
+  "manutencao-geral": {
+    tipoAtendimento: "manutencao",
+    durationMinutes: 120,
+    durationLabel: "Manutenção geral — 2 horas",
+  },
+  vistoria: {
+    tipoAtendimento: "vistoria",
+    durationMinutes: 60,
+    durationLabel: "Vistoria técnica — 1 hora",
+  },
+};
 
-let lastSavedOrder = null;
+const scheduleSlotMinutes = 30;
+
+let scheduleVisibleMonth = new Date();
+
+scheduleVisibleMonth = new Date(
+  scheduleVisibleMonth.getFullYear(),
+  scheduleVisibleMonth.getMonth(),
+  1,
+);
+
+let scheduleAvailabilityByDate = new Map();
+
+let selectedScheduleDateValue = "";
+
+let selectedScheduleTimeValue = "";
+
+let selectedScheduleEndValue = "";
+
+let scheduleRequestSequence = 0;
+
+let scheduleAvailabilityCallable = null;
+
+let secureScheduleCreationCallable = null;
 
 let feedbackTimeout;
 
@@ -494,7 +575,7 @@ function getSelectedCategories() {
 }
 
 function getSelectedPeriod() {
-  return document.querySelector('input[name="periodo"]:checked')?.value;
+  return String(periodoAtendimento?.value || "").trim();
 }
 
 function getAddressMode() {
@@ -576,160 +657,27 @@ function scrollToElement(element) {
   });
 }
 
-function sanitizePhoneNumber(value) {
-  return String(value || "").replace(/\D/g, "");
-}
-
-function getOrderWhatsAppCondominiumName(savedOrder = {}) {
-  const name = String(
-    savedOrder?.condominio?.nome || selectedCondominium?.nome || "",
-  ).trim();
-
-  if (!name) {
-    return "Condomínio não informado";
-  }
-
-  return /^condom[ií]nio\b/i.test(name) ? name : `Condomínio ${name}`;
-}
-
-function buildEmergencyWhatsAppMessage(savedOrder) {
-  const clientName =
-    savedOrder?.cliente?.nome ||
-    nomeCliente.value.trim() ||
-    "Cliente não informado";
-
-  const clientPhone =
-    savedOrder?.cliente?.telefone ||
-    telefoneCliente.value.trim() ||
-    "Telefone não informado";
-
-  const serviceTitle = savedOrder?.titulo || "Serviço não informado";
-
-  const condominiumName = getOrderWhatsAppCondominiumName(savedOrder);
-
-  const addressSummary =
-    savedOrder?.endereco || getAddressSummary() || "Endereço não informado";
-
-  const description =
-    String(savedOrder?.descricao || emergencyDescription?.value || "").trim() ||
-    "Descrição não informada";
-
-  return [
-    "🚨 EMERGÊNCIA SALVATECK",
-    "",
-    `OS: ${savedOrder.codigo}`,
-    `Serviço: ${serviceTitle}`,
-    `Local: ${condominiumName}`,
-    `Cliente: ${clientName}`,
-    `Telefone: ${clientPhone}`,
-    `Endereço: ${addressSummary}`,
-    "",
-    "Descrição:",
-    description,
-  ].join("\n");
-}
-
-function buildWhatsAppMessage(savedOrder) {
-  if (savedOrder?.prioridade === "urgente") {
-    return buildEmergencyWhatsAppMessage(savedOrder);
-  }
-
-  const clientName = nomeCliente.value.trim() || "Cliente não informado";
-
-  const clientPhone = telefoneCliente.value.trim() || "Telefone não informado";
-
-  const serviceTitle = savedOrder?.titulo || "Serviço não informado";
-
-  const condominiumName = getOrderWhatsAppCondominiumName(savedOrder);
-
-  const addressSummary = getAddressSummary() || "Endereço não informado";
-
-  return [
-    "Olá! Criei uma solicitação de serviço na Salvateck.",
-    "",
-    `OS: ${savedOrder.codigo}`,
-    `Serviço: ${serviceTitle}`,
-    `Local: ${condominiumName}`,
-    `Cliente: ${clientName}`,
-    `Telefone: ${clientPhone}`,
-    `Endereço: ${addressSummary}`,
-    "",
-    "Aguardo o retorno para combinarmos o atendimento.",
-  ].join("\n");
-}
-
-function openOrderOnWhatsApp() {
-  if (!lastSavedOrder) {
-    showFeedback("Não foi possível identificar a ordem criada.", "error");
-
-    return;
-  }
-
-  const whatsappNumber = sanitizePhoneNumber(SALVATECK_WHATSAPP);
-
-  if (whatsappNumber.length < 12) {
-    showFeedback(
-      "Configure o número de WhatsApp da Salvateck no arquivo nova-ordem.js.",
-      "error",
-    );
-
-    return;
-  }
-
-  const message = encodeURIComponent(buildWhatsAppMessage(lastSavedOrder));
-
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-
-  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-}
-function openEmergencyOnWhatsApp(savedOrder, openedWindow = null) {
-  const whatsappNumber = sanitizePhoneNumber(SALVATECK_WHATSAPP);
-
-  if (whatsappNumber.length < 12) {
-    openedWindow?.close();
-
-    showFeedback("Configure corretamente o WhatsApp da Salvateck.", "error");
-
-    return;
-  }
-
-  const message = encodeURIComponent(buildEmergencyWhatsAppMessage(savedOrder));
-
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
-
-  /*
-    A janela é aberta no clique antes da gravação.
-    Isso evita que o celular bloqueie o WhatsApp
-    depois da operação assíncrona do Firebase.
-  */
-  if (openedWindow && !openedWindow.closed) {
-    openedWindow.location.href = whatsappUrl;
-
-    return;
-  }
-
-  window.location.href = whatsappUrl;
-}
-
 function showOrderSuccess(savedOrder) {
-  lastSavedOrder = savedOrder;
-
   const isEmergency = savedOrder?.prioridade === "urgente";
 
   successOrderCode.textContent = savedOrder.codigo;
 
   successOrderTitle.textContent = savedOrder.titulo || "Serviço solicitado";
 
-  if (successOrderDescription) {
-    successOrderDescription.textContent = isEmergency
-      ? "A emergência foi registrada. O WhatsApp da Salvateck será aberto com as informações do atendimento."
-      : "Envie a ordem pelo WhatsApp para conversar com a Salvateck sobre o orçamento e o agendamento.";
+  if (successOrderEyebrow) {
+    successOrderEyebrow.textContent = isEmergency
+      ? "Emergência registrada"
+      : "Agendamento realizado";
   }
 
-  if (whatsappOrderButton) {
-    whatsappOrderButton.textContent = isEmergency
-      ? "Abrir emergência no WhatsApp"
-      : "Enviar OS pelo WhatsApp";
+  if (successOrderDescription) {
+    successOrderDescription.textContent = isEmergency
+      ? "A emergência foi registrada e a equipe administrativa será notificada imediatamente pelo sistema."
+      : `Seu atendimento foi reservado para ${formatDate(
+          savedOrder?.data || dataPreferida.value,
+        )}, das ${savedOrder?.horario || horarioPreferido.value} às ${
+          savedOrder?.horarioFinal || horarioFinal.value
+        }. Você poderá acompanhar qualquer atualização pelo sistema.`;
   }
 
   form.hidden = true;
@@ -750,8 +698,9 @@ function formatOrderCode(number) {
   return `OS-${String(number).padStart(4, "0")}`;
 }
 
-async function saveOrderInFirestore({
+async function saveOrderDirectlyInFirestore({
   isEmergency = false,
+  isImmediate = false,
   emergencyDescription = "",
 } = {}) {
   const counterReference = doc(db, "contadores", "ordens");
@@ -808,6 +757,8 @@ async function saveOrderInFirestore({
       codigo: code,
 
       isEmergency,
+
+      isImmediate,
 
       emergencyDescription,
     });
@@ -878,7 +829,115 @@ async function saveOrderInFirestore({
       cliente: orderData.cliente,
 
       endereco: orderData.endereco?.resumo || "",
+
+      data: orderData.atendimento?.dataConfirmada || "",
+
+      horario: orderData.atendimento?.horarioConfirmado || "",
+
+      horarioFinal: orderData.atendimento?.horarioFinal || "",
     };
+  });
+}
+
+async function getSecureScheduleCreationCallable() {
+  if (secureScheduleCreationCallable) {
+    return secureScheduleCreationCallable;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  secureScheduleCreationCallable = functionsModule.httpsCallable(
+    functions,
+    "criarAgendamentoSeguro",
+  );
+
+  return secureScheduleCreationCallable;
+}
+
+async function saveScheduledOrderSecurely() {
+  const rule = getSelectedScheduleRule();
+
+  if (!rule || !isScheduleComplete()) {
+    throw new Error("SCHEDULE_REQUIRED");
+  }
+
+  const orderData = buildOrderData({
+    id: "",
+    numero: 0,
+    codigo: "",
+    usePlainTimestamps: true,
+  });
+
+  const internalObservation =
+    currentProfile === "admin"
+      ? String(document.getElementById("observacaoInterna")?.value || "").trim()
+      : "";
+
+  const createSchedule = await getSecureScheduleCreationCallable();
+
+  const response = await createSchedule({
+    ordem: orderData,
+    observacaoInterna: internalObservation,
+    agendamento: {
+      data: dataPreferida.value,
+      horario: horarioPreferido.value,
+      horarioFinal: horarioFinal.value,
+      periodo: getSelectedPeriod(),
+      tipoAtendimento: rule.tipoAtendimento,
+      duracaoMinutos: rule.durationMinutes,
+    },
+  });
+
+  const result = response.data || {};
+
+  const savedOrder = result.ordem || {};
+
+  if (result.sucesso !== true || !savedOrder.id || !savedOrder.codigo) {
+    throw new Error("SECURE_SCHEDULE_CREATION_FAILED");
+  }
+
+  return {
+    id: savedOrder.id,
+    numero: Number(savedOrder.numero || 0),
+    codigo: savedOrder.codigo,
+    tipoAtendimento: savedOrder.tipoAtendimento || orderData.tipoAtendimento,
+    titulo: savedOrder.titulo || orderData.titulo,
+    status: savedOrder.status || "agendada",
+    prioridade: savedOrder.prioridade || "normal",
+    descricao: savedOrder.descricao || orderData.observacoes.cliente,
+    cliente: savedOrder.cliente || orderData.cliente,
+    condominio: savedOrder.condominio || orderData.condominio,
+    endereco: savedOrder.endereco || orderData.endereco?.resumo || "",
+    data: savedOrder.data || dataPreferida.value,
+    horario: savedOrder.horario || horarioPreferido.value,
+    horarioFinal: savedOrder.horarioFinal || horarioFinal.value,
+  };
+}
+
+async function saveOrderInFirestore({
+  isEmergency = false,
+  isImmediate = false,
+  emergencyDescription = "",
+} = {}) {
+  if (!isEmergency && !isImmediate) {
+    return saveScheduledOrderSecurely();
+  }
+
+  return saveOrderDirectlyInFirestore({
+    isEmergency,
+    isImmediate,
+    emergencyDescription,
   });
 }
 
@@ -1971,45 +2030,21 @@ function changeProfile(profile) {
     element.hidden = isAdmin;
   });
 
-  dataPreferida.disabled = !isAdmin;
-
-  dataPreferida.required = isAdmin;
-
-  periodInputs.forEach((input) => {
-    input.disabled = !isAdmin;
-
-    input.required = isAdmin;
-  });
-
-  horarioPreferido.disabled = !isAdmin;
-
-  if (!isAdmin) {
-    dataPreferida.value = "";
-
-    periodInputs.forEach((input) => {
-      input.checked = false;
-    });
-
-    horarioPreferido.value = "";
-
-    specificTimeGroup.hidden = true;
-  }
-
   if (isAdmin) {
-    btnSalvarOrdem.textContent = "Criar ordem de serviço";
+    btnSalvarOrdem.textContent = "Criar ordem agendada";
 
     btnEditarDados.hidden = true;
 
     setClientFieldsEditable(true);
   } else {
-    btnSalvarOrdem.textContent = "Criar solicitação";
+    btnSalvarOrdem.textContent = "Confirmar agendamento";
 
     btnEditarDados.hidden = false;
 
     setClientFieldsEditable(false);
   }
 
-  toggleSpecificTime();
+  updateScheduleServiceInfo();
 
   updateInspectionEmployeeSection();
 
@@ -2845,6 +2880,8 @@ async function startInspectionNow() {
 
   const originalTime = horarioPreferido.value;
 
+  const originalEndTime = horarioFinal.value;
+
   let savedOrder = null;
 
   startInspectionNowButton.disabled = true;
@@ -2858,16 +2895,12 @@ async function startInspectionNow() {
       "Vistoria técnica iniciada imediatamente no local.";
   }
 
-  dataPreferida.value = "";
-
-  periodInputs.forEach((input) => {
-    input.checked = false;
-  });
-
-  horarioPreferido.value = "";
+  resetScheduleSelection();
 
   try {
-    savedOrder = await saveOrderInFirestore();
+    savedOrder = await saveOrderInFirestore({
+      isImmediate: true,
+    });
 
     const iniciarVistoria = await obterIniciadorVistoriaAgora();
 
@@ -2905,16 +2938,41 @@ async function startInspectionNow() {
 
     serviceDescription.value = originalDescription;
 
-    dataPreferida.value = originalDate;
+    selectedScheduleDateValue = originalDate;
 
-    periodInputs.forEach((input) => {
-      input.checked = input.value === originalPeriod;
-    });
+    selectedScheduleTimeValue = originalTime;
+
+    selectedScheduleEndValue = originalEndTime;
+
+    dataPreferida.value = originalDate;
 
     horarioPreferido.value = originalTime;
 
+    horarioFinal.value = originalEndTime;
+
+    periodoAtendimento.value = originalPeriod;
+
+    if (originalDate) {
+      scheduleSelectedDate.textContent = formatLongDate(originalDate);
+    }
+
+    if (originalDate && originalTime && originalEndTime) {
+      const rule = getSelectedScheduleRule();
+
+      scheduleSelectionTitle.textContent = `${formatDate(
+        originalDate,
+      )} • ${originalTime} às ${originalEndTime}`;
+
+      scheduleSelectionDescription.textContent = rule
+        ? `${rule.durationLabel}. O período completo ficará reservado.`
+        : "O período completo ficará reservado.";
+
+      scheduleSelection.hidden = false;
+    }
+
     updateServiceDescriptionCounter();
-    syncPeriodStyles();
+    renderScheduleCalendar();
+    renderScheduleTimes();
     updateSummary();
     updateProgress();
 
@@ -3130,6 +3188,8 @@ async function handleCategoryChange(event) {
   updateSummary();
   updateProgress();
 
+  void loadScheduleAvailability();
+
   if (
     currentProfile === "admin" &&
     changedInput.checked &&
@@ -3140,42 +3200,535 @@ async function handleCategoryChange(event) {
 }
 
 /* =========================================
-   DATA E PERÍODO
+   CALENDÁRIO E HORÁRIOS
 ========================================= */
 
-function setMinimumDate() {
-  dataPreferida.min = getLocalDateString();
+function getSelectedScheduleRule() {
+  const selectedCategory = getSelectedCategories()[0] || "";
+
+  return scheduleServiceRules[selectedCategory] || null;
 }
 
-function syncPeriodStyles() {
-  document.querySelectorAll(".period-option").forEach((option) => {
-    const input = option.querySelector('input[name="periodo"]');
+function parseLocalDate(dateValue) {
+  const match = String(dateValue || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
-    option.classList.toggle("is-selected", Boolean(input?.checked));
-  });
-}
-
-function toggleSpecificTime() {
-  const selectedPeriod = getSelectedPeriod();
-
-  const requiresTime =
-    currentProfile === "admin" && selectedPeriod === "horario";
-
-  specificTimeGroup.hidden = !requiresTime;
-
-  horarioPreferido.disabled = currentProfile !== "admin";
-
-  horarioPreferido.required = requiresTime;
-
-  if (!requiresTime) {
-    horarioPreferido.value = "";
+  if (!match) {
+    return null;
   }
 
-  syncPeriodStyles();
+  const date = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatLocalDateValue(date) {
+  const year = date.getFullYear();
+
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatLongDate(dateValue) {
+  const date = parseLocalDate(dateValue);
+
+  if (!date) {
+    return "Data não informada";
+  }
+
+  const formatted = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(date);
+
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function getPeriodFromTime(timeValue) {
+  const [hours] = String(timeValue || "")
+    .split(":")
+    .map(Number);
+
+  return Number.isFinite(hours) && hours < 12 ? "manha" : "tarde";
+}
+
+function isDateBeforeToday(date) {
+  const today = parseLocalDate(getLocalDateString());
+
+  const normalizedDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+
+  return normalizedDate < today;
+}
+
+function isWeekend(date) {
+  return date.getDay() === 0 || date.getDay() === 6;
+}
+
+function setScheduleLoading(isLoading) {
+  scheduleCalendarLoading.hidden = !isLoading;
+
+  scheduleCalendarGrid.hidden = isLoading;
+
+  schedulePreviousMonth.disabled = isLoading;
+
+  scheduleNextMonth.disabled = isLoading;
+}
+
+function resetScheduleSelection({ keepDate = false } = {}) {
+  selectedScheduleTimeValue = "";
+
+  selectedScheduleEndValue = "";
+
+  horarioPreferido.value = "";
+
+  horarioFinal.value = "";
+
+  periodoAtendimento.value = "";
+
+  scheduleSelection.hidden = true;
+
+  scheduleError.hidden = true;
+
+  scheduleSection.classList.remove("has-error");
+
+  if (!keepDate) {
+    selectedScheduleDateValue = "";
+
+    dataPreferida.value = "";
+
+    scheduleSelectedDate.textContent = "Nenhuma data selecionada";
+  }
+}
+
+function clearSchedule({ keepMonth = true } = {}) {
+  resetScheduleSelection();
+
+  scheduleAvailabilityByDate = new Map();
+
+  scheduleTimesGrid.replaceChildren();
+
+  scheduleTimesGrid.hidden = true;
+
+  scheduleTimesLoading.hidden = true;
+
+  scheduleTimesUnavailable.hidden = true;
+
+  scheduleTimesEmpty.hidden = false;
+
+  if (!keepMonth) {
+    const today = new Date();
+
+    scheduleVisibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+}
+
+function updateScheduleServiceInfo() {
+  const rule = getSelectedScheduleRule();
+
+  if (!rule) {
+    scheduleServiceInfo.classList.remove("is-ready");
+
+    scheduleServiceDuration.textContent =
+      "Selecione Manutenção geral ou Vistoria técnica";
+
+    schedulePicker.classList.add("is-disabled");
+
+    return;
+  }
+
+  scheduleServiceInfo.classList.add("is-ready");
+
+  scheduleServiceDuration.textContent =
+    rule.tipoAtendimento === "vistoria"
+      ? `${rule.durationLabel} • máximo de 4 vistorias por dia`
+      : rule.durationLabel;
+
+  schedulePicker.classList.remove("is-disabled");
+}
+
+async function getScheduleAvailabilityCallable() {
+  if (scheduleAvailabilityCallable) {
+    return scheduleAvailabilityCallable;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  scheduleAvailabilityCallable = functionsModule.httpsCallable(
+    functions,
+    "listarDisponibilidadeAgenda",
+  );
+
+  return scheduleAvailabilityCallable;
+}
+
+function normalizeAvailableSlot(slot) {
+  const start = String(slot?.inicio || "").trim();
+
+  const end = String(slot?.fim || "").trim();
+
+  if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) {
+    return null;
+  }
+
+  return {
+    inicio: start,
+    fim: end,
+  };
+}
+
+function normalizeScheduleDay(day) {
+  const date = String(day?.data || "").trim();
+
+  const slots = Array.isArray(day?.horarios)
+    ? day.horarios.map(normalizeAvailableSlot).filter(Boolean)
+    : [];
+
+  return {
+    data: date,
+    disponivel: day?.disponivel === true && slots.length > 0,
+    horarios: slots,
+    totalVistorias: Number(day?.totalVistorias || 0),
+    limiteVistoriasAtingido: day?.limiteVistoriasAtingido === true,
+  };
+}
+
+function renderScheduleCalendar() {
+  const year = scheduleVisibleMonth.getFullYear();
+
+  const month = scheduleVisibleMonth.getMonth();
+
+  const todayMonth = new Date();
+
+  const firstAllowedMonth = new Date(
+    todayMonth.getFullYear(),
+    todayMonth.getMonth(),
+    1,
+  );
+
+  scheduleCurrentMonth.textContent = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(scheduleVisibleMonth);
+
+  schedulePreviousMonth.disabled = scheduleVisibleMonth <= firstAllowedMonth;
+
+  scheduleNextMonth.disabled = false;
+
+  scheduleCalendarGrid.replaceChildren();
+
+  const firstWeekday = new Date(year, month, 1).getDay();
+
+  const numberOfDays = new Date(year, month + 1, 0).getDate();
+
+  const fragment = document.createDocumentFragment();
+
+  for (let index = 0; index < firstWeekday; index += 1) {
+    const placeholder = document.createElement("span");
+
+    placeholder.className = "schedule-calendar__day is-outside-month";
+
+    placeholder.setAttribute("aria-hidden", "true");
+
+    fragment.append(placeholder);
+  }
+
+  for (let dayNumber = 1; dayNumber <= numberOfDays; dayNumber += 1) {
+    const date = new Date(year, month, dayNumber);
+
+    const dateValue = formatLocalDateValue(date);
+
+    const availability = scheduleAvailabilityByDate.get(dateValue);
+
+    const available =
+      Boolean(getSelectedScheduleRule()) &&
+      !isDateBeforeToday(date) &&
+      !isWeekend(date) &&
+      availability?.disponivel === true;
+
+    const button = document.createElement("button");
+
+    button.type = "button";
+
+    button.className = "schedule-calendar__day";
+
+    button.dataset.date = dateValue;
+
+    button.setAttribute("role", "gridcell");
+
+    button.setAttribute("aria-label", formatLongDate(dateValue));
+
+    const number = document.createElement("span");
+
+    number.textContent = String(dayNumber);
+
+    button.append(number);
+
+    if (dateValue === getLocalDateString()) {
+      button.classList.add("is-today");
+    }
+
+    if (available) {
+      button.classList.add("is-available");
+
+      button.addEventListener("click", () => selectScheduleDate(dateValue));
+    } else {
+      button.disabled = true;
+
+      button.classList.add("is-unavailable");
+    }
+
+    if (dateValue === selectedScheduleDateValue) {
+      button.classList.add("is-selected");
+
+      button.setAttribute("aria-selected", "true");
+    }
+
+    fragment.append(button);
+  }
+
+  scheduleCalendarGrid.append(fragment);
+}
+
+function showScheduleTimesUnavailable(day = null) {
+  scheduleTimesEmpty.hidden = true;
+
+  scheduleTimesLoading.hidden = true;
+
+  scheduleTimesGrid.hidden = true;
+
+  scheduleTimesUnavailable.hidden = false;
+
+  const isInspectionLimit = day?.limiteVistoriasAtingido === true;
+
+  scheduleTimesUnavailableDescription.textContent = isInspectionLimit
+    ? "O limite de 4 vistorias já foi atingido. Escolha outro dia."
+    : "Todos os períodos compatíveis com a duração do serviço já estão ocupados.";
+}
+
+function renderScheduleTimes() {
+  const day = scheduleAvailabilityByDate.get(selectedScheduleDateValue);
+
+  scheduleTimesGrid.replaceChildren();
+
+  if (!day || day.horarios.length === 0) {
+    showScheduleTimesUnavailable(day);
+
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  day.horarios.forEach((slot) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+
+    button.className = "schedule-time-option";
+
+    button.dataset.start = slot.inicio;
+
+    button.dataset.end = slot.fim;
+
+    button.setAttribute("role", "radio");
+
+    button.setAttribute("aria-checked", "false");
+
+    const time = document.createElement("strong");
+
+    time.textContent = slot.inicio;
+
+    const interval = document.createElement("small");
+
+    interval.textContent = `até ${slot.fim}`;
+
+    button.append(time, interval);
+
+    if (slot.inicio === selectedScheduleTimeValue) {
+      button.classList.add("is-selected");
+
+      button.setAttribute("aria-checked", "true");
+    }
+
+    button.addEventListener("click", () => selectScheduleTime(slot));
+
+    fragment.append(button);
+  });
+
+  scheduleTimesGrid.append(fragment);
+
+  scheduleTimesEmpty.hidden = true;
+
+  scheduleTimesLoading.hidden = true;
+
+  scheduleTimesUnavailable.hidden = true;
+
+  scheduleTimesGrid.hidden = false;
+}
+
+function selectScheduleDate(dateValue) {
+  selectedScheduleDateValue = dateValue;
+
+  dataPreferida.value = dateValue;
+
+  resetScheduleSelection({
+    keepDate: true,
+  });
+
+  scheduleSelectedDate.textContent = formatLongDate(dateValue);
+
+  renderScheduleCalendar();
+
+  renderScheduleTimes();
 
   updateSummary();
 
   updateProgress();
+}
+
+function selectScheduleTime(slot) {
+  const rule = getSelectedScheduleRule();
+
+  if (!rule || !selectedScheduleDateValue) {
+    return;
+  }
+
+  selectedScheduleTimeValue = slot.inicio;
+
+  selectedScheduleEndValue = slot.fim;
+
+  horarioPreferido.value = slot.inicio;
+
+  horarioFinal.value = slot.fim;
+
+  periodoAtendimento.value = getPeriodFromTime(slot.inicio);
+
+  scheduleSelectionTitle.textContent = `${formatDate(
+    selectedScheduleDateValue,
+  )} • ${slot.inicio} às ${slot.fim}`;
+
+  scheduleSelectionDescription.textContent = `${rule.durationLabel}. O período completo ficará reservado.`;
+
+  scheduleSelection.hidden = false;
+
+  scheduleError.hidden = true;
+
+  scheduleSection.classList.remove("has-error");
+
+  renderScheduleTimes();
+
+  updateSummary();
+
+  updateProgress();
+}
+
+async function loadScheduleAvailability() {
+  const rule = getSelectedScheduleRule();
+
+  updateScheduleServiceInfo();
+
+  clearSchedule();
+
+  if (!rule) {
+    renderScheduleCalendar();
+
+    return;
+  }
+
+  const requestId = ++scheduleRequestSequence;
+
+  setScheduleLoading(true);
+
+  scheduleTimesEmpty.hidden = false;
+
+  scheduleTimesUnavailable.hidden = true;
+
+  try {
+    const listAvailability = await getScheduleAvailabilityCallable();
+
+    const response = await listAvailability({
+      ano: scheduleVisibleMonth.getFullYear(),
+      mes: scheduleVisibleMonth.getMonth() + 1,
+      tipoAtendimento: rule.tipoAtendimento,
+    });
+
+    if (requestId !== scheduleRequestSequence) {
+      return;
+    }
+
+    const result = response.data || {};
+
+    if (result.sucesso !== true || !Array.isArray(result.dias)) {
+      throw new Error("DISPONIBILIDADE_INVALIDA");
+    }
+
+    scheduleAvailabilityByDate = new Map(
+      result.dias
+        .map(normalizeScheduleDay)
+        .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.data))
+        .map((day) => [day.data, day]),
+    );
+  } catch (error) {
+    console.error("[Agenda] Não foi possível carregar os horários:", error);
+
+    scheduleAvailabilityByDate = new Map();
+
+    showFeedback(
+      "Não foi possível consultar a agenda. Tente novamente em instantes.",
+      "error",
+    );
+  } finally {
+    if (requestId === scheduleRequestSequence) {
+      setScheduleLoading(false);
+
+      renderScheduleCalendar();
+    }
+  }
+}
+
+async function changeScheduleMonth(offset) {
+  const candidate = new Date(
+    scheduleVisibleMonth.getFullYear(),
+    scheduleVisibleMonth.getMonth() + offset,
+    1,
+  );
+
+  const today = new Date();
+
+  const firstAllowedMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  if (candidate < firstAllowedMonth) {
+    return;
+  }
+
+  scheduleVisibleMonth = candidate;
+
+  await loadScheduleAvailability();
 }
 
 /* =========================================
@@ -3599,26 +4152,15 @@ function getSelectedServiceNames() {
 function getScheduleSummary() {
   const date = dataPreferida.value;
 
-  const period = getSelectedPeriod();
+  const start = horarioPreferido.value;
 
-  if (!date || !period) {
-    return "Data e período não informados";
+  const end = horarioFinal.value;
+
+  if (!date || !start || !end) {
+    return "Data e horário não informados";
   }
 
-  const periodNames = {
-    manha: "Manhã",
-    tarde: "Tarde",
-    noite: "Noite",
-    horario: "Horário específico",
-  };
-
-  let summary = `${formatDate(date)} — ${periodNames[period]}`;
-
-  if (period === "horario" && horarioPreferido.value) {
-    summary += ` às ${horarioPreferido.value}`;
-  }
-
-  return summary;
+  return `${formatDate(date)} — ${start} às ${end}`;
 }
 
 function updateSummary() {
@@ -3666,21 +4208,13 @@ function isClientDataComplete() {
 }
 
 function isScheduleComplete() {
-  if (currentProfile === "cliente") {
-    return true;
-  }
-
-  const period = getSelectedPeriod();
-
-  if (!dataPreferida.value || !period) {
-    return false;
-  }
-
-  if (period === "horario" && !horarioPreferido.value) {
-    return false;
-  }
-
-  return true;
+  return Boolean(
+    dataPreferida.value &&
+    horarioPreferido.value &&
+    horarioFinal.value &&
+    getSelectedPeriod() &&
+    getSelectedScheduleRule(),
+  );
 }
 
 function updateProgress() {
@@ -3690,11 +4224,10 @@ function updateProgress() {
     isAddressComplete(),
     getSelectedCategories().length > 0,
     getServiceDescription().length >= 10,
+    isScheduleComplete(),
   ];
 
   if (currentProfile === "admin") {
-    steps.push(isScheduleComplete());
-
     if (
       getSelectedCategories().includes("vistoria") &&
       inspectionSchedulingSelected
@@ -3718,7 +4251,7 @@ function updateProgress() {
   } else if (percentage < 100) {
     progressLabel.textContent = "Quase lá";
   } else {
-    progressLabel.textContent = "Pronto para enviar";
+    progressLabel.textContent = "Pronto para agendar";
   }
 }
 
@@ -3768,6 +4301,18 @@ function validateForm() {
     showServiceValidation();
 
     serviceDescription.focus();
+
+    return false;
+  }
+
+  if (!isScheduleComplete()) {
+    scheduleError.hidden = false;
+
+    scheduleSection.classList.add("has-error");
+
+    showFeedback("Escolha uma data e um horário disponíveis.", "error");
+
+    scrollToElement(scheduleSection);
 
     return false;
   }
@@ -3858,9 +4403,9 @@ function openEmergencyModal() {
     confirmEmergencyButton.textContent = "Criar OS de emergência";
   } else {
     emergencyModalDescription.textContent =
-      "A ordem será registrada como Emergência e o WhatsApp da Salvateck será aberto com todas as informações.";
+      "A ordem será registrada como Emergência e a equipe administrativa receberá uma notificação imediata pelo sistema.";
 
-    confirmEmergencyButton.textContent = "Registrar e abrir WhatsApp";
+    confirmEmergencyButton.textContent = "Registrar emergência";
   }
 
   emergencyModal.hidden = false;
@@ -3912,14 +4457,6 @@ async function handleEmergencyConfirmation() {
     return;
   }
 
-  /*
-    Abre uma janela vazia diretamente no clique.
-    Depois da gravação, essa mesma janela recebe
-    o link do WhatsApp.
-  */
-  const whatsappWindow =
-    currentProfile === "cliente" ? window.open("", "_blank") : null;
-
   const originalButtonText = confirmEmergencyButton.textContent;
 
   confirmEmergencyButton.disabled = true;
@@ -3967,12 +4504,8 @@ async function handleEmergencyConfirmation() {
     if (currentProfile === "cliente") {
       showOrderSuccess(savedOrder);
 
-      openEmergencyOnWhatsApp(savedOrder, whatsappWindow);
-
       return;
     }
-
-    whatsappWindow?.close();
 
     window.setTimeout(() => {
       window.location.href = "ordens.html";
@@ -3982,8 +4515,6 @@ async function handleEmergencyConfirmation() {
       "[Nova Ordem] Não foi possível registrar a emergência:",
       error,
     );
-
-    whatsappWindow?.close();
 
     confirmEmergencyButton.disabled = false;
 
@@ -4031,7 +4562,9 @@ function buildOrderData({
   numero,
   codigo,
   isEmergency = false,
+  isImmediate = false,
   emergencyDescription = "",
+  usePlainTimestamps = false,
 }) {
   if (!selectedCondominium?.id) {
     throw new Error("CONDOMINIUM_REQUIRED");
@@ -4059,6 +4592,13 @@ function buildOrderData({
 
   const isInspection = selectedCategory === "vistoria";
 
+  const scheduleRule = getSelectedScheduleRule();
+
+  const isScheduled = !isEmergency && !isImmediate;
+
+  const timestampValue = () =>
+    usePlainTimestamps ? new Date().toISOString() : serverTimestamp();
+
   const mainService = selectedServices[0] || null;
 
   const finalEmergencyDescription = String(emergencyDescription || "").trim();
@@ -4073,13 +4613,7 @@ function buildOrderData({
     .filter(Boolean)
     .join("\n\n");
 
-  const initialStatus = isEmergency
-    ? "nova-solicitacao"
-    : currentProfile === "admin"
-      ? isInspection && inspectionSchedulingSelected
-        ? "agendada"
-        : document.getElementById("statusInicial")?.value || "nova-solicitacao"
-      : "nova-solicitacao";
+  const initialStatus = isScheduled ? "agendada" : "nova-solicitacao";
 
   const clientUid =
     currentProfile === "cliente"
@@ -4117,7 +4651,7 @@ function buildOrderData({
 
         cargo: String(selectedEmployee.cargo || "").trim(),
 
-        designadoEm: serverTimestamp(),
+        designadoEm: timestampValue(),
 
         designadoPorUid: currentSession?.uid || "",
 
@@ -4132,11 +4666,11 @@ function buildOrderData({
 
     codigo,
 
-    criadoEm: serverTimestamp(),
+    criadoEm: timestampValue(),
 
-    atualizadoEm: serverTimestamp(),
+    atualizadoEm: timestampValue(),
 
-    statusAtualizadoEm: serverTimestamp(),
+    statusAtualizadoEm: timestampValue(),
 
     perfilCriador: currentProfile,
 
@@ -4205,31 +4739,31 @@ function buildOrderData({
     servicos: selectedServices,
 
     atendimento: {
-      dataPreferida:
-        currentProfile === "admin" && !isEmergency ? dataPreferida.value : "",
+      modo: isImmediate ? "imediato" : isScheduled ? "agendado" : "",
 
-      periodo:
-        currentProfile === "admin" && !isEmergency
-          ? getSelectedPeriod() || ""
-          : "",
+      dataPreferida: isScheduled ? dataPreferida.value : "",
 
-      horarioPreferido:
-        currentProfile === "admin" && !isEmergency
-          ? horarioPreferido.value
-          : "",
+      periodo: isScheduled ? getSelectedPeriod() || "" : "",
 
-      dataConfirmada:
-        isInspection && inspectionSchedulingSelected ? dataPreferida.value : "",
+      horarioPreferido: isScheduled ? horarioPreferido.value : "",
 
-      periodoConfirmado:
-        isInspection && inspectionSchedulingSelected
-          ? getSelectedPeriod() || ""
-          : "",
+      dataConfirmada: isScheduled ? dataPreferida.value : "",
 
-      horarioConfirmado:
-        isInspection && inspectionSchedulingSelected
-          ? horarioPreferido.value
-          : "",
+      periodoConfirmado: isScheduled ? getSelectedPeriod() || "" : "",
+
+      horarioConfirmado: isScheduled ? horarioPreferido.value : "",
+
+      horarioFinal: isScheduled ? horarioFinal.value : "",
+
+      duracaoMinutos: isScheduled
+        ? Number(scheduleRule?.durationMinutes || 0)
+        : 0,
+
+      intervaloMinutos: scheduleSlotMinutes,
+
+      fusoHorario: "America/Sao_Paulo",
+
+      agendadoEm: isScheduled ? timestampValue() : null,
     },
 
     observacoes: {
@@ -4305,7 +4839,7 @@ function buildOrderData({
         : {
             tipo: mainService?.servico || "Vistoria técnica",
 
-            status: inspectionSchedulingSelected ? "agendada" : "solicitada",
+            status: isScheduled ? "agendada" : "solicitada",
 
             progresso: 0,
 
@@ -4370,7 +4904,9 @@ async function handleSubmit(event) {
   btnSalvarOrdem.disabled = true;
 
   btnSalvarOrdem.textContent =
-    currentProfile === "admin" ? "Criando ordem..." : "Enviando solicitação...";
+    currentProfile === "admin"
+      ? "Criando agendamento..."
+      : "Confirmando agendamento...";
 
   try {
     const savedOrder = await saveOrderInFirestore();
@@ -4405,14 +4941,18 @@ async function handleSubmit(event) {
     });
 
     btnSalvarOrdem.textContent =
-      currentProfile === "admin" ? "Ordem criada" : "Solicitação enviada";
+      currentProfile === "admin"
+        ? "Agendamento criado"
+        : "Agendamento confirmado";
 
     showFeedback(
       photoUploadFailed
         ? `${savedOrder.codigo} foi criada, mas as imagens não foram enviadas.`
         : currentProfile === "admin"
-          ? `${savedOrder.codigo} criada com sucesso!`
-          : `${savedOrder.codigo} enviada com sucesso!`,
+          ? `${savedOrder.codigo} agendada com sucesso!`
+          : `${savedOrder.codigo} confirmada para ${formatDate(
+              savedOrder.data,
+            )}, às ${savedOrder.horario}!`,
       photoUploadFailed ? "error" : "success",
     );
 
@@ -4433,6 +4973,39 @@ async function handleSubmit(event) {
     btnSalvarOrdem.disabled = false;
 
     btnSalvarOrdem.textContent = originalButtonText;
+
+    const conflict =
+      error?.details?.conflito || error?.customData?.details?.conflito || null;
+
+    if (error?.code === "functions/already-exists" || conflict) {
+      const conflictTime = conflict?.horarioInicio
+        ? ` O período das ${conflict.horarioInicio} às ${conflict.horarioFim} acabou de ser ocupado.`
+        : "";
+
+      showFeedback(
+        `Este horário não está mais disponível.${conflictTime} Escolha outro horário.`,
+        "error",
+      );
+
+      await loadScheduleAvailability();
+
+      scrollToElement(scheduleSection);
+
+      return;
+    }
+
+    if (error?.code === "functions/resource-exhausted") {
+      showFeedback(
+        "O limite de 4 vistorias nesta data foi atingido. Escolha outro dia.",
+        "error",
+      );
+
+      await loadScheduleAvailability();
+
+      scrollToElement(scheduleSection);
+
+      return;
+    }
 
     if (error.message === "ORDER_COUNTER_NOT_FOUND") {
       showFeedback(
@@ -4467,7 +5040,10 @@ async function handleSubmit(event) {
       return;
     }
 
-    if (error.code === "permission-denied") {
+    if (
+      error.code === "permission-denied" ||
+      error.code === "functions/permission-denied"
+    ) {
       showFeedback(
         "O Firebase bloqueou a gravação. Verifique se as novas regras foram publicadas.",
         "error",
@@ -4476,7 +5052,10 @@ async function handleSubmit(event) {
       return;
     }
 
-    if (error.code === "unavailable") {
+    if (
+      error.code === "unavailable" ||
+      error.code === "functions/unavailable"
+    ) {
       showFeedback(
         "Não foi possível acessar o Firebase. Verifique sua conexão.",
         "error",
@@ -4485,7 +5064,7 @@ async function handleSubmit(event) {
       return;
     }
 
-    showFeedback("Não foi possível salvar a ordem de serviço.", "error");
+    showFeedback("Não foi possível concluir o agendamento.", "error");
   }
 }
 
@@ -4540,18 +5119,26 @@ categoryInputs.forEach((input) => {
   input.addEventListener("change", handleCategoryChange);
 });
 
-dataPreferida.addEventListener("change", () => {
-  updateSummary();
-  updateProgress();
+schedulePreviousMonth.addEventListener("click", () => {
+  void changeScheduleMonth(-1);
 });
 
-periodInputs.forEach((input) => {
-  input.addEventListener("change", toggleSpecificTime);
+scheduleNextMonth.addEventListener("click", () => {
+  void changeScheduleMonth(1);
 });
 
-horarioPreferido.addEventListener("change", () => {
+scheduleChangeTime.addEventListener("click", () => {
+  resetScheduleSelection({
+    keepDate: true,
+  });
+
+  renderScheduleTimes();
+
   updateSummary();
+
   updateProgress();
+
+  scrollToElement(scheduleTimesGrid);
 });
 
 fotosProblema.addEventListener("change", handlePhotoSelection);
@@ -4637,11 +5224,6 @@ document.addEventListener("keydown", (event) => {
     closeEmergencyModal();
   }
 });
-if (whatsappOrderButton) {
-  whatsappOrderButton.addEventListener("click", openOrderOnWhatsApp);
-} else {
-  console.warn("[Nova Ordem] Botão de WhatsApp não encontrado no HTML.");
-}
 
 /* =========================================
    INICIALIZAÇÃO
@@ -4651,13 +5233,9 @@ async function initializePage() {
   try {
     const session = await window.salvateckSessionReady;
 
-    setMinimumDate();
-
     syncCategoryStyles();
 
     renderServices();
-
-    toggleSpecificTime();
 
     updateServiceDescriptionCounter();
 
@@ -4676,6 +5254,8 @@ async function initializePage() {
     }
 
     preselectCategoryFromURL();
+
+    await loadScheduleAvailability();
 
     updateSummary();
 
