@@ -84,8 +84,8 @@ const profileConfig = {
       },
       {
         title: "Nova Vistoria",
-        description: "Cadastre e agende uma nova vistoria técnica.",
-        target: "nova-ordem.html?perfil=admin&tipo=vistoria",
+        description: "Inicie uma vistoria técnica diretamente no condomínio.",
+        target: "nova-vistoria.html?perfil=admin",
         icon: "inspection",
       },
 
