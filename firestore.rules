@@ -1,65 +1,103 @@
 rules_version = '2';
 
 service cloud.firestore {
+
   match /databases/{database}/documents {
 
     /* =====================================
+
        FUNÇÕES
+
     ===================================== */
 
     function estaAutenticado() {
+
       return request.auth != null;
+
     }
 
     function usuarioAtual() {
+
       return get(
+
         /databases/$(database)/documents/usuarios/$(request.auth.uid)
+
       ).data;
+
     }
 
        function eAdministrador() {
+
       return estaAutenticado()
+
         && exists(
+
           /databases/$(database)/documents/usuarios/$(request.auth.uid)
+
         )
+
         && usuarioAtual().role == "admin";
+
     }
 
     function eFuncionario() {
+
       return estaAutenticado()
+
         && exists(
+
           /databases/$(database)/documents/usuarios/$(request.auth.uid)
+
         )
+
         && usuarioAtual().role == "funcionario"
+
         && usuarioAtual().ativo == true;
+
     }
 
     function contadorOrdensDepois() {
+
       return getAfter(
+
         /databases/$(database)/documents/contadores/ordens
+
       ).data;
+
     }
 
         function ordemDepois(ordemId) {
+
       return getAfter(
+
         /databases/$(database)/documents/ordens/$(ordemId)
+
       ).data;
+
     }
 
     function dadosCondominio(condominioId) {
+
       return get(
+
         /databases/$(database)/documents/condominios/$(condominioId)
+
       ).data;
+
     }
 
     function condominioVinculadoAoCliente(condominioId) {
+
       return estaAutenticado()
 
         && condominioId is string
+
         && condominioId != ""
 
         && exists(
+
           /databases/$(database)/documents/condominios/$(condominioId)
+
         )
 
         && "clientesIds" in dadosCondominio(condominioId)
@@ -67,334 +105,569 @@ service cloud.firestore {
         && dadosCondominio(condominioId).clientesIds is list
 
         && request.auth.uid
+
           in dadosCondominio(condominioId).clientesIds;
+
+    }
+
+    function tokenPertenceAoUsuario(dadosToken) {
+
+      return estaAutenticado()
+
+        && (
+
+          (
+
+            "usuarioUid" in dadosToken
+
+            && dadosToken.usuarioUid == request.auth.uid
+
+          )
+
+          || (
+
+            "uid" in dadosToken
+
+            && dadosToken.uid == request.auth.uid
+
+          )
+
+        );
+
     }
 
     /* =====================================
+
        USUÁRIOS
+
     ===================================== */
 
     match /usuarios/{userId} {
+
       allow read: if eAdministrador()
+
         || (
+
           estaAutenticado()
+
           && request.auth.uid == userId
+
         );
 
       allow create: if eAdministrador()
+
         || (
+
           estaAutenticado()
+
           && request.auth.uid == userId
+
           && request.resource.data.uid == request.auth.uid
+
           && request.resource.data.role == "cliente"
+
           && request.resource.data.ativo == true
+
         );
 
       allow update: if eAdministrador()
+
         || (
+
           estaAutenticado()
+
           && request.auth.uid == userId
 
           && resource.data.role == "cliente"
+
           && resource.data.ativo == true
 
           && request.resource.data
+
             .diff(resource.data)
+
             .affectedKeys()
+
             .hasOnly([
+
               "nome",
+
               "telefone",
+
               "endereco",
+
               "preferenciasContato",
+
               "notificacoes",
+
               "observacoesAtendimento",
+
               "atualizadoEm"
+
             ])
+
         );
 
       allow delete: if eAdministrador();
+
     }
 
     /* =====================================
+
        ORDENS DE SERVIÇO
+
     ===================================== */
 
     match /ordens/{ordemId} {
+
                   allow read: if eAdministrador()
+
         || (
+
           eFuncionario()
+
           && "funcionarioResponsavelUid" in resource.data
+
           && resource.data.funcionarioResponsavelUid == request.auth.uid
+
         )
+
         || (
+
           estaAutenticado()
+
           && (
+
             resource.data.clienteUid == request.auth.uid
+
             || (
+
               "clientesAutorizadosIds" in resource.data
+
               && resource.data.clientesAutorizadosIds is list
+
               && request.auth.uid
+
                 in resource.data.clientesAutorizadosIds
+
             )
+
           )
+
         );
 
       allow create: if eAdministrador()
+
         || (
+
           estaAutenticado()
 
           && request.resource.data.keys().hasOnly([
+
             "id",
+
             "numero",
+
             "codigo",
+
             "criadoEm",
+
             "atualizadoEm",
+
             "statusAtualizadoEm",
+
             "perfilCriador",
+
             "criadoPorUid",
+
             "criadoPorNome",
+
                         "clienteUid",
+
             "condominioId",
+
             "clientesAutorizadosIds",
+
             "tipoAtendimento",
+
             "categoriaPrincipal",
+
             "servicoPrincipal",
+
             "titulo",
+
             "cliente",
+
             "condominio",
+
             "endereco",
+
             "categorias",
+
             "servicos",
+
             "atendimento",
+
 "observacoes",
+
 "prioridade",
+
 "status",
+
 "ativo",
+
             "arquivado",
+
             "quantidadeFotos",
+
             "vistoria",
+
             "origem"
+
           ])
 
           && request.resource.data.id == ordemId
+
           && request.resource.data.codigo is string
 
           && request.resource.data.numero is int
+
           && request.resource.data.numero > 0
 
                     && request.resource.data.clienteUid == request.auth.uid
+
           && request.resource.data.criadoPorUid == request.auth.uid
 
           && request.resource.data.condominioId is string
+
           && request.resource.data.condominioId != ""
 
           && condominioVinculadoAoCliente(
+
             request.resource.data.condominioId
+
           )
 
           && request.resource.data.clientesAutorizadosIds is list
 
           && request.auth.uid
+
             in request.resource.data.clientesAutorizadosIds
 
           && request.resource.data.clientesAutorizadosIds.hasAll(
+
             dadosCondominio(
+
               request.resource.data.condominioId
+
             ).clientesIds
+
           )
 
           && request.resource.data.clientesAutorizadosIds.hasOnly(
+
             dadosCondominio(
+
               request.resource.data.condominioId
+
             ).clientesIds
+
           )
 
           && request.resource.data.condominio is map
 
           && request.resource.data.condominio.keys().hasAll([
+
             "id",
+
             "codigo",
+
             "nome",
+
             "cnpj"
+
           ])
 
           && request.resource.data.condominio.keys().hasOnly([
+
             "id",
+
             "codigo",
+
             "nome",
+
             "cnpj"
+
           ])
 
           && request.resource.data.condominio.id
+
             == request.resource.data.condominioId
 
           && request.resource.data.condominio.codigo is string
+
           && request.resource.data.condominio.nome is string
+
           && request.resource.data.condominio.cnpj is string
 
           && request.resource.data.cliente is map
+
           && request.resource.data.cliente.id == request.auth.uid
+
 && request.resource.data.perfilCriador == "cliente"
+
 && request.resource.data.status == "nova-solicitacao"
 
 && request.resource.data.prioridade in [
+
   "normal",
+
   "urgente"
+
 ]
 
 && request.resource.data.ativo == true
+
           && request.resource.data.arquivado == false
 
           && request.resource.data.quantidadeFotos is int
+
           && request.resource.data.quantidadeFotos >= 0
+
           && request.resource.data.quantidadeFotos <= 6
 
           && request.resource.data.atendimento is map
 
           && request.resource.data.atendimento.keys().hasAll([
+
             "dataPreferida",
+
             "periodo",
+
             "horarioPreferido",
+
             "dataConfirmada",
+
             "periodoConfirmado",
+
             "horarioConfirmado"
+
           ])
 
           && request.resource.data.atendimento.keys().hasOnly([
+
             "dataPreferida",
+
             "periodo",
+
             "horarioPreferido",
+
             "dataConfirmada",
+
             "periodoConfirmado",
+
             "horarioConfirmado"
+
           ])
 
           && request.resource.data.atendimento.dataPreferida == ""
+
           && request.resource.data.atendimento.periodo == ""
+
           && request.resource.data.atendimento.horarioPreferido == ""
+
           && request.resource.data.atendimento.dataConfirmada == ""
+
           && request.resource.data.atendimento.periodoConfirmado == ""
+
           && request.resource.data.atendimento.horarioConfirmado == ""
 
           && request.resource.data.observacoes is map
 
           && request.resource.data.observacoes.keys().hasAll([
+
             "cliente",
+
             "resposta",
+
             "interna"
+
           ])
 
           && request.resource.data.observacoes.keys().hasOnly([
+
             "cliente",
+
             "resposta",
+
             "interna"
+
           ])
 
           && request.resource.data.observacoes.resposta == ""
+
           && request.resource.data.observacoes.interna == ""
 
           && request.resource.data.origem is map
+
           && request.resource.data.origem.tipo == "solicitacao-cliente"
 
           && request.resource.data.criadoEm == request.time
+
           && request.resource.data.atualizadoEm == request.time
+
           && request.resource.data.statusAtualizadoEm == request.time
 
           && contadorOrdensDepois().ultimoNumero
+
             == request.resource.data.numero
 
           && contadorOrdensDepois().ultimoDocumentoId
+
             == ordemId
+
         );
 
       allow update: if (
+
           eAdministrador()
+
           && !("documentoFinal" in resource.data)
+
         )
+
         || (
+
           estaAutenticado()
 
           && resource.data.clienteUid == request.auth.uid
+
           && request.resource.data.clienteUid == request.auth.uid
 
           && request.resource.data
+
             .diff(resource.data)
+
             .affectedKeys()
+
             .hasOnly([
+
               "status",
+
               "atualizadoEm",
+
               "statusAtualizadoEm",
+
               "observacoes"
+
             ])
 
           && resource.data.status in [
+
             "nova-solicitacao",
+
             "em-analise",
+
             "aguardando-confirmacao",
+
             "agendada"
+
           ]
 
           && request.resource.data.status == "cancelada"
+
           && request.resource.data.atualizadoEm == request.time
+
           && request.resource.data.statusAtualizadoEm == request.time
 
           && request.resource.data.observacoes is map
 
           && request.resource.data.observacoes.keys().hasAll([
+
             "cliente",
+
             "resposta",
+
             "interna"
+
           ])
 
           && request.resource.data.observacoes.keys().hasOnly([
+
             "cliente",
+
             "resposta",
+
             "interna"
+
           ])
 
           && request.resource.data.observacoes.cliente
+
             == resource.data.observacoes.cliente
 
           && request.resource.data.observacoes.interna
+
             == resource.data.observacoes.interna
 
                     && request.resource.data.observacoes.resposta
+
             == "A solicitação foi cancelada pelo cliente."
+
         )
+
         || (
+
           estaAutenticado()
 
           && (
+
             resource.data.clienteUid == request.auth.uid
 
             || (
+
               "clientesAutorizadosIds" in resource.data
 
               && resource.data.clientesAutorizadosIds is list
 
               && request.auth.uid
+
                 in resource.data.clientesAutorizadosIds
+
             )
+
           )
 
           && !("documentoFinal" in resource.data)
 
           && resource.data.status in [
+
             "nova-solicitacao",
+
             "em-analise",
+
             "aguardando-confirmacao",
+
             "agendada"
+
           ]
 
           && request.resource.data.status == resource.data.status
 
           && request.resource.data
+
             .diff(resource.data)
+
             .affectedKeys()
+
             .hasOnly([
+
               "fotos",
+
               "quantidadeFotos",
+
               "atualizadoEm"
+
             ])
 
           && request.resource.data.fotos is list
@@ -404,29 +677,41 @@ service cloud.firestore {
           && request.resource.data.quantidadeFotos is int
 
           && request.resource.data.quantidadeFotos
+
             == request.resource.data.fotos.size()
 
           && request.resource.data.atualizadoEm == request.time
+
         );
 
       allow delete: if eAdministrador()
+
         && !("documentoFinal" in resource.data);
+
     }
 
     /* =====================================
+
        DADOS PRIVADOS DAS ORDENS
+
     ===================================== */
 
     match /ordensPrivadas/{ordemId} {
+
       allow read, create, update, delete: if eAdministrador();
+
     }
 
     /* =====================================
+
        CONTADOR DAS ORDENS
+
     ===================================== */
 
     match /contadores/{contadorId} {
+
       allow get: if estaAutenticado()
+
         && contadorId == "ordens";
 
       allow list: if eAdministrador();
@@ -434,147 +719,405 @@ service cloud.firestore {
       allow create, delete: if eAdministrador();
 
       allow update: if eAdministrador()
+
         || (
+
           estaAutenticado()
 
           && contadorId == "ordens"
 
           && request.resource.data
+
             .diff(resource.data)
+
             .affectedKeys()
+
             .hasOnly([
+
               "ultimoNumero",
+
               "ultimoDocumentoId",
+
               "atualizadoEm"
+
             ])
 
           && request.resource.data.ultimoNumero is int
 
           && request.resource.data.ultimoNumero
+
             == resource.data.ultimoNumero + 1
 
           && request.resource.data.ultimoDocumentoId is string
+
           && request.resource.data.ultimoDocumentoId != ""
 
           && request.resource.data.atualizadoEm == request.time
 
           && ordemDepois(
+
             request.resource.data.ultimoDocumentoId
+
           ).numero == request.resource.data.ultimoNumero
 
           && ordemDepois(
+
             request.resource.data.ultimoDocumentoId
+
           ).clienteUid == request.auth.uid
 
           && ordemDepois(
+
             request.resource.data.ultimoDocumentoId
+
           ).criadoPorUid == request.auth.uid
 
           && ordemDepois(
+
             request.resource.data.ultimoDocumentoId
+
           ).perfilCriador == "cliente"
+
         );
+
     }
 
        /* =====================================
+
        CONDOMÍNIOS
+
     ===================================== */
 
     match /condominios/{condominioId} {
+
   allow read: if eAdministrador()
+
     || (
+
       estaAutenticado()
+
       && request.auth.uid in resource.data.clientesIds
+
     );
 
   allow create, update, delete: if eAdministrador();
+
 }
 
          /* =====================================
+
        FUNCIONÁRIOS
+
     ===================================== */
 
     match /funcionarios/{funcionarioId} {
+
       allow read: if eAdministrador()
+
         || (
+
           eFuncionario()
+
           && "usuarioUid" in resource.data
+
           && resource.data.usuarioUid == request.auth.uid
+
         );
 
       allow create, update, delete: if eAdministrador();
+
     }
 
     /* =====================================
+
        VISTORIAS
+
     ===================================== */
 
    match /vistorias/{vistoriaId} {
+
       allow read: if eAdministrador()
+
         || (
+
           eFuncionario()
+
           && (
+
             (
+
               "ordemId" in resource.data
+
               && resource.data.ordemId is string
+
               && resource.data.ordemId != ""
+
               && exists(
+
                 /databases/$(database)/documents/ordens/$(resource.data.ordemId)
+
               )
+
               && get(
+
                 /databases/$(database)/documents/ordens/$(resource.data.ordemId)
+
               ).data.funcionarioResponsavelUid == request.auth.uid
+
             )
+
             || (
+
               "origem" in resource.data
+
               && resource.data.origem is map
+
               && "ordemId" in resource.data.origem
+
               && resource.data.origem.ordemId is string
+
               && resource.data.origem.ordemId != ""
+
               && exists(
+
                 /databases/$(database)/documents/ordens/$(resource.data.origem.ordemId)
+
               )
+
               && get(
+
                 /databases/$(database)/documents/ordens/$(resource.data.origem.ordemId)
+
               ).data.funcionarioResponsavelUid == request.auth.uid
+
             )
+
             || (
+
               "funcionarioResponsavelUid" in resource.data
+
               && resource.data.funcionarioResponsavelUid == request.auth.uid
+
             )
+
           )
+
         );
 
       allow create, update, delete: if eAdministrador();
+
     }
 
     /* =====================================
+
        FINANCEIRO
+
     ===================================== */
 
     match /financeiro/{lancamentoId} {
+
       allow read, create, update, delete: if eAdministrador();
+
     }
 
     /* =====================================
+
        DADOS PRIVADOS DOS FUNCIONÁRIOS
+
     ===================================== */
 
     match /funcionariosPrivados/{funcionarioId} {
+
       allow read, create, update, delete: if eAdministrador();
+
     }
 
     /* =====================================
+
+       NOTIFICAÇÕES DO SISTEMA
+
+    ===================================== */
+
+    match /notificacoes/{notificacaoId} {
+
+      allow read: if eAdministrador()
+
+        || (
+
+          estaAutenticado()
+
+          && "destinatarioUid" in resource.data
+
+          && resource.data.destinatarioUid == request.auth.uid
+
+        );
+
+      allow update: if estaAutenticado()
+
+        && "destinatarioUid" in resource.data
+
+        && resource.data.destinatarioUid == request.auth.uid
+
+        && request.resource.data.destinatarioUid == request.auth.uid
+
+        && request.resource.data
+
+          .diff(resource.data)
+
+          .affectedKeys()
+
+          .hasOnly([
+
+            "lida",
+
+            "lidaEm"
+
+          ])
+
+        && request.resource.data.lida is bool
+
+        && (
+
+          request.resource.data.lidaEm == request.time
+
+          || request.resource.data.lidaEm == null
+
+        );
+
+      allow create: if false;
+
+      allow delete: if eAdministrador();
+
+    }
+
+    /* =====================================
+
+       TOKENS PARA NOTIFICAÇÕES PUSH
+
+    ===================================== */
+
+    match /fcmTokens/{tokenId} {
+
+      allow read: if eAdministrador()
+
+        || tokenPertenceAoUsuario(resource.data);
+
+      allow create: if tokenPertenceAoUsuario(request.resource.data)
+
+        && request.resource.data.keys().hasAll([
+
+          "usuarioUid",
+
+          "token",
+
+          "ativo",
+
+          "criadoEm",
+
+          "atualizadoEm"
+
+        ])
+
+        && request.resource.data.keys().hasOnly([
+
+          "usuarioUid",
+
+          "uid",
+
+          "token",
+
+          "ativo",
+
+          "plataforma",
+
+          "userAgent",
+
+          "criadoEm",
+
+          "atualizadoEm"
+
+        ])
+
+        && request.resource.data.usuarioUid == request.auth.uid
+
+        && request.resource.data.token is string
+
+        && request.resource.data.token.size() >= 20
+
+        && request.resource.data.ativo == true
+
+        && request.resource.data.criadoEm == request.time
+
+        && request.resource.data.atualizadoEm == request.time;
+
+      allow update: if tokenPertenceAoUsuario(resource.data)
+
+        && tokenPertenceAoUsuario(request.resource.data)
+
+        && request.resource.data
+
+          .diff(resource.data)
+
+          .affectedKeys()
+
+          .hasOnly([
+
+            "token",
+
+            "ativo",
+
+            "plataforma",
+
+            "userAgent",
+
+            "atualizadoEm"
+
+          ])
+
+        && request.resource.data.token is string
+
+        && request.resource.data.token.size() >= 20
+
+        && request.resource.data.ativo is bool
+
+        && request.resource.data.atualizadoEm == request.time;
+
+      allow delete: if eAdministrador()
+
+        || tokenPertenceAoUsuario(resource.data);
+
+    }
+
+    /* =====================================
+
+       TRAVAS INTERNAS DA AGENDA
+
+    ===================================== */
+
+    match /agendaBloqueios/{dataAgenda} {
+
+      allow read: if eAdministrador();
+
+    }
+
+    /* =====================================
+
        ACESSO ADMINISTRATIVO GERAL
+
     ===================================== */
 
     match /{document=**} {
+
       allow read: if eAdministrador();
 
       allow create: if eAdministrador();
 
       allow update, delete: if eAdministrador()
+
         && !("documentoFinal" in resource.data);
+
     }
+
   }
+
 }

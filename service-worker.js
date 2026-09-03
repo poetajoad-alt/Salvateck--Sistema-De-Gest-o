@@ -2,9 +2,63 @@
    SALVATECK PWA
 ========================================= */
 
+self.addEventListener("notificationclick", (event) => {
+  event.stopImmediatePropagation();
+
+  event.notification.close();
+
+  const notificationUrl = event.notification.data?.url || "principal.html";
+
+  const targetUrl = new URL(notificationUrl, self.location.origin).href;
+
+  event.waitUntil(
+    self.clients
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      .then(async (clientList) => {
+        const existingClient = clientList.find((client) => {
+          return new URL(client.url).origin === self.location.origin;
+        });
+
+        if (existingClient) {
+          await existingClient.focus();
+
+          if ("navigate" in existingClient) {
+            await existingClient.navigate(targetUrl);
+          }
+
+          return;
+        }
+
+        await self.clients.openWindow(targetUrl);
+      }),
+  );
+});
+
+importScripts(
+  "https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js",
+);
+
+importScripts(
+  "https://www.gstatic.com/firebasejs/12.16.0/firebase-messaging-compat.js",
+);
+
+firebase.initializeApp({
+  apiKey: "AIzaSyCzWVnlc7a8vY0KN8KxiZhYlqefPMzRY1o",
+  authDomain: "salvateck-app.firebaseapp.com",
+  projectId: "salvateck-app",
+  storageBucket: "salvateck-app.firebasestorage.app",
+  messagingSenderId: "425555742741",
+  appId: "1:425555742741:web:90b89c21a73eeef5187e1c",
+});
+
+firebase.messaging();
+
 const CACHE_PREFIX = "salvateck-pwa";
 
-const CACHE_VERSION = "v1.0.4";
+const CACHE_VERSION = "v1.0.5";
 
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`;
 

@@ -19,7 +19,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="./css/base.css?v=1.0.1" />
-  <link rel="stylesheet" href="./css/principal.css?v=1.0.1" />
+  <link rel="stylesheet" href="./css/principal.css?v=1.0.2" />
 </head>
 
 <body>
@@ -38,11 +38,54 @@
         Painel de Controle
       </h1>
 
-      <a href="index.html" class="logout-button" id="logout-button" aria-label="Sair e voltar para a página inicial">
-        Sair
-      </a>
+      <div class="topbar__actions">
+
+        <button class="icon-button notification-button" type="button" id="notification-button" aria-label="Abrir notificações" aria-controls="notifications-panel" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+            <path d="M10 21h4"></path>
+          </svg>
+
+          <span class="notification-badge" id="notification-badge" aria-label="Notificações não lidas" hidden></span>
+        </button>
+
+        <a href="index.html" class="logout-button" id="logout-button" aria-label="Sair e voltar para a página inicial">
+          Sair
+        </a>
+
+      </div>
 
     </header>
+
+    <!-- Central de notificações -->
+    <section class="notifications-panel" id="notifications-panel" aria-labelledby="notifications-title" hidden>
+
+      <header class="notifications-panel__header">
+
+        <div>
+          <p class="notifications-panel__eyebrow">
+            Atualizações
+          </p>
+
+          <h2 id="notifications-title">
+            Notificações
+          </h2>
+        </div>
+
+        <button type="button" class="notifications-mark-all" id="notifications-mark-all" hidden>
+          Marcar todas como lidas
+        </button>
+
+      </header>
+
+      <div class="notifications-list" id="notifications-list" aria-live="polite"></div>
+
+      <div class="notifications-empty" id="notifications-empty">
+        <strong>Nenhuma notificação</strong>
+        <span>As atualizações da Salvateck aparecerão aqui.</span>
+      </div>
+
+    </section>
 
     <!-- Informações do usuário/empresa -->
     <section class="profile-section" aria-labelledby="profile-title">
@@ -130,7 +173,7 @@
   </main>
 
   <!-- JavaScript -->
-  <script type="module" src="js/principal.js?v=1.0.8"></script>
+  <script type="module" src="js/principal.js?v=1.0.9"></script>
 </body>
 
 </html>

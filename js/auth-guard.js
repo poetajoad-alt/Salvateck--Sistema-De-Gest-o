@@ -10,6 +10,11 @@ import {
 
 import { auth, db } from "./firebase-config.js";
 
+import {
+  ativarNotificacoesUsuario,
+  desativarNotificacoesUsuario,
+} from "./notificacoes.js";
+
 /* =========================================
    PROMESSA GLOBAL DA SESSÃO
 ========================================= */
@@ -100,6 +105,10 @@ async function invalidateSession(message) {
   validationCompleted = true;
 
   try {
+    if (auth.currentUser) {
+      await desativarNotificacoesUsuario(auth.currentUser.uid);
+    }
+
     await signOut(auth);
   } catch (error) {
     console.warn("[Auth Guard] Não foi possível encerrar a sessão:", error);
@@ -246,6 +255,8 @@ onAuthStateChanged(auth, async (user) => {
         detail: session,
       }),
     );
+
+    ativarNotificacoesUsuario(user);
 
     revealPage();
   } catch (error) {
