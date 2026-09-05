@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Registro interno de uma Ordem de Serviço rápida da Salvateck" />
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>OS Rápida | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css?v=1.0.1" />
+  <link rel="stylesheet" href="css/os-rapida.css?v=1.0.1" />
+</head>
+
+<body data-page="os-rapida" data-allowed-roles="admin">
+  <main class="quick-order-shell">
+    <header class="quick-order-header">
+      <a href="principal.html" class="header-button" aria-label="Voltar para o painel administrativo">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </a>
+
+      <div class="quick-order-header__copy">
+        <span>Registro interno</span>
+        <strong>OS Rápida</strong>
+      </div>
+
+      <a href="principal.html" class="brand-mark" aria-label="Voltar para a tela principal" title="Tela principal">
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+      </a>
+    </header>
+
+    <section class="quick-order-hero" aria-labelledby="quick-order-title">
+      <div class="quick-order-hero__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M13 2 5 14h6l-1 8 9-13h-6V2Z"></path>
+        </svg>
+      </div>
+
+      <div>
+        <p class="eyebrow">Manutenção já realizada</p>
+        <h1 id="quick-order-title">Registre o serviço em poucos passos</h1>
+        <p>
+          Esta OS entra como concluída, registra o valor no Financeiro e alimenta
+          os indicadores. Nenhuma notificação ou agendamento será criado.
+        </p>
+      </div>
+    </section>
+
+    <form id="quick-order-form" class="quick-order-form" novalidate>
+      <section class="form-card" aria-labelledby="location-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">1</span>
+          <div>
+            <p class="eyebrow">Cliente e local</p>
+            <h2 id="location-title">Onde o serviço foi realizado?</h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="quick-condominium">
+            <span>Condomínio *</span>
+            <select id="quick-condominium" required>
+              <option value="">Carregando condomínios...</option>
+            </select>
+            <small id="condominium-help">Consultando os locais cadastrados.</small>
+          </label>
+
+          <label class="field field--wide" for="quick-client">
+            <span>Cliente vinculado</span>
+            <select id="quick-client" disabled>
+              <option value="">Selecione o condomínio primeiro</option>
+            </select>
+            <small>Se não houver vínculo, preencha o nome manualmente abaixo.</small>
+          </label>
+
+          <label class="field field--wide" for="quick-client-name">
+            <span>Nome do cliente ou responsável *</span>
+            <input id="quick-client-name" type="text" autocomplete="name" maxlength="120" required />
+          </label>
+
+          <label class="field" for="quick-client-phone">
+            <span>Telefone</span>
+            <input id="quick-client-phone" type="tel" autocomplete="tel" maxlength="24" />
+          </label>
+
+          <label class="field" for="quick-client-email">
+            <span>E-mail</span>
+            <input id="quick-client-email" type="email" autocomplete="email" maxlength="160" />
+          </label>
+        </div>
+      </section>
+
+      <section class="form-card" aria-labelledby="service-title-heading">
+        <div class="form-card__heading">
+          <span class="form-card__number">2</span>
+          <div>
+            <p class="eyebrow">Serviço executado</p>
+            <h2 id="service-title-heading">O que foi feito?</h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="quick-service-title">
+            <span>Título da manutenção *</span>
+            <input id="quick-service-title" type="text" value="Manutenção geral" maxlength="120" required />
+          </label>
+
+          <label class="field" for="quick-service-date">
+            <span>Data do serviço *</span>
+            <input id="quick-service-date" type="date" required />
+          </label>
+
+          <label class="field" for="quick-service-time">
+            <span>Horário *</span>
+            <input id="quick-service-time" type="time" required />
+          </label>
+
+          <label class="field field--wide" for="quick-employee">
+            <span>Funcionário responsável</span>
+            <select id="quick-employee">
+              <option value="">Carregando funcionários...</option>
+            </select>
+            <small>Opcional. Use quando quiser atribuir a execução a um funcionário.</small>
+          </label>
+
+          <label class="field field--wide" for="quick-description">
+            <span>Descrição do que foi realizado *</span>
+            <textarea id="quick-description" rows="5" maxlength="1200" required placeholder="Ex.: troca do reparo, ajuste da válvula e teste final sem vazamento."></textarea>
+            <small><span id="description-count">0</span>/1200 caracteres</small>
+          </label>
+        </div>
+      </section>
+
+      <section class="form-card" aria-labelledby="finance-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">3</span>
+          <div>
+            <p class="eyebrow">Valor e financeiro</p>
+            <h2 id="finance-title">Quanto foi registrado?</h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--value" for="quick-value">
+            <span>Valor da OS *</span>
+            <input id="quick-value" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required />
+          </label>
+
+          <label class="field" for="quick-payment-status">
+            <span>Situação do pagamento *</span>
+            <select id="quick-payment-status" required>
+              <option value="paid">Recebido</option>
+              <option value="pending">Pendente</option>
+            </select>
+          </label>
+
+          <label class="field field--wide" for="quick-payment-method">
+            <span>Forma de pagamento *</span>
+            <select id="quick-payment-method" required>
+              <option value="">Selecione</option>
+              <option value="pix">Pix</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="cartao-debito">Cartão de débito</option>
+              <option value="cartao-credito">Cartão de crédito</option>
+              <option value="transferencia">Transferência</option>
+              <option value="boleto">Boleto</option>
+              <option value="outro">Outro</option>
+            </select>
+          </label>
+
+          <label class="field field--wide" for="quick-notes">
+            <span>Observação interna</span>
+            <textarea id="quick-notes" rows="3" maxlength="600" placeholder="Informação opcional para o histórico administrativo."></textarea>
+          </label>
+        </div>
+
+        <aside class="internal-note" aria-label="Comportamento da OS Rápida">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"></path>
+            <path d="M12 11v6M12 7h.01"></path>
+          </svg>
+          <div>
+            <strong>Fluxo interno e direto</strong>
+            <span>A OS será salva como concluída e não ocupará nenhum horário da agenda.</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="order-summary" aria-labelledby="summary-title">
+        <div>
+          <p class="eyebrow">Resumo</p>
+          <h2 id="summary-title">Pronto para registrar</h2>
+        </div>
+
+        <dl>
+          <div>
+            <dt>Local</dt>
+            <dd id="summary-condominium">Não selecionado</dd>
+          </div>
+          <div>
+            <dt>Cliente</dt>
+            <dd id="summary-client">Não informado</dd>
+          </div>
+          <div>
+            <dt>Serviço</dt>
+            <dd id="summary-service">Manutenção geral</dd>
+          </div>
+          <div>
+            <dt>Valor</dt>
+            <dd id="summary-value">R$ 0,00</dd>
+          </div>
+        </dl>
+      </section>
+
+      <button id="save-quick-order" class="save-button" type="submit">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m5 12 4 4L19 6"></path>
+        </svg>
+        <span>Registrar OS concluída</span>
+      </button>
+    </form>
+
+    <section id="quick-order-success" class="success-card" hidden aria-live="polite">
+      <span class="success-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6"></path>
+        </svg>
+      </span>
+      <p class="eyebrow">OS registrada</p>
+      <h2 id="success-code">OS-0000</h2>
+      <p>O serviço foi concluído e o valor foi lançado no Financeiro, sem notificações.</p>
+      <div class="success-card__actions">
+        <a id="view-order-link" href="ordens.html?perfil=admin">Ver detalhes</a>
+        <button id="new-quick-order" type="button">Registrar outra OS</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="quick-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="js/os-rapida.js?v=1.0.0"></script>
+</body>
+
+</html>

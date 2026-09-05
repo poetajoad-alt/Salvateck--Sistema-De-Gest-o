@@ -8,20 +8,11 @@ import {
   doc,
   getDoc,
   getDocs,
-  onSnapshot,
   query,
-  serverTimestamp,
-  updateDoc,
   where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
-
-import {
-  ativarNotificacoesUsuario,
-  desativarNotificacoesUsuario,
-} from "./notificacoes.js";
-
 const profileConfig = {
   cliente: {
     kicker: "Área do Cliente",
@@ -83,9 +74,15 @@ const profileConfig = {
         icon: "clipboard",
       },
       {
+        title: "OS Rápida",
+        description: "Registre uma manutenção concluída e seu valor.",
+        target: "os-rapida.html",
+        icon: "bolt",
+      },
+      {
         title: "Nova Vistoria",
-        description: "Inicie uma vistoria técnica diretamente no condomínio.",
-        target: "nova-vistoria.html?perfil=admin",
+        description: "Cadastre e agende uma nova vistoria técnica.",
+        target: "nova-ordem.html?perfil=admin&tipo=vistoria",
         icon: "inspection",
       },
 
@@ -181,6 +178,12 @@ const profileConfig = {
 ================================ */
 
 const icons = {
+  bolt: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M13 2 5 14h6l-1 8 9-13h-6V2Z"></path>
+    </svg>
+  `,
+
   clipboard: `
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <rect x="5" y="4" width="14" height="17" rx="2"></rect>
@@ -320,13 +323,6 @@ const logoContainer = companyLogo.closest(".profile-logo");
 const backButton = document.getElementById("back-button");
 const logoutButton = document.getElementById("logout-button");
 
-const notificationButton = document.getElementById("notification-button");
-const notificationBadge = document.getElementById("notification-badge");
-const notificationsPanel = document.getElementById("notifications-panel");
-const notificationsList = document.getElementById("notifications-list");
-const notificationsEmpty = document.getElementById("notifications-empty");
-const notificationsMarkAll = document.getElementById("notifications-mark-all");
-
 let currentProfile = null;
 
 let authActionInProgress = false;
@@ -334,278 +330,9 @@ let adminSearchItems = [];
 
 let adminSearchLoaded = false;
 
-let notificationsUnsubscribe = null;
-let notificationsItems = [];
-
-/* ==============================
-   CENTRAL DE NOTIFICAÇÕES
-================================= */
-
-function getNotificationTimestamp(notification) {
-  if (notification.criadaEm?.toMillis) {
-    return notification.criadaEm.toMillis();
-  }
-
-  return 0;
-}
-
-function formatNotificationDate(timestamp) {
-  if (!timestamp?.toDate) {
-    return "Agora";
-  }
-
-  const date = timestamp.toDate();
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
-async function markNotificationAsRead(notificationId) {
-  if (!notificationId) {
-    return;
-  }
-
-  try {
-    await updateDoc(doc(db, "notificacoes", notificationId), {
-      lida: true,
-      lidaEm: serverTimestamp(),
-    });
-  } catch (error) {
-    console.error(
-      "[Principal] Não foi possível marcar a notificação como lida:",
-      error,
-    );
-  }
-}
-
-function renderNotifications() {
-  const sortedNotifications = [...notificationsItems].sort(
-    (a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a),
-  );
-
-  const unreadNotifications = sortedNotifications.filter(
-    (notification) => notification.lida !== true,
-  );
-
-  notificationsList.replaceChildren();
-
-  notificationsEmpty.hidden = sortedNotifications.length > 0;
-
-  notificationsMarkAll.hidden = unreadNotifications.length === 0;
-
-  if (unreadNotifications.length > 0) {
-    notificationBadge.hidden = false;
-
-    notificationBadge.textContent =
-      unreadNotifications.length > 99
-        ? "99+"
-        : String(unreadNotifications.length);
-
-    notificationButton.setAttribute(
-      "aria-label",
-      `Abrir notificações. ${unreadNotifications.length} não lida(s).`,
-    );
-  } else {
-    notificationBadge.hidden = true;
-    notificationBadge.textContent = "";
-
-    notificationButton.setAttribute("aria-label", "Abrir notificações");
-  }
-
-  sortedNotifications.forEach((notification) => {
-    const button = document.createElement("button");
-
-    button.type = "button";
-
-    button.className =
-      notification.lida === true
-        ? "notification-item"
-        : "notification-item is-unread";
-
-    const indicator = document.createElement("span");
-
-    indicator.className = "notification-item__indicator";
-    indicator.setAttribute("aria-hidden", "true");
-
-    const content = document.createElement("span");
-
-    content.className = "notification-item__content";
-
-    const title = document.createElement("strong");
-
-    title.className = "notification-item__title";
-    title.textContent = notification.titulo || "Atualização Salvateck";
-
-    const message = document.createElement("span");
-
-    message.className = "notification-item__message";
-    message.textContent =
-      notification.mensagem || "Há uma nova atualização disponível.";
-
-    content.append(title, message);
-
-    const date = document.createElement("time");
-
-    date.className = "notification-item__date";
-    date.textContent = formatNotificationDate(notification.criadaEm);
-
-    button.append(indicator, content, date);
-
-    button.addEventListener("click", async () => {
-      if (notification.lida !== true) {
-        await markNotificationAsRead(notification.id);
-      }
-
-      const target = String(notification.url || "principal.html").trim();
-
-      notificationsPanel.hidden = true;
-
-      notificationButton.setAttribute("aria-expanded", "false");
-
-      window.location.href = target || "principal.html";
-    });
-
-    notificationsList.appendChild(button);
-  });
-}
-
-function startNotificationsCenter(uid) {
-  if (notificationsUnsubscribe) {
-    notificationsUnsubscribe();
-    notificationsUnsubscribe = null;
-  }
-
-  notificationsItems = [];
-
-  renderNotifications();
-
-  const notificationsQuery = query(
-    collection(db, "notificacoes"),
-    where("destinatarioUid", "==", uid),
-  );
-
-  notificationsUnsubscribe = onSnapshot(
-    notificationsQuery,
-    (snapshot) => {
-      notificationsItems = snapshot.docs.map((documentSnapshot) => ({
-        id: documentSnapshot.id,
-        ...documentSnapshot.data(),
-      }));
-
-      renderNotifications();
-    },
-    (error) => {
-      console.error(
-        "[Principal] Não foi possível carregar as notificações:",
-        error,
-      );
-    },
-  );
-}
-
-notificationButton.addEventListener("click", async () => {
-  if (
-    auth.currentUser &&
-    "Notification" in window &&
-    Notification.permission === "default"
-  ) {
-    try {
-      await Notification.requestPermission();
-    } catch (error) {
-      console.warn(
-        "[Principal] Não foi possível solicitar permissão para notificações:",
-        error,
-      );
-    }
-  }
-
-  if (
-    auth.currentUser &&
-    "Notification" in window &&
-    Notification.permission === "granted"
-  ) {
-    await ativarNotificacoesUsuario(auth.currentUser);
-  }
-
-  const shouldOpen = notificationsPanel.hidden;
-
-  notificationsPanel.hidden = !shouldOpen;
-
-  notificationButton.setAttribute(
-    "aria-expanded",
-    shouldOpen ? "true" : "false",
-  );
-
-  if (shouldOpen) {
-    notificationsPanel.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-    });
-  }
-});
-
-notificationsMarkAll.addEventListener("click", async () => {
-  const unreadNotifications = notificationsItems.filter(
-    (notification) => notification.lida !== true,
-  );
-
-  if (unreadNotifications.length === 0) {
-    return;
-  }
-
-  notificationsMarkAll.disabled = true;
-
-  try {
-    await Promise.all(
-      unreadNotifications.map((notification) =>
-        updateDoc(doc(db, "notificacoes", notification.id), {
-          lida: true,
-          lidaEm: serverTimestamp(),
-        }),
-      ),
-    );
-  } catch (error) {
-    console.error(
-      "[Principal] Não foi possível marcar todas as notificações como lidas:",
-      error,
-    );
-
-    window.alert(
-      "Não foi possível atualizar todas as notificações. Tente novamente.",
-    );
-  } finally {
-    notificationsMarkAll.disabled = false;
-  }
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !notificationsPanel.hidden) {
-    notificationsPanel.hidden = true;
-
-    notificationButton.setAttribute("aria-expanded", "false");
-
-    notificationButton.focus();
-  }
-});
-
-window.addEventListener("salvateck:notificacao-recebida", () => {
-  if (notificationsPanel.hidden) {
-    return;
-  }
-
-  notificationsPanel.scrollIntoView({
-    behavior: "smooth",
-    block: "nearest",
-  });
-});
-
 /* ==============================
    NORMALIZAÇÃO DA PESQUISA
-================================= */
+================================ */
 
 function normalizeText(value) {
   return String(value || "")
@@ -992,10 +719,6 @@ logoutButton.addEventListener("click", async (event) => {
   logoutButton.setAttribute("aria-disabled", "true");
 
   try {
-    if (auth.currentUser) {
-      await desativarNotificacoesUsuario(auth.currentUser.uid);
-    }
-
     await signOut(auth);
 
     window.location.replace("index.html");
@@ -1036,10 +759,6 @@ async function denyAccess(message) {
   authActionInProgress = true;
 
   try {
-    if (auth.currentUser) {
-      await desativarNotificacoesUsuario(auth.currentUser.uid);
-    }
-
     await signOut(auth);
   } catch (error) {
     console.warn(
@@ -1102,10 +821,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     changeProfile(role, userProfile);
-
-    ativarNotificacoesUsuario(user);
-
-    startNotificationsCenter(user.uid);
 
     if (role === "admin") {
       loadAdminSearchData();
