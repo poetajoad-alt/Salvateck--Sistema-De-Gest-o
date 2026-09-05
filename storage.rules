@@ -95,7 +95,7 @@ service firebase.storage {
         );
     }
 
-    function imagemValida(ordemId, arquivo) {
+        function imagemValida(ordemId, arquivo) {
       return arquivo.matches('foto-[1-6][.]webp')
 
         && request.resource.size > 0
@@ -109,6 +109,14 @@ service firebase.storage {
         && request.resource.metadata.enviadoPorUid == request.auth.uid;
     }
 
+    function imagemOsRapidaValida(ordemId, arquivo) {
+      return imagemValida(ordemId, arquivo)
+
+        && "origem" in request.resource.metadata
+
+        && request.resource.metadata.origem == "os-rapida";
+    }
+
     /* =====================================
        IMAGENS DAS ORDENS
     ===================================== */
@@ -117,18 +125,34 @@ service firebase.storage {
 
       allow read: if podeAcessarOrdem(ordemId);
 
-      allow create: if podeAcessarOrdem(ordemId)
+            allow create: if (
+        eAdministrador()
+        && !ordemExiste(ordemId)
+        && imagemOsRapidaValida(ordemId, arquivo)
+      )
+      || (
+        podeAcessarOrdem(ordemId)
         && ordemAceitaImagens(ordemId)
-        && imagemValida(ordemId, arquivo);
+        && imagemValida(ordemId, arquivo)
+      );
 
       allow update: if false;
 
-      allow delete: if podeAcessarOrdem(ordemId)
+            allow delete: if (
+        eAdministrador()
+        && !ordemExiste(ordemId)
+        && "origem" in resource.metadata
+        && resource.metadata.origem == "os-rapida"
+        && resource.metadata.enviadoPorUid == request.auth.uid
+      )
+      || (
+        podeAcessarOrdem(ordemId)
         && ordemAceitaImagens(ordemId)
         && (
           eAdministrador()
           || resource.metadata.enviadoPorUid == request.auth.uid
-        );
+        )
+      );
     }
 
     /* =====================================

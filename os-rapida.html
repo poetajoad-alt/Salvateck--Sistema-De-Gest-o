@@ -138,9 +138,52 @@
         </div>
       </section>
 
-      <section class="form-card" aria-labelledby="finance-title">
+      <section class="form-card" id="quick-photo-card" aria-labelledby="photos-title">
         <div class="form-card__heading">
           <span class="form-card__number">3</span>
+          <div>
+            <p class="eyebrow">Registro visual</p>
+            <h2 id="photos-title">Imagens do serviço</h2>
+          </div>
+        </div>
+
+        <p class="quick-photo-description">
+          Adicione fotos do serviço realizado para que elas fiquem registradas
+          no histórico da Ordem de Serviço.
+        </p>
+
+        <label class="quick-photo-upload" for="quick-photos">
+          <input id="quick-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+
+          <span class="quick-photo-upload__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+              <circle cx="8.5" cy="10" r="1.5"></circle>
+              <path d="m5 18 4-4 3 3 2-2 5 5"></path>
+            </svg>
+          </span>
+
+          <span class="quick-photo-upload__copy">
+            <strong>Selecionar imagens</strong>
+            <small>Até 6 imagens — JPG, PNG ou WebP — máximo de 10 MB por arquivo.</small>
+          </span>
+        </label>
+
+        <div class="quick-photo-status" id="quick-photo-status" aria-live="polite">
+          <span id="quick-photo-count">Nenhuma imagem selecionada</span>
+          <span id="quick-photo-processing">Compressão automática para WebP</span>
+        </div>
+
+        <p class="quick-photo-error" id="quick-photo-error" hidden>
+          Não foi possível preparar as imagens selecionadas.
+        </p>
+
+        <div class="quick-photo-preview" id="quick-photo-preview" aria-live="polite"></div>
+      </section>
+
+      <section class="form-card" aria-labelledby="finance-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">4</span>
           <div>
             <p class="eyebrow">Valor e financeiro</p>
             <h2 id="finance-title">Quanto foi registrado?</h2>

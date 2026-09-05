@@ -9,7 +9,13 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-import { db } from "./firebase-config.js";
+import {
+  deleteObject,
+  ref,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+
+import { db, storage } from "./firebase-config.js";
 
 const form = document.getElementById("quick-order-form");
 const condominiumSelect = document.getElementById("quick-condominium");
@@ -24,6 +30,12 @@ const serviceTime = document.getElementById("quick-service-time");
 const employeeSelect = document.getElementById("quick-employee");
 const description = document.getElementById("quick-description");
 const descriptionCount = document.getElementById("description-count");
+const photoInput = document.getElementById("quick-photos");
+const photoPreview = document.getElementById("quick-photo-preview");
+const photoStatus = document.getElementById("quick-photo-status");
+const photoCount = document.getElementById("quick-photo-count");
+const photoProcessing = document.getElementById("quick-photo-processing");
+const photoError = document.getElementById("quick-photo-error");
 const orderValue = document.getElementById("quick-value");
 const paymentStatus = document.getElementById("quick-payment-status");
 const paymentMethod = document.getElementById("quick-payment-method");
@@ -46,6 +58,16 @@ let employees = [];
 let selectedCondominium = null;
 let selectedClient = null;
 let feedbackTimer = null;
+let selectedFiles = [];
+let processingPhotos = false;
+
+const maxPhotos = 6;
+const maxOriginalPhotoSize = 10 * 1024 * 1024;
+const targetCompressedPhotoSize = 1 * 1024 * 1024;
+const maxCompressedPhotoSize = 2 * 1024 * 1024;
+const maxPhotoDimension = 1920;
+
+const acceptedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function text(value) {
   return String(value || "").trim();
@@ -77,6 +99,442 @@ function showFeedback(message, type = "info") {
   feedbackTimer = window.setTimeout(() => {
     feedback.hidden = true;
   }, 5200);
+}
+
+function formatPhotoSize(size) {
+  const value = Number(size || 0);
+
+  if (value < 1024) {
+    return `${value} bytes`;
+  }
+
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function createCompressedPhotoName(originalName) {
+  const baseName = String(originalName || "imagem")
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return `${baseName || "imagem"}.webp`;
+}
+
+function setPhotoStatus({
+  countText = "",
+  processingText = "",
+  state = "",
+  errorMessage = "",
+} = {}) {
+  photoCount.textContent = countText;
+  photoProcessing.textContent = processingText;
+
+  photoStatus.classList.remove("is-processing", "is-success", "is-error");
+
+  if (state) {
+    photoStatus.classList.add(state);
+  }
+
+  photoError.textContent =
+    errorMessage || "Não foi possível preparar as imagens selecionadas.";
+
+  photoError.hidden = !errorMessage;
+}
+
+function updatePhotoSelectionStatus() {
+  const quantity = selectedFiles.length;
+
+  if (quantity === 0) {
+    setPhotoStatus({
+      countText: "Nenhuma imagem selecionada",
+      processingText: "Compressão automática para WebP",
+    });
+
+    return;
+  }
+
+  const totalSize = selectedFiles.reduce(
+    (total, file) => total + Number(file.size || 0),
+    0,
+  );
+
+  setPhotoStatus({
+    countText:
+      quantity === 1
+        ? "1 de 6 imagens preparada"
+        : `${quantity} de 6 imagens preparadas`,
+    processingText: `Total após compressão: ${formatPhotoSize(totalSize)}`,
+    state: "is-success",
+  });
+}
+
+function resetPhotoSelection() {
+  selectedFiles = [];
+  processingPhotos = false;
+
+  photoInput.value = "";
+  photoInput.disabled = false;
+  photoPreview.innerHTML = "";
+
+  updatePhotoSelectionStatus();
+}
+
+function loadPhotoImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("PHOTO_DECODE_FAILED"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+function canvasToWebpBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("PHOTO_COMPRESSION_FAILED"));
+
+          return;
+        }
+
+        resolve(blob);
+      },
+      "image/webp",
+      quality,
+    );
+  });
+}
+
+async function compressPhoto(file) {
+  const image = await loadPhotoImage(file);
+
+  const originalWidth = Number(image.naturalWidth || image.width || 0);
+  const originalHeight = Number(image.naturalHeight || image.height || 0);
+
+  if (!originalWidth || !originalHeight) {
+    throw new Error("PHOTO_INVALID_DIMENSIONS");
+  }
+
+  const largestDimension = Math.max(originalWidth, originalHeight);
+
+  const initialScale =
+    largestDimension > maxPhotoDimension
+      ? maxPhotoDimension / largestDimension
+      : 1;
+
+  let finalWidth = Math.max(1, Math.round(originalWidth * initialScale));
+
+  let finalHeight = Math.max(1, Math.round(originalHeight * initialScale));
+
+  const canvas = document.createElement("canvas");
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+  });
+
+  if (!context) {
+    throw new Error("PHOTO_CANVAS_UNAVAILABLE");
+  }
+
+  let compressedBlob = null;
+  let quality = 0.86;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    canvas.width = finalWidth;
+    canvas.height = finalHeight;
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, finalWidth, finalHeight);
+    context.drawImage(image, 0, 0, finalWidth, finalHeight);
+
+    compressedBlob = await canvasToWebpBlob(canvas, quality);
+
+    if (compressedBlob.size <= targetCompressedPhotoSize) {
+      break;
+    }
+
+    if (quality > 0.58) {
+      quality -= 0.07;
+    } else {
+      finalWidth = Math.max(1, Math.round(finalWidth * 0.88));
+      finalHeight = Math.max(1, Math.round(finalHeight * 0.88));
+    }
+  }
+
+  if (!compressedBlob || compressedBlob.size > maxCompressedPhotoSize) {
+    throw new Error("PHOTO_STILL_TOO_LARGE");
+  }
+
+  return new File([compressedBlob], createCompressedPhotoName(file.name), {
+    type: "image/webp",
+    lastModified: file.lastModified || Date.now(),
+  });
+}
+
+function renderPhotoPreview() {
+  photoPreview.innerHTML = "";
+
+  selectedFiles.forEach((file, index) => {
+    const previewItem = document.createElement("div");
+
+    previewItem.className = "quick-photo-preview__item";
+
+    const image = document.createElement("img");
+
+    image.alt = `Pré-visualização da imagem ${index + 1}`;
+
+    const objectUrl = URL.createObjectURL(file);
+
+    image.src = objectUrl;
+
+    image.addEventListener(
+      "load",
+      () => {
+        URL.revokeObjectURL(objectUrl);
+      },
+      {
+        once: true,
+      },
+    );
+
+    const removeButton = document.createElement("button");
+
+    removeButton.type = "button";
+    removeButton.className = "quick-photo-preview__remove";
+    removeButton.textContent = "×";
+
+    removeButton.setAttribute("aria-label", `Remover imagem ${index + 1}`);
+
+    removeButton.addEventListener("click", () => {
+      if (processingPhotos) {
+        return;
+      }
+
+      selectedFiles.splice(index, 1);
+
+      photoInput.disabled = false;
+
+      renderPhotoPreview();
+      updatePhotoSelectionStatus();
+    });
+
+    previewItem.append(image, removeButton);
+
+    photoPreview.appendChild(previewItem);
+  });
+}
+
+async function handlePhotoSelection() {
+  if (processingPhotos) {
+    return;
+  }
+
+  const incomingFiles = Array.from(photoInput.files || []);
+
+  if (incomingFiles.length === 0) {
+    return;
+  }
+
+  const availableSlots = maxPhotos - selectedFiles.length;
+
+  if (availableSlots <= 0) {
+    photoInput.value = "";
+
+    showFeedback(`A OS já possui o limite de ${maxPhotos} imagens.`, "error");
+
+    return;
+  }
+
+  processingPhotos = true;
+  photoInput.disabled = true;
+
+  setPhotoStatus({
+    countText: `${selectedFiles.length} de ${maxPhotos} imagens preparadas`,
+    processingText: "Validando e comprimindo imagens...",
+    state: "is-processing",
+  });
+
+  const filesToProcess = incomingFiles.slice(0, availableSlots);
+  const errors = [];
+
+  if (incomingFiles.length > availableSlots) {
+    errors.push(
+      `Somente ${availableSlots} imagem(ns) foram consideradas, pois o limite da OS é ${maxPhotos}.`,
+    );
+  }
+
+  try {
+    for (const file of filesToProcess) {
+      if (!acceptedPhotoTypes.has(file.type)) {
+        errors.push(`${file.name}: formato não permitido.`);
+
+        continue;
+      }
+
+      if (file.size <= 0) {
+        errors.push(`${file.name}: arquivo vazio.`);
+
+        continue;
+      }
+
+      if (file.size > maxOriginalPhotoSize) {
+        errors.push(`${file.name}: o arquivo original ultrapassa 10 MB.`);
+
+        continue;
+      }
+
+      const compressedName = createCompressedPhotoName(file.name);
+
+      const alreadyExists = selectedFiles.some(
+        (selectedFile) =>
+          selectedFile.name === compressedName &&
+          selectedFile.lastModified === file.lastModified,
+      );
+
+      if (alreadyExists) {
+        errors.push(`${file.name}: esta imagem já foi adicionada.`);
+
+        continue;
+      }
+
+      try {
+        const compressedFile = await compressPhoto(file);
+
+        selectedFiles.push(compressedFile);
+      } catch (error) {
+        console.error(
+          `[OS Rápida] Não foi possível comprimir ${file.name}:`,
+          error,
+        );
+
+        errors.push(`${file.name}: não foi possível preparar a imagem.`);
+      }
+    }
+  } finally {
+    processingPhotos = false;
+
+    photoInput.value = "";
+    photoInput.disabled = selectedFiles.length >= maxPhotos;
+
+    renderPhotoPreview();
+    updatePhotoSelectionStatus();
+  }
+
+  if (errors.length > 0) {
+    setPhotoStatus({
+      countText:
+        selectedFiles.length === 1
+          ? "1 de 6 imagens preparada"
+          : `${selectedFiles.length} de 6 imagens preparadas`,
+      processingText:
+        selectedFiles.length > 0
+          ? "As imagens válidas foram preparadas."
+          : "Nenhuma imagem válida foi adicionada.",
+      state: "is-error",
+      errorMessage: errors.join(" "),
+    });
+
+    showFeedback(errors[0], "error");
+
+    return;
+  }
+
+  setPhotoStatus({
+    countText:
+      selectedFiles.length === 1
+        ? "1 de 6 imagens preparada"
+        : `${selectedFiles.length} de 6 imagens preparadas`,
+    processingText: "Compressão concluída com sucesso.",
+    state: "is-success",
+  });
+}
+
+async function uploadQuickOrderPhotos(orderId) {
+  if (selectedFiles.length === 0) {
+    return [];
+  }
+
+  const uploadedPhotos = [];
+
+  try {
+    for (let index = 0; index < selectedFiles.length; index += 1) {
+      const file = selectedFiles[index];
+      const position = index + 1;
+      const fileName = `foto-${position}.webp`;
+      const storagePath = `ordens/${orderId}/imagens/${fileName}`;
+
+      const storageReference = ref(storage, storagePath);
+
+      setPhotoStatus({
+        countText: `${position} de ${selectedFiles.length}`,
+        processingText: `Enviando imagem ${position}...`,
+        state: "is-processing",
+      });
+
+      await uploadBytes(storageReference, file, {
+        contentType: "image/webp",
+        customMetadata: {
+          ordemId: orderId,
+          enviadoPorUid: currentSession.uid,
+          enviadoPorPerfil: "admin",
+          origem: "os-rapida",
+          nomeOriginal: file.name || fileName,
+        },
+      });
+
+      uploadedPhotos.push({
+        storageReference,
+        data: {
+          storagePath,
+          nome: file.name || fileName,
+          contentType: "image/webp",
+          tamanho: Number(file.size || 0),
+          posicao: position,
+          enviadoPorUid: currentSession.uid,
+          enviadoPorPerfil: "admin",
+          origem: "os-rapida",
+          enviadoEm: new Date().toISOString(),
+        },
+      });
+    }
+
+    return uploadedPhotos;
+  } catch (error) {
+    await Promise.allSettled(
+      uploadedPhotos.map((photo) => deleteObject(photo.storageReference)),
+    );
+
+    setPhotoStatus({
+      countText: "Upload não concluído",
+      processingText: "As imagens não foram armazenadas.",
+      state: "is-error",
+      errorMessage: "Não foi possível enviar as imagens da OS Rápida.",
+    });
+
+    throw error;
+  }
+}
+
+async function deleteUploadedQuickOrderPhotos(uploadedPhotos) {
+  await Promise.allSettled(
+    uploadedPhotos.map((photo) => deleteObject(photo.storageReference)),
+  );
 }
 
 function getSaoPauloDateTime() {
@@ -225,9 +683,7 @@ function clearClientSelection() {
   linkedClients = [];
 
   clientSelect.innerHTML = "";
-  clientSelect.appendChild(
-    createOption("", "Selecione o condomínio primeiro"),
-  );
+  clientSelect.appendChild(createOption("", "Selecione o condomínio primeiro"));
   clientSelect.disabled = true;
 
   clientName.value = "";
@@ -387,9 +843,7 @@ async function loadEmployees() {
       );
 
     employeeSelect.innerHTML = "";
-    employeeSelect.appendChild(
-      createOption("", "Sem funcionário específico"),
-    );
+    employeeSelect.appendChild(createOption("", "Sem funcionário específico"));
 
     employees.forEach((employee) => {
       const label = [employee.codigo, employee.nome, employee.cargo]
@@ -413,6 +867,15 @@ async function loadEmployees() {
 }
 
 function validateForm() {
+  if (processingPhotos) {
+    showFeedback(
+      "Aguarde o processamento das imagens antes de registrar a OS.",
+      "error",
+    );
+
+    return false;
+  }
+
   if (!selectedCondominium) {
     showFeedback("Selecione o condomínio do atendimento.", "error");
     condominiumSelect.focus();
@@ -469,7 +932,7 @@ function formatOrderCode(number) {
   return `OS-${String(number).padStart(4, "0")}`;
 }
 
-function buildOrderData({ id, number, code }) {
+function buildOrderData({ id, number, code, photos = [] }) {
   const creatorName = getCreatorName();
   const employee = getSelectedEmployee();
   const clientId = text(selectedClient?.id);
@@ -566,7 +1029,8 @@ function buildOrderData({ id, number, code }) {
     status: "concluida",
     ativo: true,
     arquivado: false,
-    quantidadeFotos: 0,
+    fotos: photos,
+    quantidadeFotos: photos.length,
     vistoria: null,
     valorSalvateck: value,
     valorSalvateckAtualizadoEm: serverTimestamp(),
@@ -689,57 +1153,85 @@ async function saveQuickOrder() {
     `ordem-${orderReference.id}`,
   );
 
-  return runTransaction(db, async (transaction) => {
-    const counterSnapshot = await transaction.get(counterReference);
+  const uploadedPhotos = await uploadQuickOrderPhotos(orderReference.id);
 
-    if (!counterSnapshot.exists()) {
-      throw new Error("ORDER_COUNTER_NOT_FOUND");
-    }
+  const photos = uploadedPhotos.map((photo) => photo.data);
 
-    const currentNumber = Number(counterSnapshot.data().ultimoNumero || 0);
+  try {
+    const savedOrder = await runTransaction(db, async (transaction) => {
+      const counterSnapshot = await transaction.get(counterReference);
 
-    if (!Number.isInteger(currentNumber) || currentNumber < 0) {
-      throw new Error("INVALID_ORDER_COUNTER");
-    }
+      if (!counterSnapshot.exists()) {
+        throw new Error("ORDER_COUNTER_NOT_FOUND");
+      }
 
-    const nextNumber = currentNumber + 1;
-    const code = formatOrderCode(nextNumber);
-    const orderData = buildOrderData({
-      id: orderReference.id,
-      number: nextNumber,
-      code,
-    });
-    const financialData = buildFinancialData({
-      orderId: orderReference.id,
-      code,
-      title: orderData.titulo,
-    });
+      const currentNumber = Number(counterSnapshot.data().ultimoNumero || 0);
 
-    transaction.update(counterReference, {
-      ultimoNumero: nextNumber,
-      ultimoDocumentoId: orderReference.id,
-      atualizadoEm: serverTimestamp(),
-    });
+      if (!Number.isInteger(currentNumber) || currentNumber < 0) {
+        throw new Error("INVALID_ORDER_COUNTER");
+      }
 
-    transaction.set(orderReference, orderData);
-    transaction.set(financialReference, financialData);
+      const nextNumber = currentNumber + 1;
+      const code = formatOrderCode(nextNumber);
 
-    if (text(internalNotes.value)) {
-      transaction.set(privateReference, {
-        ordemId: orderReference.id,
-        codigo: code,
-        observacaoInterna: text(internalNotes.value),
-        origem: "os-rapida",
+      const orderData = buildOrderData({
+        id: orderReference.id,
+        number: nextNumber,
+        code,
+        photos,
+      });
+
+      const financialData = buildFinancialData({
+        orderId: orderReference.id,
+        code,
+        title: orderData.titulo,
+      });
+
+      transaction.update(counterReference, {
+        ultimoNumero: nextNumber,
+        ultimoDocumentoId: orderReference.id,
         atualizadoEm: serverTimestamp(),
+      });
+
+      transaction.set(orderReference, orderData);
+      transaction.set(financialReference, financialData);
+
+      if (text(internalNotes.value)) {
+        transaction.set(privateReference, {
+          ordemId: orderReference.id,
+          codigo: code,
+          observacaoInterna: text(internalNotes.value),
+          origem: "os-rapida",
+          atualizadoEm: serverTimestamp(),
+        });
+      }
+
+      return {
+        id: orderReference.id,
+        numero: nextNumber,
+        codigo: code,
+      };
+    });
+
+    if (photos.length > 0) {
+      setPhotoStatus({
+        countText:
+          photos.length === 1
+            ? "1 imagem enviada"
+            : `${photos.length} imagens enviadas`,
+        processingText: "Imagens armazenadas e vinculadas à OS.",
+        state: "is-success",
       });
     }
 
-    return {
-      id: orderReference.id,
-      numero: nextNumber,
-      codigo: code,
-    };
-  });
+    return savedOrder;
+  } catch (error) {
+    if (uploadedPhotos.length > 0) {
+      await deleteUploadedQuickOrderPhotos(uploadedPhotos);
+    }
+
+    throw error;
+  }
 }
 
 function getErrorMessage(error) {
@@ -757,6 +1249,17 @@ function getErrorMessage(error) {
 
   if (error?.code === "unavailable") {
     return "Não foi possível acessar o Firebase. Verifique sua conexão.";
+  }
+
+  if (
+    error?.code === "storage/unauthorized" ||
+    error?.code === "storage/permission-denied"
+  ) {
+    return "O Firebase Storage bloqueou o envio das imagens.";
+  }
+
+  if (error?.code === "storage/retry-limit-exceeded") {
+    return "O envio das imagens demorou demais. Tente novamente.";
   }
 
   return "Não foi possível registrar a OS Rápida. Tente novamente.";
@@ -786,8 +1289,7 @@ async function handleSubmit(event) {
       origem: "ordens",
     });
 
-    viewOrderLink.href =
-      `detalhes-solicitacao.html?${parameters.toString()}`;
+    viewOrderLink.href = `detalhes-solicitacao.html?${parameters.toString()}`;
 
     form.hidden = true;
     successCard.hidden = false;
@@ -807,6 +1309,7 @@ function resetQuickOrderForm() {
   selectedCondominium = null;
   selectedClient = null;
   clearClientSelection();
+  resetPhotoSelection();
   setDefaultDateTime();
   updatePaymentFields();
 
@@ -860,6 +1363,7 @@ description.addEventListener("input", () => {
 paymentStatus.addEventListener("change", updatePaymentFields);
 clientName.addEventListener("input", updateSummary);
 serviceTitle.addEventListener("input", updateSummary);
+photoInput.addEventListener("change", handlePhotoSelection);
 form.addEventListener("submit", handleSubmit);
 newQuickOrderButton.addEventListener("click", resetQuickOrderForm);
 
