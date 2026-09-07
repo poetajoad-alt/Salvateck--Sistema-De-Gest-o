@@ -4041,7 +4041,7 @@ function addPdfConclusionNotice(pdf, currentY, documentData) {
   pdf.setTextColor(...PDF_COLORS.dark);
 
   const noticeLines = pdf.splitTextToSize(
-    "Este documento foi gerado a partir dos dados congelados no momento da conclusão da ordem de serviço.",
+    "Este documento formaliza as informações registradas e validadas na Ordem de Serviço no momento de sua conclusão.",
     150,
   );
 
@@ -4330,6 +4330,7 @@ function setFinalPdfBusy(isBusy) {
   generatingFinalPdf = isBusy;
 
   const hasDocument = Boolean(currentRequest?.documentoFinal);
+  const isQuickOrder = currentRequest?.origem?.tipo === "os-rapida";
 
   viewFinalDocumentButton.disabled = isBusy || !hasDocument;
 
@@ -4337,7 +4338,9 @@ function setFinalPdfBusy(isBusy) {
 
   viewFinalDocumentButton.textContent = isBusy
     ? "Gerando PDF..."
-    : "Visualizar documento";
+    : isQuickOrder
+      ? "Baixar PDF"
+      : "Visualizar documento";
 
   downloadFinalDocumentButton.textContent = isBusy
     ? "Preparando PDF..."
@@ -4372,6 +4375,27 @@ function handleFinalPdfError(error) {
 
 async function viewFinalDocumentPdf() {
   if (generatingFinalPdf) {
+    return;
+  }
+
+  const isQuickOrder = currentRequest?.origem?.tipo === "os-rapida";
+
+  if (isQuickOrder) {
+    setFinalPdfBusy(true);
+
+    try {
+      const documentData = getFinalPdfData();
+      const pdf = await createFinalDocumentPdf();
+
+      pdf.save(getFinalPdfFileName(documentData));
+
+      showFeedback("PDF da OS Rápida baixado com sucesso.");
+    } catch (error) {
+      handleFinalPdfError(error);
+    } finally {
+      setFinalPdfBusy(false);
+    }
+
     return;
   }
 
@@ -4424,9 +4448,9 @@ async function shareFinalDocumentPdf() {
 
     const fileName = getFinalPdfFileName(documentData);
 
-    const pdfBlob = pdf.output("blob");
+    const pdfArrayBuffer = pdf.output("arraybuffer");
 
-    const pdfFile = new File([pdfBlob], fileName, {
+    const pdfFile = new File([pdfArrayBuffer], fileName, {
       type: "application/pdf",
 
       lastModified: Date.now(),

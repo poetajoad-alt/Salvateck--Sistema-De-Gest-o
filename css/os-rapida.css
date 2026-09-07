@@ -507,7 +507,7 @@
 
 .save-button {
   width: 100%;
-  min-height: 54px;
+  min-height: 58px;
 
   display: inline-flex;
   align-items: center;
@@ -518,17 +518,19 @@
 
   cursor: pointer;
 
-  font-size: 0.77rem;
+  font-size: 0.8rem;
   font-weight: 800;
   text-align: center;
 
-  color: #dd9a17;
-  background-color: #0d3861;
+  color: #0d3861;
+  background-color: #dd9a17;
 
-  border: 1px solid rgba(221, 154, 23, 0.44);
+  border: 1px solid #dd9a17;
   border-radius: var(--radius-pill);
 
-  box-shadow: 0 10px 22px rgba(13, 56, 97, 0.24);
+  box-shadow:
+    0 10px 24px rgba(221, 154, 23, 0.28),
+    0 4px 12px rgba(4, 26, 47, 0.18);
 
   transition:
     transform 180ms ease,
@@ -550,8 +552,14 @@
 }
 
 .save-button:hover:not(:disabled) {
-  color: #0d3861;
-  background-color: #dd9a17;
+  color: #ffffff;
+  background-color: #0d3861;
+
+  border-color: #dd9a17;
+
+  box-shadow:
+    0 12px 26px rgba(4, 26, 47, 0.3),
+    0 0 0 3px rgba(221, 154, 23, 0.18);
 }
 
 .save-button:active:not(:disabled) {

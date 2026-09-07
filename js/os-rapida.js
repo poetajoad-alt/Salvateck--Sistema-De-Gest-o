@@ -30,6 +30,11 @@ const serviceTime = document.getElementById("quick-service-time");
 const employeeSelect = document.getElementById("quick-employee");
 const description = document.getElementById("quick-description");
 const descriptionCount = document.getElementById("description-count");
+const technicalResponsibleName = document.getElementById(
+  "quick-technical-responsible",
+);
+const technicalCrea = document.getElementById("quick-technical-crea");
+const technicalTrt = document.getElementById("quick-technical-trt");
 const photoInput = document.getElementById("quick-photos");
 const photoPreview = document.getElementById("quick-photo-preview");
 const photoStatus = document.getElementById("quick-photo-status");
@@ -911,6 +916,13 @@ function validateForm() {
     return false;
   }
 
+  if (!text(technicalResponsibleName.value)) {
+    showFeedback("Informe o nome do Responsável Técnico.", "error");
+    technicalResponsibleName.focus();
+
+    return false;
+  }
+
   if (currencyToNumber(orderValue.value) <= 0) {
     showFeedback("Informe um valor válido para a OS.", "error");
     orderValue.focus();
@@ -940,6 +952,11 @@ function buildOrderData({ id, number, code, photos = [] }) {
   const serviceDescription = text(description.value);
   const address = getCondominiumAddress(selectedCondominium);
   const value = currencyToNumber(orderValue.value);
+  const technicalResponsibility = {
+    nome: text(technicalResponsibleName.value),
+    crea: text(technicalCrea.value),
+    trt: text(technicalTrt.value),
+  };
   const services = [
     {
       categoria: "manutencao-geral",
@@ -1045,9 +1062,9 @@ function buildOrderData({ id, number, code, photos = [] }) {
         }
       : {}),
     responsabilidadeTecnica: {
-      nome: "",
-      crea: "",
-      trt: "",
+      ...technicalResponsibility,
+      atualizadoPorUid: currentSession.uid,
+      atualizadoEm: serverTimestamp(),
     },
     documentoFinal: {
       versao: 3,
@@ -1065,9 +1082,7 @@ function buildOrderData({ id, number, code, photos = [] }) {
         cnpj: condominium.cnpj,
       },
       responsabilidadeTecnica: {
-        nome: "",
-        crea: "",
-        trt: "",
+        ...technicalResponsibility,
       },
       vistoria: null,
       categorias: ["manutencao-geral"],
