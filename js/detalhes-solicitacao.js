@@ -4386,8 +4386,44 @@ async function viewFinalDocumentPdf() {
     try {
       const documentData = getFinalPdfData();
       const pdf = await createFinalDocumentPdf();
+      const fileName = getFinalPdfFileName(documentData);
 
-      pdf.save(getFinalPdfFileName(documentData));
+      const pdfArrayBuffer = pdf.output("arraybuffer");
+
+      const pdfFile = new File([pdfArrayBuffer], fileName, {
+        type: "application/pdf",
+        lastModified: Date.now(),
+      });
+
+      const shareData = {
+        files: [pdfFile],
+      };
+
+      const canShareFile =
+        typeof navigator.share === "function" &&
+        (typeof navigator.canShare !== "function" ||
+          navigator.canShare(shareData));
+
+      if (canShareFile) {
+        try {
+          await navigator.share(shareData);
+
+          showFeedback("PDF da OS Rápida preparado com sucesso.");
+
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            return;
+          }
+
+          console.warn(
+            "[PDF] Não foi possível abrir as opções de salvamento da OS Rápida:",
+            error,
+          );
+        }
+      }
+
+      pdf.save(fileName);
 
       showFeedback("PDF da OS Rápida baixado com sucesso.");
     } catch (error) {
