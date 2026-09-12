@@ -248,12 +248,38 @@ service firebase.storage {
         && request.resource.metadata.enviadoPorUid == request.auth.uid;
     }
 
-    match /funcionarios-privados/{funcionarioId}/documentos/{categoria}/{arquivo} {
+        match /funcionarios-privados/{funcionarioId}/documentos/{categoria}/{arquivo} {
       allow read: if eAdministrador();
 
       allow create: if eAdministrador()
         && funcionarioExiste(funcionarioId)
         && documentoFuncionarioValido(funcionarioId, categoria);
+
+      allow update: if false;
+
+      allow delete: if eAdministrador();
+    }
+
+    /* =====================================
+       IMAGEM DOS ORÇAMENTOS
+    ===================================== */
+
+    function imagemOrcamentoValida(orcamentoId, arquivo) {
+      return arquivo == "capa.webp"
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType == "image/webp"
+        && request.resource.metadata.orcamentoId == orcamentoId
+        && request.resource.metadata.enviadoPorUid == request.auth.uid
+        && request.resource.metadata.enviadoPorPerfil == "admin"
+        && request.resource.metadata.origem == "orcamento";
+    }
+
+    match /orcamentos/{orcamentoId}/{arquivo} {
+      allow read: if eAdministrador();
+
+      allow create: if eAdministrador()
+        && imagemOrcamentoValida(orcamentoId, arquivo);
 
       allow update: if false;
 

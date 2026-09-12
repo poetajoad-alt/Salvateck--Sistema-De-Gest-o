@@ -1,0 +1,1412 @@
+/* =========================================================
+SALVATECK
+ORÇAMENTOS
+========================================================= */
+
+/* =========================================================
+ESTRUTURA
+========================================================= */
+
+.budgets-shell {
+  width: min(100%, 780px);
+  min-height: 100vh;
+
+  margin: 0 auto;
+  padding: 26px var(--page-padding) 54px;
+}
+
+/* =========================================================
+CABEÇALHO
+========================================================= */
+
+.budgets-header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-button {
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  color: #dd9a17;
+  text-decoration: none;
+
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.5);
+  border-radius: 50%;
+
+  box-shadow: 0 8px 20px rgba(4, 26, 47, 0.24);
+}
+
+.header-button svg {
+  width: 23px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budgets-header__copy {
+  min-width: 0;
+}
+
+.budgets-header__copy span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+
+  color: rgba(249, 249, 249, 0.72);
+}
+
+.budgets-header__copy strong {
+  display: block;
+
+  font-size: clamp(1.2rem, 4.5vw, 1.55rem);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+
+  color: #f9f9f9;
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 7px;
+
+  overflow: hidden;
+
+  background-color: #f9f9f9;
+
+  border: 2px solid rgba(221, 154, 23, 0.72);
+  border-radius: 50%;
+
+  box-shadow: 0 8px 20px rgba(4, 26, 47, 0.2);
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+/* =========================================================
+INTRODUÇÃO
+========================================================= */
+
+.budgets-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+
+  margin-top: 28px;
+  padding: clamp(22px, 6vw, 32px);
+
+  background-color: rgba(13, 56, 97, 0.86);
+
+  border: 1px solid rgba(221, 154, 23, 0.34);
+  border-radius: var(--radius-large);
+
+  box-shadow: var(--shadow-soft);
+
+  backdrop-filter: blur(14px);
+}
+
+.budgets-intro__copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+
+  color: #dd9a17;
+}
+
+.budgets-intro h1 {
+  margin: 10px 0 8px;
+
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+
+  color: #f9f9f9;
+}
+
+.budgets-intro__copy > p:last-child {
+  max-width: 470px;
+
+  margin: 0;
+
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.6;
+
+  color: rgba(249, 249, 249, 0.76);
+}
+
+/* =========================================================
+BOTÃO NOVO ORÇAMENTO
+========================================================= */
+
+.new-budget-button {
+  flex: 0 0 auto;
+
+  min-height: 50px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  padding: 0 18px;
+
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 1px solid rgba(249, 249, 249, 0.18);
+  border-radius: var(--radius-pill);
+
+  box-shadow: 0 10px 22px rgba(4, 26, 47, 0.22);
+}
+
+.new-budget-button svg {
+  width: 21px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* =========================================================
+RESUMO
+========================================================= */
+
+.budgets-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+.budget-summary-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 82px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 13px;
+
+  cursor: pointer;
+  text-align: left;
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(43, 47, 51, 0.1);
+  border-radius: var(--radius-medium);
+
+  box-shadow: var(--shadow-card);
+}
+
+.budget-summary-card__icon {
+  flex: 0 0 auto;
+
+  width: 38px;
+  height: 38px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.17);
+
+  border-radius: 13px;
+}
+
+.budget-summary-card__icon svg {
+  width: 20px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budget-summary-card__copy {
+  min-width: 0;
+}
+
+.budget-summary-card__copy small,
+.budget-summary-card__copy strong {
+  display: block;
+}
+
+.budget-summary-card__copy small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+
+  color: #747c83;
+}
+
+.budget-summary-card__copy strong {
+  margin-top: 3px;
+
+  font-size: 1.25rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.budget-summary-card.is-active {
+  color: #f9f9f9;
+  background-color: #0d3861;
+
+  border-color: rgba(221, 154, 23, 0.72);
+
+  box-shadow:
+    0 0 0 2px rgba(221, 154, 23, 0.16),
+    0 12px 24px rgba(13, 56, 97, 0.24);
+}
+
+.budget-summary-card.is-active .budget-summary-card__icon {
+  color: #0d3861;
+  background-color: #dd9a17;
+}
+
+.budget-summary-card.is-active .budget-summary-card__copy small {
+  color: rgba(249, 249, 249, 0.75);
+}
+
+.budget-summary-card.is-active .budget-summary-card__copy strong {
+  color: #dd9a17;
+}
+
+/* =========================================================
+PESQUISA E FILTROS
+========================================================= */
+
+.budgets-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+.budget-search {
+  min-height: 56px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 0 16px;
+
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(43, 47, 51, 0.12);
+  border-radius: var(--radius-pill);
+
+  box-shadow: var(--shadow-card);
+}
+
+.budget-search svg {
+  flex: 0 0 auto;
+
+  width: 21px;
+
+  fill: none;
+  stroke: #717980;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.budget-search input {
+  width: 100%;
+  min-width: 0;
+
+  padding: 15px 0;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  color: #2b2f33;
+  background-color: transparent;
+
+  border: none;
+  outline: none;
+}
+
+.budget-search input::placeholder {
+  color: #8a9197;
+}
+
+.budget-search:focus-within {
+  border-color: #dd9a17;
+
+  box-shadow:
+    0 0 0 3px rgba(221, 154, 23, 0.16),
+    var(--shadow-card);
+}
+
+.budget-filter-button {
+  min-height: 56px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 0 18px;
+
+  cursor: pointer;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.45);
+  border-radius: var(--radius-pill);
+
+  box-shadow: 0 10px 22px rgba(13, 56, 97, 0.22);
+}
+
+.budget-filter-button svg {
+  width: 20px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.budget-filter-button__count {
+  min-width: 21px;
+  height: 21px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0 5px;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border-radius: var(--radius-pill);
+}
+
+/* =========================================================
+FILTROS ATIVOS
+========================================================= */
+
+.budget-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.budget-filter-chip {
+  min-height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 7px 11px;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.19);
+
+  border: 1px solid rgba(221, 154, 23, 0.36);
+  border-radius: var(--radius-pill);
+}
+
+.budget-filter-chip button {
+  width: 20px;
+  height: 20px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 1rem;
+  line-height: 1;
+
+  color: #0d3861;
+  background-color: transparent;
+
+  border: none;
+}
+
+/* =========================================================
+PAINEL DE FILTROS
+========================================================= */
+
+.budget-filter-panel {
+  margin-top: 14px;
+  padding: clamp(20px, 5vw, 28px);
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(221, 154, 23, 0.3);
+  border-radius: var(--radius-large);
+
+  box-shadow: var(--shadow-soft);
+}
+
+.budget-filter-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin-bottom: 22px;
+}
+
+.budget-filter-panel__header .eyebrow {
+  margin-bottom: 5px;
+}
+
+.budget-filter-panel__header h2 {
+  margin: 0;
+
+  font-size: 1.3rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.budget-filter-panel__close {
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 1.55rem;
+  line-height: 1;
+
+  color: #0d3861;
+  background-color: rgba(13, 56, 97, 0.07);
+
+  border: none;
+  border-radius: 50%;
+}
+
+.budget-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.budget-filter-field {
+  min-width: 0;
+}
+
+.budget-filter-field > span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  color: #2b2f33;
+}
+
+.budget-filter-field select {
+  width: 100%;
+  min-height: 52px;
+
+  padding: 0 14px;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  color: #2b2f33;
+  background-color: #ffffff;
+
+  border: 1px solid rgba(43, 47, 51, 0.15);
+  border-radius: 14px;
+  outline: none;
+}
+
+.budget-filter-field select:focus {
+  border-color: #dd9a17;
+
+  box-shadow: 0 0 0 3px rgba(221, 154, 23, 0.16);
+}
+
+.budget-filter-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  margin-top: 24px;
+}
+
+.budget-filter-clear,
+.budget-filter-apply {
+  min-height: 50px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 16px;
+
+  cursor: pointer;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+
+  border-radius: var(--radius-pill);
+}
+
+.budget-filter-clear {
+  color: #0d3861;
+  background-color: #edf0f2;
+
+  border: 1px solid rgba(13, 56, 97, 0.13);
+}
+
+.budget-filter-apply {
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+}
+
+/* =========================================================
+CABEÇALHO DA LISTAGEM
+========================================================= */
+
+.budgets-list-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin-top: 26px;
+  margin-bottom: 15px;
+}
+
+.budgets-list-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+.budgets-list-heading h2 {
+  margin: 0;
+
+  font-size: clamp(1.2rem, 4.5vw, 1.55rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+
+  color: #f9f9f9;
+}
+
+#budget-results-count {
+  flex: 0 0 auto;
+
+  padding: 8px 11px;
+
+  font-size: 0.72rem;
+  font-weight: 800;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border-radius: var(--radius-pill);
+}
+
+/* =========================================================
+LISTAGEM
+========================================================= */
+
+.budgets-list {
+  display: grid;
+  gap: 13px;
+}
+
+/* =========================================================
+CARD DO ORÇAMENTO
+========================================================= */
+
+.budget-card {
+  overflow: hidden;
+
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(43, 47, 51, 0.1);
+  border-radius: var(--radius-medium);
+
+  box-shadow: var(--shadow-card);
+}
+
+.budget-card__button {
+  width: 100%;
+
+  display: block;
+
+  padding: 18px;
+
+  cursor: pointer;
+  text-align: left;
+
+  color: #2b2f33;
+  background-color: transparent;
+
+  border: none;
+}
+
+.budget-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+.budget-card__identity {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.budget-card__code {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+
+  color: #0d3861;
+}
+
+.budget-card__status {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 28px;
+
+  padding: 5px 10px;
+
+  font-size: 0.7rem;
+  font-weight: 800;
+
+  color: #5a6269;
+  background-color: #e9ecee;
+
+  border-radius: var(--radius-pill);
+}
+
+.budget-card__status--draft {
+  color: #5f6770;
+  background-color: #e9ecee;
+}
+
+.budget-card__status--sent {
+  color: #0d3861;
+  background-color: rgba(65, 139, 202, 0.16);
+}
+
+.budget-card__status--approved {
+  color: #236d43;
+  background-color: rgba(52, 168, 104, 0.16);
+}
+
+.budget-card__status--rejected {
+  color: #a73434;
+  background-color: rgba(202, 67, 67, 0.13);
+}
+
+.budget-card__status--expired {
+  color: #80601d;
+  background-color: rgba(221, 154, 23, 0.18);
+}
+
+.budget-card__date {
+  flex: 0 0 auto;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  color: #7a8289;
+}
+
+.budget-card__content {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 14px;
+}
+
+.budget-card__icon {
+  width: 52px;
+  height: 52px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.17);
+
+  border-radius: 16px;
+}
+
+.budget-card__icon svg {
+  width: 25px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budget-card__copy {
+  min-width: 0;
+}
+
+.budget-card__copy h3 {
+  margin: 0;
+
+  overflow: hidden;
+
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #0d3861;
+}
+
+.budget-card__client {
+  display: block;
+
+  margin-top: 5px;
+
+  overflow: hidden;
+
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #4f575e;
+}
+
+.budget-card__location {
+  display: block;
+
+  margin-top: 3px;
+
+  overflow: hidden;
+
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: #7a8289;
+}
+
+.budget-card__arrow {
+  width: 24px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+}
+
+.budget-card__arrow svg {
+  width: 21px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* =========================================================
+INFORMAÇÕES INFERIORES DO CARD
+========================================================= */
+
+.budget-card__footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 14px;
+
+  margin-top: 16px;
+  padding-top: 15px;
+
+  border-top: 1px solid rgba(43, 47, 51, 0.09);
+}
+
+.budget-card__meta {
+  min-width: 0;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 13px;
+}
+
+.budget-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  color: #717980;
+}
+
+.budget-card__meta-item svg {
+  width: 16px;
+
+  fill: none;
+  stroke: #a16d12;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budget-card__value {
+  text-align: right;
+}
+
+.budget-card__value small,
+.budget-card__value strong {
+  display: block;
+}
+
+.budget-card__value small {
+  margin-bottom: 3px;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  color: #7a8289;
+}
+
+.budget-card__value strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+/* =========================================================
+VALOR DESTACADO EM APROVADOS
+========================================================= */
+
+.budget-card[data-status="aprovado"] .budget-card__value strong {
+  color: #236d43;
+}
+
+/* =========================================================
+CARDS DE ESTADO
+========================================================= */
+
+.budgets-state-card,
+.budgets-empty {
+  min-height: 240px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  margin-top: 14px;
+  padding: 30px 22px;
+
+  text-align: center;
+
+  color: #2b2f33;
+  background-color: #f9f9f9;
+
+  border: 1px solid rgba(43, 47, 51, 0.1);
+  border-radius: var(--radius-large);
+
+  box-shadow: var(--shadow-card);
+}
+
+.budgets-state-card strong,
+.budgets-empty h2 {
+  margin: 14px 0 0;
+
+  font-size: 1.05rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.budgets-state-card p,
+.budgets-empty > p:last-of-type {
+  max-width: 390px;
+
+  margin: 8px auto 0;
+
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.55;
+
+  color: #6e767d;
+}
+
+/* =========================================================
+LOADER
+========================================================= */
+
+.budgets-state-card__loader {
+  width: 42px;
+  height: 42px;
+
+  display: block;
+
+  border: 4px solid rgba(13, 56, 97, 0.12);
+  border-top-color: #dd9a17;
+  border-radius: 50%;
+
+  animation: budgets-loader-spin 800ms linear infinite;
+}
+
+@keyframes budgets-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+ÍCONE DE ERRO
+========================================================= */
+
+.budgets-state-card__icon {
+  width: 52px;
+  height: 52px;
+
+  display: grid;
+  place-items: center;
+
+  color: #a73434;
+  background-color: rgba(202, 67, 67, 0.11);
+
+  border-radius: 16px;
+}
+
+.budgets-state-card__icon svg {
+  width: 27px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#retry-budgets-button {
+  min-height: 44px;
+
+  margin-top: 18px;
+  padding: 0 18px;
+
+  cursor: pointer;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.42);
+  border-radius: var(--radius-pill);
+}
+
+/* =========================================================
+ESTADO VAZIO
+========================================================= */
+
+.budgets-empty__icon {
+  width: 58px;
+  height: 58px;
+
+  display: grid;
+  place-items: center;
+
+  color: #0d3861;
+  background-color: rgba(221, 154, 23, 0.18);
+
+  border-radius: 18px;
+}
+
+.budgets-empty__icon svg {
+  width: 30px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budgets-empty .eyebrow {
+  margin-top: 16px;
+}
+
+.budgets-empty h2 {
+  margin-top: 7px;
+}
+
+.budgets-empty__button {
+  min-height: 46px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 20px;
+  padding: 0 18px;
+
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border-radius: var(--radius-pill);
+}
+
+/* =========================================================
+FEEDBACK
+========================================================= */
+
+.feedback {
+  position: fixed;
+  z-index: 1000;
+
+  left: 50%;
+  bottom: 24px;
+
+  width: min(calc(100% - 32px), 430px);
+
+  padding: 14px 18px;
+
+  transform: translateX(-50%);
+
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+
+  color: #dd9a17;
+  background-color: #0d3861;
+
+  border: 1px solid rgba(221, 154, 23, 0.44);
+  border-radius: 15px;
+
+  box-shadow: 0 14px 28px rgba(4, 26, 47, 0.32);
+}
+
+.feedback[data-type="error"] {
+  color: #ffffff;
+  background-color: #9d3535;
+
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.feedback[data-type="success"] {
+  color: #ffffff;
+  background-color: #236d43;
+
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================================
+HIDDEN
+========================================================= */
+
+[hidden] {
+  display: none !important;
+}
+
+/* =========================================================
+HOVER
+========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  .header-button,
+  .brand-mark,
+  .new-budget-button,
+  .budget-summary-card,
+  .budget-filter-button,
+  .budget-filter-panel__close,
+  .budget-filter-clear,
+  .budget-filter-apply,
+  .budget-card,
+  .budget-card__button,
+  #retry-budgets-button,
+  .budgets-empty__button {
+    transition:
+      transform 180ms ease,
+      background-color 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .header-button:hover,
+  .budget-filter-button:hover,
+  #retry-budgets-button:hover {
+    color: #0d3861;
+    background-color: #dd9a17;
+  }
+
+  .brand-mark:hover {
+    transform: translateY(-2px);
+
+    border-color: #dd9a17;
+  }
+
+  .new-budget-button:hover,
+  .budgets-empty__button:hover {
+    transform: translateY(-2px);
+
+    box-shadow: 0 12px 24px rgba(4, 26, 47, 0.3);
+  }
+
+  .budget-summary-card:hover {
+    transform: translateY(-2px);
+
+    border-color: rgba(221, 154, 23, 0.5);
+
+    box-shadow: 0 12px 24px rgba(13, 56, 97, 0.16);
+  }
+
+  .budget-summary-card.is-active:hover {
+    border-color: rgba(221, 154, 23, 0.82);
+
+    box-shadow:
+      0 0 0 2px rgba(221, 154, 23, 0.18),
+      0 14px 26px rgba(13, 56, 97, 0.28);
+  }
+
+  .budget-card:hover {
+    transform: translateY(-2px);
+
+    border-color: rgba(221, 154, 23, 0.5);
+
+    box-shadow: 0 15px 28px rgba(13, 56, 97, 0.16);
+  }
+
+  .budget-filter-clear:hover {
+    background-color: #dfe4e7;
+  }
+
+  .budget-filter-apply:hover {
+    color: #0d3861;
+    background-color: #dd9a17;
+  }
+
+  .budget-filter-panel__close:hover {
+    background-color: rgba(221, 154, 23, 0.22);
+  }
+}
+
+/* =========================================================
+TABLET
+========================================================= */
+
+@media (max-width: 760px) {
+  .budgets-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .budgets-shell {
+    padding-top: 36px;
+  }
+
+  .budgets-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budget-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .budget-card__button {
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+  }
+
+  .budget-card__footer {
+    margin-top: auto;
+  }
+}
+
+/* =========================================================
+CELULARES
+========================================================= */
+
+@media (max-width: 580px) {
+  .budgets-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .new-budget-button {
+    width: 100%;
+  }
+
+  .budgets-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budget-summary-card {
+    min-height: 76px;
+  }
+
+  .budget-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 440px) {
+  .budgets-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-filter-button {
+    width: 100%;
+  }
+
+  .budget-filter-panel__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .budgets-list-heading {
+    align-items: flex-start;
+  }
+
+  .budget-card__footer {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-card__value {
+    text-align: left;
+  }
+}
+
+/* =========================================================
+CELULARES PEQUENOS
+========================================================= */
+
+@media (max-width: 390px) {
+  .budgets-shell {
+    padding-inline: 12px;
+  }
+
+  .budgets-header {
+    grid-template-columns: 44px minmax(0, 1fr) 50px;
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+  }
+
+  .budgets-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-summary-card {
+    min-height: 70px;
+  }
+
+  .budget-card__content {
+    grid-template-columns: 46px minmax(0, 1fr) 20px;
+    gap: 11px;
+  }
+
+  .budget-card__icon {
+    width: 46px;
+    height: 46px;
+  }
+}

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Criação de orçamento comercial da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Novo Orçamento | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css?v=1.0.1" />
+
+  <link rel="stylesheet" href="css/novo-orcamento.css?v=1.0.0" />
+</head>
+
+<body data-page="novo-orcamento" data-allowed-roles="admin">
+  <main class="budget-shell">
+    <header class="budget-header">
+      <a href="orcamentos.html?perfil=admin" class="header-button" aria-label="Voltar para orçamentos" title="Voltar">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </a>
+
+      <div class="budget-header__copy">
+        <span>Comercial</span>
+
+        <strong>Novo Orçamento</strong>
+      </div>
+
+      <a href="principal.html" class="brand-mark" aria-label="Voltar para a tela principal" title="Tela principal">
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+      </a>
+    </header>
+
+    <section class="budget-hero" aria-labelledby="budget-page-title">
+      <div class="budget-hero__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 5h16v14H4z"></path>
+
+          <path d="M8 9h8"></path>
+
+          <path d="M8 13h5"></path>
+
+          <path d="M8 17h3"></path>
+        </svg>
+      </div>
+
+      <div>
+        <p class="eyebrow">
+          Proposta comercial
+        </p>
+
+        <h1 id="budget-page-title">
+          Crie um orçamento profissional
+        </h1>
+
+        <p>
+          Preencha as informações do serviço, valores e condições.
+          A Salvateck poderá gerar o documento final em PDF ou imagem
+          para apresentação ao cliente.
+        </p>
+      </div>
+    </section>
+
+    <form id="budget-form" class="budget-form" novalidate>
+      <!-- =========================================================
+      01 - CLIENTE E LOCAL
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="client-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            1
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Cliente e local
+            </p>
+
+            <h2 id="client-title">
+              Para quem é este orçamento?
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="budget-condominium">
+            <span>
+              Condomínio *
+            </span>
+
+            <select id="budget-condominium" required>
+              <option value="">
+                Carregando condomínios...
+              </option>
+            </select>
+
+            <small id="budget-condominium-help">
+              Consulte um local já cadastrado na Salvateck.
+            </small>
+          </label>
+
+          <label class="field field--wide" for="budget-client">
+            <span>
+              Cliente vinculado
+            </span>
+
+            <select id="budget-client" disabled>
+              <option value="">
+                Selecione o condomínio primeiro
+              </option>
+            </select>
+
+            <small>
+              Os dados poderão ser preenchidos automaticamente.
+            </small>
+          </label>
+
+          <label class="field field--wide" for="budget-client-name">
+            <span>
+              Cliente ou responsável *
+            </span>
+
+            <input id="budget-client-name" type="text" autocomplete="name" maxlength="160" required />
+          </label>
+
+          <label class="field" for="budget-client-phone">
+            <span>
+              Telefone
+            </span>
+
+            <input id="budget-client-phone" type="tel" autocomplete="tel" maxlength="24" />
+          </label>
+
+          <label class="field" for="budget-client-email">
+            <span>
+              E-mail
+            </span>
+
+            <input id="budget-client-email" type="email" autocomplete="email" maxlength="160" />
+          </label>
+
+          <label class="field field--wide" for="budget-address">
+            <span>
+              Endereço do atendimento
+            </span>
+
+            <input id="budget-address" type="text" maxlength="240" placeholder="Endereço completo do condomínio ou local" />
+          </label>
+
+          <label class="field" for="budget-condominium-unit">
+            <span>
+              Unidade / apartamento
+            </span>
+
+            <input id="budget-condominium-unit" type="text" maxlength="80" placeholder="Ex.: Apartamento 102" />
+          </label>
+
+          <label class="field" for="budget-condominium-cnpj">
+            <span>
+              CNPJ
+            </span>
+
+            <input id="budget-condominium-cnpj" type="text" maxlength="24" placeholder="00.000.000/0000-00" />
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      02 - PROPOSTA
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="proposal-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            2
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Proposta
+            </p>
+
+            <h2 id="proposal-title">
+              Identificação do orçamento
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field" for="budget-code">
+            <span>
+              Número da proposta
+            </span>
+
+            <input id="budget-code" type="text" readonly placeholder="Gerado automaticamente" />
+          </label>
+
+          <label class="field" for="budget-date">
+            <span>
+              Data da proposta *
+            </span>
+
+            <input id="budget-date" type="date" required />
+          </label>
+
+          <label class="field" for="budget-validity">
+            <span>
+              Validade *
+            </span>
+
+            <select id="budget-validity" required>
+              <option value="7">
+                7 dias
+              </option>
+
+              <option value="15" selected>
+                15 dias
+              </option>
+
+              <option value="30">
+                30 dias
+              </option>
+
+              <option value="45">
+                45 dias
+              </option>
+
+              <option value="60">
+                60 dias
+              </option>
+            </select>
+          </label>
+
+          <label class="field" for="budget-status">
+            <span>
+              Status
+            </span>
+
+            <select id="budget-status">
+              <option value="rascunho" selected>
+                Rascunho
+              </option>
+
+              <option value="enviado">
+                Enviado
+              </option>
+
+              <option value="aprovado">
+                Aprovado
+              </option>
+
+              <option value="recusado">
+                Recusado
+              </option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      03 - APRESENTAÇÃO
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="presentation-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            3
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Apresentação
+            </p>
+
+            <h2 id="presentation-title">
+              Como o orçamento será apresentado?
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="budget-title">
+            <span>
+              Título do orçamento *
+            </span>
+
+            <input id="budget-title" type="text" maxlength="120" placeholder="Ex.: Serviço de manutenção" required />
+          </label>
+
+          <label class="field field--wide" for="budget-subtitle">
+            <span>
+              Subtítulo *
+            </span>
+
+            <input id="budget-subtitle" type="text" maxlength="180" placeholder="Ex.: Retirada, vedação e reinstalação de vaso sanitário" required />
+          </label>
+
+          <label class="field field--wide" for="budget-service-description">
+            <span>
+              Descrição do serviço *
+            </span>
+
+            <textarea id="budget-service-description" rows="5" maxlength="1200" placeholder="Descreva de forma clara o serviço que será realizado." required></textarea>
+
+            <small>
+              Esta é a descrição principal do serviço, seguindo o mesmo conceito utilizado nas Ordens de Serviço.
+            </small>
+          </label>
+
+          <label class="field field--wide" for="budget-objective">
+            <span>
+              Objetivo da proposta *
+            </span>
+
+            <textarea id="budget-objective" rows="5" maxlength="1200" placeholder="Explique o objetivo da execução e o resultado esperado." required></textarea>
+          </label>
+        </div>
+
+        <!-- =======================================================
+        IMAGEM PRINCIPAL
+        ======================================================== -->
+
+        <div class="budget-image-block">
+          <div class="budget-image-block__heading">
+            <div>
+              <span class="field-label">
+                Imagem principal
+              </span>
+
+              <p>
+                Essa imagem será usada na apresentação visual do orçamento.
+              </p>
+            </div>
+
+            <span id="budget-image-counter" class="budget-image-counter">
+              0 / 1
+            </span>
+          </div>
+
+          <label class="budget-image-upload" for="budget-image">
+            <input id="budget-image" type="file" accept="image/jpeg,image/png,image/webp" />
+
+            <span class="budget-image-upload__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+
+                <circle cx="8.5" cy="10" r="1.5"></circle>
+
+                <path d="m5 18 4-4 3 3 2-2 5 5"></path>
+              </svg>
+            </span>
+
+            <span class="budget-image-upload__copy">
+              <strong>
+                Adicionar imagem
+              </strong>
+
+              <small>
+                JPG, PNG ou WebP — máximo de 10 MB.
+              </small>
+            </span>
+          </label>
+
+          <div id="budget-image-preview" class="budget-image-preview" hidden>
+            <img id="budget-image-preview-image" src="" alt="Pré-visualização da imagem do orçamento" />
+
+            <div class="budget-image-preview__actions">
+              <span id="budget-image-name">
+                Imagem selecionada
+              </span>
+
+              <button id="remove-budget-image" type="button">
+                Remover imagem
+              </button>
+            </div>
+          </div>
+
+          <p id="budget-image-error" class="field-error" hidden>
+            Não foi possível preparar a imagem selecionada.
+          </p>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      04 - SERVIÇOS INCLUSOS
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="services-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            4
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Serviços inclusos
+            </p>
+
+            <h2 id="services-title">
+              O que está incluído no orçamento?
+            </h2>
+          </div>
+        </div>
+
+        <div class="budget-services">
+          <div id="budget-services-list" class="budget-services__list">
+            <div class="budget-service-item" data-service-item>
+              <span class="budget-service-item__number">
+                1
+              </span>
+
+              <label class="field budget-service-item__field" for="budget-service-1">
+                <span>
+                  Serviço ou etapa *
+                </span>
+
+                <input id="budget-service-1" type="text" maxlength="220" placeholder="Ex.: Retirada do equipamento existente" data-service-input required />
+              </label>
+
+              <button type="button" class="budget-service-item__remove" data-remove-service aria-label="Remover serviço" title="Remover serviço" disabled>
+                <svg viewBox="0 0 24 24">
+                  <path d="M6 6l12 12M18 6 6 18"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button id="add-budget-service" class="secondary-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+
+            <span>
+              Adicionar serviço
+            </span>
+          </button>
+        </div>
+
+        <label class="field field--wide budget-material-note" for="budget-materials-note">
+          <span>
+            Materiais e fornecimento
+          </span>
+
+          <textarea id="budget-materials-note" rows="4" maxlength="700" placeholder="Ex.: Todos os materiais necessários para a execução estão inclusos."></textarea>
+        </label>
+      </section>
+
+      <!-- =========================================================
+      05 - INVESTIMENTO
+      ========================================================== -->
+
+      <section class="form-card form-card--investment" aria-labelledby="investment-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            5
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Investimento
+            </p>
+
+            <h2 id="investment-title">
+              Qual será o valor da proposta?
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--value" for="budget-value">
+            <span>
+              Valor do serviço *
+            </span>
+
+            <input id="budget-value" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required />
+          </label>
+
+          <label class="field" for="budget-discount">
+            <span>
+              Desconto
+            </span>
+
+            <input id="budget-discount" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" />
+          </label>
+
+          <label class="field field--wide" for="budget-discount-description">
+            <span>
+              Descrição do desconto
+            </span>
+
+            <input id="budget-discount-description" type="text" maxlength="180" placeholder="Ex.: Benefício especial concedido ao condomínio" />
+          </label>
+        </div>
+
+        <div class="budget-investment-summary">
+          <div>
+            <span>
+              Valor do serviço
+            </span>
+
+            <strong id="investment-service-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Desconto
+            </span>
+
+            <strong id="investment-discount-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div class="budget-investment-summary__final">
+            <span>
+              Valor final
+            </span>
+
+            <strong id="investment-final-value">
+              R$ 0,00
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      06 - CONDIÇÕES GERAIS
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="conditions-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            6
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Condições gerais
+            </p>
+
+            <h2 id="conditions-title">
+              Informações importantes da execução
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="budget-general-conditions">
+            <span>
+              Condições gerais *
+            </span>
+
+            <textarea id="budget-general-conditions" rows="8" maxlength="2400" required>O serviço será executado por profissionais qualificados, seguindo as normas técnicas e de segurança.
+
+Qualquer interferência identificada durante a execução deverá ser comunicada ao responsável.
+
+Os materiais utilizados seguirão as especificações técnicas adequadas ao serviço.</textarea>
+
+            <small>
+              Cada parágrafo poderá ser apresentado como um item no documento final.
+            </small>
+          </label>
+
+          <label class="field" for="budget-warranty">
+            <span>
+              Garantia do serviço
+            </span>
+
+            <input id="budget-warranty" type="text" maxlength="120" placeholder="Ex.: 90 dias para mão de obra" />
+          </label>
+
+          <label class="field" for="budget-execution-time">
+            <span>
+              Prazo estimado de execução
+            </span>
+
+            <input id="budget-execution-time" type="text" maxlength="120" placeholder="Ex.: 1 dia útil" />
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      07 - PAGAMENTO
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="payment-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            7
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Condições de pagamento
+            </p>
+
+            <h2 id="payment-title">
+              Como o cliente poderá pagar?
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="budget-payment-conditions">
+            <span>
+              Condições de pagamento *
+            </span>
+
+            <textarea id="budget-payment-conditions" rows="5" maxlength="1200" placeholder="Ex.: Pagamento à vista via PIX, transferência bancária ou cartão de crédito." required></textarea>
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      08 - OBSERVAÇÕES
+      ========================================================== -->
+
+      <section class="form-card" aria-labelledby="notes-title">
+        <div class="form-card__heading">
+          <span class="form-card__number">
+            8
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Complementos
+            </p>
+
+            <h2 id="notes-title">
+              Deseja registrar alguma observação?
+            </h2>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field field--wide" for="budget-public-note">
+            <span>
+              Observação da proposta
+            </span>
+
+            <textarea id="budget-public-note" rows="4" maxlength="1000" placeholder="Esta informação poderá aparecer no documento apresentado ao cliente."></textarea>
+          </label>
+
+          <label class="field field--wide" for="budget-internal-note">
+            <span>
+              Observação interna
+            </span>
+
+            <textarea id="budget-internal-note" rows="4" maxlength="1000" placeholder="Informação administrativa que não será exibida no PDF."></textarea>
+          </label>
+        </div>
+      </section>
+
+      <!-- =========================================================
+      RESUMO
+      ========================================================== -->
+
+      <section class="budget-summary" aria-labelledby="summary-title">
+        <div class="budget-summary__heading">
+          <div>
+            <p class="eyebrow">
+              Resumo
+            </p>
+
+            <h2 id="summary-title">
+              Revise antes de salvar
+            </h2>
+          </div>
+
+          <span id="summary-status" class="budget-summary__status">
+            Rascunho
+          </span>
+        </div>
+
+        <dl class="budget-summary__grid">
+          <div>
+            <dt>
+              Cliente
+            </dt>
+
+            <dd id="summary-client">
+              Não informado
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Condomínio
+            </dt>
+
+            <dd id="summary-condominium">
+              Não selecionado
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Proposta
+            </dt>
+
+            <dd id="summary-code">
+              Será gerada ao salvar
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Validade
+            </dt>
+
+            <dd id="summary-validity">
+              15 dias
+            </dd>
+          </div>
+
+          <div class="budget-summary__wide">
+            <dt>
+              Serviço
+            </dt>
+
+            <dd id="summary-service">
+              Não informado
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Valor original
+            </dt>
+
+            <dd id="summary-original-value">
+              R$ 0,00
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Desconto
+            </dt>
+
+            <dd id="summary-discount">
+              R$ 0,00
+            </dd>
+          </div>
+
+          <div class="budget-summary__final">
+            <dt>
+              Valor final
+            </dt>
+
+            <dd id="summary-final-value">
+              R$ 0,00
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- =========================================================
+      AÇÕES
+      ========================================================== -->
+
+      <div class="budget-actions">
+        <button id="save-budget-draft" class="secondary-button" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 4h12l2 2v14H5z"></path>
+
+            <path d="M8 4v6h8V4"></path>
+          </svg>
+
+          <span>
+            Salvar rascunho
+          </span>
+        </button>
+
+        <button id="save-budget" class="save-button" type="submit">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m5 12 4 4L19 6"></path>
+          </svg>
+
+          <span>
+            Salvar orçamento
+          </span>
+        </button>
+      </div>
+    </form>
+
+    <!-- =========================================================
+    SUCESSO
+    ========================================================== -->
+
+    <section id="budget-success" class="success-card" hidden aria-live="polite">
+      <span class="success-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6"></path>
+        </svg>
+      </span>
+
+      <p class="eyebrow">
+        Orçamento registrado
+      </p>
+
+      <h2 id="success-budget-code">
+        ORC-0000
+      </h2>
+
+      <p>
+        A proposta foi salva e já pode ser revisada,
+        editada ou transformada em documento para apresentação.
+      </p>
+
+      <div class="success-card__actions">
+        <a id="view-budget-link" href="orcamentos.html?perfil=admin">
+          Ver orçamento
+        </a>
+
+        <button id="new-budget-button" type="button">
+          Criar outro orçamento
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <div id="budget-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="js/novo-orcamento.js?v=1.0.0"></script>
+</body>
+
+</html>

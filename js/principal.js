@@ -93,6 +93,12 @@ const profileConfig = {
         icon: "list",
       },
       {
+        title: "Orçamentos",
+        description: "Crie, acompanhe e compartilhe propostas comerciais.",
+        target: "orcamentos.html?perfil=admin",
+        icon: "budget",
+      },
+      {
         title: "Vistorias",
         description: "Acompanhe vistorias técnicas e não conformidades.",
         target: "vistorias.html?perfil=admin",
@@ -261,6 +267,14 @@ const icons = {
       <path d="M8 11h4"></path>
       <path d="M8 15h4"></path>
       <path d="M2 21h20"></path>
+    </svg>
+  `,
+
+  budget: `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>
+      <path d="M15 3v5h4"></path>
+      <path d="M8 12h8M8 16h5"></path>
     </svg>
   `,
 

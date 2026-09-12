@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Detalhes do orçamento comercial da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Detalhes do Orçamento | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css?v=1.0.1" />
+
+  <link rel="stylesheet" href="css/detalhes-orcamento.css?v=1.0.0" />
+</head>
+
+<body data-page="detalhes-orcamento" data-allowed-roles="admin">
+  <main class="budget-detail-shell">
+    <!-- =========================================================
+    CABEÇALHO
+    ========================================================== -->
+
+    <header class="budget-detail-header">
+      <a href="orcamentos.html?perfil=admin" class="header-button" aria-label="Voltar para orçamentos" title="Voltar">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </a>
+
+      <div class="budget-detail-header__copy">
+        <span>
+          Comercial
+        </span>
+
+        <strong>
+          Detalhes do Orçamento
+        </strong>
+      </div>
+
+      <a href="principal.html" class="brand-mark" aria-label="Voltar para a tela principal" title="Tela principal">
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+      </a>
+    </header>
+
+    <!-- =========================================================
+    CARREGAMENTO
+    ========================================================== -->
+
+    <section id="budget-loading" class="budget-state-card" aria-live="polite">
+      <span class="budget-state-card__loader"></span>
+
+      <p class="eyebrow">
+        Carregando
+      </p>
+
+      <h1>
+        Consultando orçamento
+      </h1>
+
+      <p>
+        Aguarde enquanto as informações são carregadas.
+      </p>
+    </section>
+
+    <!-- =========================================================
+    ERRO / NÃO ENCONTRADO
+    ========================================================== -->
+
+    <section id="budget-not-found" class="budget-state-card" hidden>
+      <span class="budget-state-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+
+          <path d="M12 8v5"></path>
+
+          <path d="M12 17h.01"></path>
+        </svg>
+      </span>
+
+      <p class="eyebrow">
+        Orçamento indisponível
+      </p>
+
+      <h1>
+        Não foi possível localizar a proposta
+      </h1>
+
+      <p id="budget-not-found-message">
+        Confira se o orçamento ainda existe ou volte para a listagem.
+      </p>
+
+      <a href="orcamentos.html?perfil=admin" class="state-back-button">
+        Voltar para orçamentos
+      </a>
+    </section>
+
+    <!-- =========================================================
+    CONTEÚDO
+    ========================================================== -->
+
+    <div id="budget-detail-content" hidden>
+      <!-- =======================================================
+      HERO
+      ======================================================== -->
+
+      <section class="budget-detail-hero">
+        <div class="budget-detail-hero__top">
+          <div>
+            <p class="eyebrow">
+              Proposta comercial
+            </p>
+
+            <h1 id="budget-detail-code">
+              ORC-0000
+            </h1>
+          </div>
+
+          <span id="budget-detail-status" class="budget-status budget-status--draft">
+            Rascunho
+          </span>
+        </div>
+
+        <h2 id="budget-detail-title">
+          Orçamento
+        </h2>
+
+        <p id="budget-detail-subtitle">
+          Informações da proposta comercial.
+        </p>
+
+        <div class="budget-detail-hero__meta">
+          <span>
+            <strong>
+              Data
+            </strong>
+
+            <small id="budget-detail-date">
+              —
+            </small>
+          </span>
+
+          <span>
+            <strong>
+              Validade
+            </strong>
+
+            <small id="budget-detail-validity">
+              —
+            </small>
+          </span>
+
+          <span>
+            <strong>
+              Valor final
+            </strong>
+
+            <small id="budget-detail-total">
+              R$ 0,00
+            </small>
+          </span>
+        </div>
+      </section>
+
+      <!-- =======================================================
+      AÇÕES PRINCIPAIS
+      ======================================================== -->
+
+      <section class="budget-main-actions">
+        <button id="edit-budget-button" type="button" class="action-button action-button--secondary">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 20h4l11-11-4-4L4 16z"></path>
+
+            <path d="m13 7 4 4"></path>
+          </svg>
+
+          <span>
+            Editar orçamento
+          </span>
+        </button>
+
+        <button id="duplicate-budget-button" type="button" class="action-button action-button--secondary">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+
+            <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+          </svg>
+
+          <span>
+            Duplicar
+          </span>
+        </button>
+
+        <button id="generate-budget-pdf-button" type="button" class="action-button action-button--primary">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 3h9l3 3v15H6z"></path>
+
+            <path d="M9 13h6"></path>
+
+            <path d="M9 17h4"></path>
+          </svg>
+
+          <span>
+            Gerar PDF
+          </span>
+        </button>
+
+        <button id="share-budget-button" type="button" class="action-button action-button--primary">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="18" cy="5" r="2"></circle>
+
+            <circle cx="6" cy="12" r="2"></circle>
+
+            <circle cx="18" cy="19" r="2"></circle>
+
+            <path d="m8 11 8-5"></path>
+
+            <path d="m8 13 8 5"></path>
+          </svg>
+
+          <span>
+            Compartilhar PDF
+          </span>
+        </button>
+
+        <button id="generate-budget-image-button" type="button" class="action-button action-button--image">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+
+            <circle cx="8.5" cy="9" r="1.5"></circle>
+
+            <path d="m21 15-5-5L5 20"></path>
+          </svg>
+
+          <span>
+            Gerar PNG
+          </span>
+        </button>
+      </section>
+
+      <!-- =======================================================
+      IMAGEM PRINCIPAL
+      ======================================================== -->
+
+      <section id="budget-cover-card" class="detail-card budget-cover-card" hidden>
+        <div class="detail-card__heading">
+          <div>
+            <p class="eyebrow">
+              Apresentação
+            </p>
+
+            <h2>
+              Imagem principal
+            </h2>
+          </div>
+        </div>
+
+        <div class="budget-cover-card__image">
+          <img id="budget-cover-image" src="" alt="Imagem principal do orçamento" />
+        </div>
+      </section>
+
+      <!-- =======================================================
+      CLIENTE E LOCAL
+      ======================================================== -->
+
+      <section class="detail-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"></circle>
+
+              <path d="M4 21c1-5 4-7 8-7s7 2 8 7"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Identificação
+            </p>
+
+            <h2>
+              Cliente e local
+            </h2>
+          </div>
+        </div>
+
+        <dl class="detail-grid">
+          <div>
+            <dt>
+              Cliente
+            </dt>
+
+            <dd id="budget-client-name">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Telefone
+            </dt>
+
+            <dd id="budget-client-phone">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              E-mail
+            </dt>
+
+            <dd id="budget-client-email">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Condomínio
+            </dt>
+
+            <dd id="budget-condominium-name">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              CNPJ
+            </dt>
+
+            <dd id="budget-condominium-cnpj">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Unidade / apartamento
+            </dt>
+
+            <dd id="budget-condominium-unit">
+              —
+            </dd>
+          </div>
+
+          <div class="detail-grid__wide">
+            <dt>
+              Endereço
+            </dt>
+
+            <dd id="budget-address">
+              —
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- =======================================================
+      PROPOSTA
+      ======================================================== -->
+
+      <section class="detail-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 4h14v16H5z"></path>
+
+              <path d="M8 8h8"></path>
+
+              <path d="M8 12h8"></path>
+
+              <path d="M8 16h5"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Proposta
+            </p>
+
+            <h2>
+              Apresentação do serviço
+            </h2>
+          </div>
+        </div>
+
+        <div class="detail-text-block">
+          <span>
+            Título
+          </span>
+
+          <strong id="budget-proposal-title">
+            —
+          </strong>
+        </div>
+
+        <div class="detail-text-block">
+          <span>
+            Subtítulo
+          </span>
+
+          <p id="budget-proposal-subtitle">
+            —
+          </p>
+        </div>
+
+        <div class="detail-text-block">
+          <span>
+            Descrição do serviço
+          </span>
+
+          <p id="budget-service-description">
+            —
+          </p>
+        </div>
+
+        <div class="detail-text-block">
+          <span>
+            Objetivo da proposta
+          </span>
+
+          <p id="budget-objective">
+            —
+          </p>
+        </div>
+      </section>
+
+      <!-- =======================================================
+      SERVIÇOS INCLUSOS
+      ======================================================== -->
+
+      <section class="detail-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12 4 4L19 6"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Escopo
+            </p>
+
+            <h2>
+              Serviços inclusos
+            </h2>
+          </div>
+        </div>
+
+        <ol id="budget-services-list" class="budget-services-list"></ol>
+
+        <div id="budget-materials-container" class="detail-note" hidden>
+          <span>
+            Materiais e fornecimento
+          </span>
+
+          <p id="budget-materials-note">
+            —
+          </p>
+        </div>
+      </section>
+
+      <!-- =======================================================
+      INVESTIMENTO
+      ======================================================== -->
+
+      <section class="detail-card detail-card--investment">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+
+              <path d="M15 8h-4a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4H9"></path>
+
+              <path d="M12 6v12"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Investimento
+            </p>
+
+            <h2>
+              Valores da proposta
+            </h2>
+          </div>
+        </div>
+
+        <div class="investment-grid">
+          <div>
+            <span>
+              Valor do serviço
+            </span>
+
+            <strong id="budget-original-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Desconto
+            </span>
+
+            <strong id="budget-discount-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div id="budget-discount-description-container" hidden>
+            <span>
+              Benefício
+            </span>
+
+            <strong id="budget-discount-description">
+              —
+            </strong>
+          </div>
+
+          <div class="investment-grid__final">
+            <span>
+              Valor final
+            </span>
+
+            <strong id="budget-final-value">
+              R$ 0,00
+            </strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- =======================================================
+      CONDIÇÕES
+      ======================================================== -->
+
+      <section class="detail-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+
+              <path d="M12 8v4l3 2"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Condições gerais
+            </p>
+
+            <h2>
+              Execução do serviço
+            </h2>
+          </div>
+        </div>
+
+        <ul id="budget-general-conditions" class="conditions-list"></ul>
+
+        <dl class="detail-grid detail-grid--spaced">
+          <div>
+            <dt>
+              Garantia
+            </dt>
+
+            <dd id="budget-warranty">
+              Não informada
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              Prazo estimado
+            </dt>
+
+            <dd id="budget-execution-time">
+              Não informado
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- =======================================================
+      PAGAMENTO
+      ======================================================== -->
+
+      <section class="detail-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+
+              <path d="M3 10h18"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Pagamento
+            </p>
+
+            <h2>
+              Condições de pagamento
+            </h2>
+          </div>
+        </div>
+
+        <p id="budget-payment-conditions" class="large-detail-text">
+          —
+        </p>
+      </section>
+
+      <!-- =======================================================
+      OBSERVAÇÃO PÚBLICA
+      ======================================================== -->
+
+      <section id="budget-public-note-card" class="detail-card" hidden>
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v12H8l-4 4z"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Complemento
+            </p>
+
+            <h2>
+              Observação da proposta
+            </h2>
+          </div>
+        </div>
+
+        <p id="budget-public-note" class="large-detail-text">
+          —
+        </p>
+      </section>
+
+      <!-- =======================================================
+      OBSERVAÇÃO INTERNA
+      ======================================================== -->
+
+      <section id="budget-internal-note-card" class="detail-card detail-card--internal" hidden>
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 4 7v5c0 5 3 8 8 9 5-1 8-4 8-9V7z"></path>
+
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Uso administrativo
+            </p>
+
+            <h2>
+              Observação interna
+            </h2>
+          </div>
+        </div>
+
+        <p id="budget-internal-note" class="large-detail-text">
+          —
+        </p>
+      </section>
+
+      <!-- =======================================================
+      APROVAÇÃO
+      ======================================================== -->
+
+      <section class="detail-card approval-card">
+        <div class="detail-card__heading">
+          <span class="detail-card__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12l4 4L19 6"></path>
+            </svg>
+          </span>
+
+          <div>
+            <p class="eyebrow">
+              Aprovação
+            </p>
+
+            <h2>
+              Situação da proposta
+            </h2>
+          </div>
+        </div>
+
+        <div class="approval-card__status">
+          <div>
+            <span>
+              Status atual
+            </span>
+
+            <strong id="approval-current-status">
+              Rascunho
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Atualizado em
+            </span>
+
+            <strong id="approval-updated-at">
+              —
+            </strong>
+          </div>
+        </div>
+
+        <div class="approval-actions">
+          <button id="mark-budget-sent-button" type="button" class="approval-button approval-button--sent">
+            Marcar como enviado
+          </button>
+
+          <button id="approve-budget-button" type="button" class="approval-button approval-button--approve">
+            Aprovar orçamento
+          </button>
+
+          <button id="reject-budget-button" type="button" class="approval-button approval-button--reject">
+            Recusar orçamento
+          </button>
+
+          <button id="expire-budget-button" type="button" class="approval-button approval-button--expire">
+            Marcar como expirado
+          </button>
+        </div>
+      </section>
+
+      <!-- =======================================================
+      CONVERSÃO FUTURA
+      ======================================================== -->
+
+      <section id="budget-conversion-card" class="conversion-card" hidden>
+        <div>
+          <p class="eyebrow">
+            Próxima etapa
+          </p>
+
+          <h2>
+            Orçamento aprovado
+          </h2>
+
+          <p>
+            Esta proposta está pronta para ser transformada em uma
+            Ordem de Serviço.
+          </p>
+        </div>
+
+        <button id="convert-budget-order-button" type="button">
+          Converter em OS
+        </button>
+      </section>
+
+      <!-- =======================================================
+      REGISTRO
+      ======================================================== -->
+
+      <section class="budget-record">
+        <span>
+          Criado por
+        </span>
+
+        <strong id="budget-created-by">
+          —
+        </strong>
+
+        <small id="budget-created-at">
+          —
+        </small>
+      </section>
+    </div>
+  </main>
+
+  <!-- =========================================================
+  MODAL DE CONFIRMAÇÃO
+  ========================================================== -->
+
+  <div id="budget-confirm-modal" class="budget-modal" hidden>
+    <div class="budget-modal__backdrop" data-close-budget-modal></div>
+
+    <section class="budget-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="budget-modal-title">
+      <span class="budget-modal__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+
+          <path d="M12 8v5"></path>
+
+          <path d="M12 17h.01"></path>
+        </svg>
+      </span>
+
+      <p class="eyebrow">
+        Confirmação
+      </p>
+
+      <h2 id="budget-modal-title">
+        Alterar status?
+      </h2>
+
+      <p id="budget-modal-message">
+        Confirme a alteração deste orçamento.
+      </p>
+
+      <div class="budget-modal__actions">
+        <button id="cancel-budget-modal" type="button">
+          Cancelar
+        </button>
+
+        <button id="confirm-budget-modal" type="button">
+          Confirmar
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- =========================================================
+  FEEDBACK
+  ========================================================== -->
+
+  <div id="budget-detail-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+  <!-- =========================================================
+  ARTE DO ORÇAMENTO PARA EXPORTAÇÃO EM PNG
+  ========================================================== -->
+
+  <div id="budget-image-export-stage" aria-hidden="true">
+    <article id="budget-image-export" class="budget-image-export">
+      <header class="export-hero">
+        <div class="export-hero__top">
+          <div class="export-hero__brand">
+            <span class="export-hero__ornament" aria-hidden="true"></span>
+
+            <img id="export-logo" src="assets/logo.salvateck.png" alt="" />
+          </div>
+
+          <div class="export-hero__content">
+            <strong>
+              ORÇAMENTO
+            </strong>
+
+            <h2 id="export-budget-title">
+              Serviço de manutenção
+            </h2>
+
+            <p id="export-budget-subtitle">
+              Proposta comercial Salvateck
+            </p>
+          </div>
+        </div>
+
+        <div class="export-hero__image">
+          <img id="export-cover-image" src="" alt="" />
+        </div>
+      </header>
+
+      <section class="export-card export-card--client">
+        <div class="export-section-title">
+          <span>01</span>
+
+          <strong>
+            Cliente
+          </strong>
+        </div>
+
+        <h3 id="export-condominium-name">
+          —
+        </h3>
+
+        <p id="export-client-name">
+          —
+        </p>
+
+        <p id="export-address">
+          —
+        </p>
+
+        <dl class="export-meta-grid">
+          <div>
+            <dt>
+              Unidade
+            </dt>
+
+            <dd id="export-unit">
+              —
+            </dd>
+          </div>
+
+          <div>
+            <dt>
+              CNPJ
+            </dt>
+
+            <dd id="export-cnpj">
+              —
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="export-dual-grid">
+        <article class="export-card">
+          <div class="export-section-title">
+            <span>02</span>
+
+            <strong>
+              Proposta
+            </strong>
+          </div>
+
+          <dl class="export-info-stack">
+            <div>
+              <dt>
+                Nº
+              </dt>
+
+              <dd id="export-budget-code">
+                —
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                Data
+              </dt>
+
+              <dd id="export-budget-date">
+                —
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                Validade da proposta
+              </dt>
+
+              <dd id="export-budget-validity">
+                —
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="export-card">
+          <div class="export-section-title">
+            <span>03</span>
+
+            <strong>
+              Objetivo
+            </strong>
+          </div>
+
+          <p id="export-budget-objective" class="export-text-block">
+            —
+          </p>
+        </article>
+      </section>
+
+      <section class="export-card">
+        <div class="export-section-title">
+          <span>04</span>
+
+          <strong>
+            Serviços inclusos
+          </strong>
+        </div>
+
+        <ul id="export-services-list" class="export-services-list"></ul>
+
+        <div class="export-materials">
+          <span class="export-materials__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12 4 4L19 6"></path>
+            </svg>
+          </span>
+
+          <p id="export-materials-text">
+            —
+          </p>
+        </div>
+      </section>
+
+      <section class="export-investment-mobile">
+        <div class="export-investment-mobile__heading">
+          <span>05</span>
+
+          <strong>
+            Investimento
+          </strong>
+        </div>
+
+        <div class="export-investment-mobile__body">
+          <div class="export-investment-mobile__base">
+            <span>
+              Valor do serviço
+            </span>
+
+            <strong id="export-service-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div class="export-investment-mobile__discount">
+            <small id="export-discount-description">
+              Desconto
+            </small>
+
+            <strong id="export-discount-value">
+              - R$ 0,00
+            </strong>
+          </div>
+
+          <div class="export-investment-mobile__final">
+            <span>
+              Valor final com desconto
+            </span>
+
+            <strong id="export-final-value">
+              R$ 0,00
+            </strong>
+
+            <small>
+              Valor especial para o condomínio
+            </small>
+          </div>
+        </div>
+
+        <div class="export-investment-mobile__thanks">
+          Agradecemos a confiança!
+        </div>
+      </section>
+
+      <section class="export-card">
+        <div class="export-section-title">
+          <span>06</span>
+
+          <strong>
+            Condições gerais
+          </strong>
+        </div>
+
+        <ul id="export-general-conditions" class="export-conditions-list"></ul>
+      </section>
+
+      <section class="export-dual-grid export-dual-grid--bottom">
+        <article class="export-card export-payment-card">
+          <h3>
+            Condições de pagamento
+          </h3>
+
+          <p id="export-payment-conditions" class="export-text-block">
+            —
+          </p>
+        </article>
+
+        <article class="export-card export-approval-card">
+          <h3>
+            Aprovação do orçamento
+          </h3>
+
+          <div class="export-approval-card__line">
+            <span>
+              Nome:
+            </span>
+          </div>
+
+          <div class="export-approval-card__line">
+            <span>
+              Cargo:
+            </span>
+          </div>
+
+          <div class="export-approval-card__line">
+            <span>
+              Data:
+            </span>
+          </div>
+
+          <div class="export-approval-card__line">
+            <span>
+              Assinatura:
+            </span>
+          </div>
+        </article>
+      </section>
+
+      <footer class="export-footer">
+        <div class="export-footer__brand">
+          <img src="assets/logo.salvateck.png" alt="" />
+        </div>
+
+        <div class="export-footer__contact">
+          <strong>
+            Fale conosco
+          </strong>
+
+          <span>
+            (44) 99934-3808
+          </span>
+
+          <span>
+            contato@salvateckgroup.com.br
+          </span>
+
+          <span>
+            www.salvateckgroup.com.br
+          </span>
+        </div>
+
+        <div class="export-footer__about">
+          <strong>
+            Quem somos
+          </strong>
+
+          <p>
+            A Salvateck Group oferece soluções prediais com qualidade,
+            segurança e inovação para condomínios, empresas e residências.
+          </p>
+        </div>
+      </footer>
+
+      <div class="export-footer-message">
+        Segurança e qualidade garantindo a valorização do seu patrimônio.
+      </div>
+    </article>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script type="module" src="js/detalhes-orcamento.js?v=1.0.2"></script>
+</body>
+
+</html>
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script type="module" src="js/detalhes-orcamento.js?v=1.0.2"></script>
+</body>
+
+</html>

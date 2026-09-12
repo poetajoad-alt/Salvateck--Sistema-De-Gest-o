@@ -4330,7 +4330,6 @@ function setFinalPdfBusy(isBusy) {
   generatingFinalPdf = isBusy;
 
   const hasDocument = Boolean(currentRequest?.documentoFinal);
-  const isQuickOrder = currentRequest?.origem?.tipo === "os-rapida";
 
   viewFinalDocumentButton.disabled = isBusy || !hasDocument;
 
@@ -4338,9 +4337,7 @@ function setFinalPdfBusy(isBusy) {
 
   viewFinalDocumentButton.textContent = isBusy
     ? "Gerando PDF..."
-    : isQuickOrder
-      ? "Baixar PDF"
-      : "Visualizar documento";
+    : "Visualizar documento";
 
   downloadFinalDocumentButton.textContent = isBusy
     ? "Preparando PDF..."
@@ -4378,63 +4375,6 @@ async function viewFinalDocumentPdf() {
     return;
   }
 
-  const isQuickOrder = currentRequest?.origem?.tipo === "os-rapida";
-
-  if (isQuickOrder) {
-    setFinalPdfBusy(true);
-
-    try {
-      const documentData = getFinalPdfData();
-      const pdf = await createFinalDocumentPdf();
-      const fileName = getFinalPdfFileName(documentData);
-
-      const pdfArrayBuffer = pdf.output("arraybuffer");
-
-      const pdfFile = new File([pdfArrayBuffer], fileName, {
-        type: "application/pdf",
-        lastModified: Date.now(),
-      });
-
-      const shareData = {
-        files: [pdfFile],
-      };
-
-      const canShareFile =
-        typeof navigator.share === "function" &&
-        (typeof navigator.canShare !== "function" ||
-          navigator.canShare(shareData));
-
-      if (canShareFile) {
-        try {
-          await navigator.share(shareData);
-
-          showFeedback("PDF da OS Rápida preparado com sucesso.");
-
-          return;
-        } catch (error) {
-          if (error?.name === "AbortError") {
-            return;
-          }
-
-          console.warn(
-            "[PDF] Não foi possível abrir as opções de salvamento da OS Rápida:",
-            error,
-          );
-        }
-      }
-
-      pdf.save(fileName);
-
-      showFeedback("PDF da OS Rápida baixado com sucesso.");
-    } catch (error) {
-      handleFinalPdfError(error);
-    } finally {
-      setFinalPdfBusy(false);
-    }
-
-    return;
-  }
-
   const previewWindow = window.open("", "_blank");
 
   if (!previewWindow) {
@@ -4450,7 +4390,68 @@ async function viewFinalDocumentPdf() {
   setFinalPdfBusy(true);
 
   try {
+    const documentData = getFinalPdfData();
     const pdf = await createFinalDocumentPdf();
+    const fileName = getFinalPdfFileName(documentData);
+    const isQuickOrder = currentRequest?.origem?.tipo === "os-rapida";
+
+    if (isQuickOrder) {
+      const pdfDataUrl = pdf.output("datauristring");
+
+      previewWindow.document.open();
+
+      previewWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="UTF-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1.0"
+            />
+            <style>
+              html,
+              body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                overflow: hidden;
+                background: #202124;
+              }
+
+              iframe {
+                width: 100%;
+                height: 100%;
+                display: block;
+                border: 0;
+              }
+            </style>
+          </head>
+
+          <body>
+            <iframe
+              id="final-pdf-preview"
+              title="Documento final da Ordem de Serviço"
+            ></iframe>
+          </body>
+        </html>
+      `);
+
+      previewWindow.document.close();
+
+      previewWindow.document.title = fileName;
+
+      const previewFrame =
+        previewWindow.document.getElementById("final-pdf-preview");
+
+      if (!previewFrame) {
+        throw new Error("PDF_PREVIEW_FRAME_NOT_FOUND");
+      }
+
+      previewFrame.src = pdfDataUrl;
+
+      return;
+    }
 
     const pdfBlob = pdf.output("blob");
 

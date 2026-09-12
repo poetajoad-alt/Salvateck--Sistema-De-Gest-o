@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="auth-checking">
+
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta name="description" content="Gestão de orçamentos e propostas comerciais da Salvateck" />
+
+  <meta name="theme-color" content="#0D3861" />
+
+  <title>Orçamentos | Salvateck</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/base.css?v=1.0.1" />
+
+  <link rel="stylesheet" href="css/orcamentos.css?v=1.0.0" />
+</head>
+
+<body data-page="orcamentos" data-allowed-roles="admin">
+  <main class="budgets-shell">
+
+    <!-- =========================================================
+    CABEÇALHO
+    ========================================================== -->
+
+    <header class="budgets-header">
+      <a href="principal.html" class="header-button" aria-label="Voltar para o painel administrativo" title="Voltar">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </a>
+
+      <div class="budgets-header__copy">
+        <span>
+          Comercial
+        </span>
+
+        <strong>
+          Orçamentos
+        </strong>
+      </div>
+
+      <a href="principal.html" class="brand-mark" aria-label="Voltar para a tela principal" title="Tela principal">
+        <img src="assets/logo.salvateck.png" alt="Logo da Salvateck" />
+      </a>
+    </header>
+
+    <!-- =========================================================
+    INTRODUÇÃO
+    ========================================================== -->
+
+    <section class="budgets-intro">
+      <div class="budgets-intro__copy">
+        <p class="eyebrow">
+          Gestão comercial
+        </p>
+
+        <h1>
+          Propostas e orçamentos
+        </h1>
+
+        <p>
+          Crie novas propostas, acompanhe aprovações e consulte
+          todo o histórico comercial da Salvateck.
+        </p>
+      </div>
+
+      <a href="novo-orcamento.html?perfil=admin" class="new-budget-button">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        <span>
+          Novo orçamento
+        </span>
+      </a>
+    </section>
+
+    <!-- =========================================================
+    RESUMO
+    ========================================================== -->
+
+    <section class="budgets-summary" aria-label="Resumo dos orçamentos">
+      <button type="button" class="budget-summary-card is-active" data-budget-status="todos" aria-pressed="true">
+        <span class="budget-summary-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 3h11l3 3v15H5z"></path>
+            <path d="M16 3v4h4"></path>
+            <path d="M8 11h8"></path>
+            <path d="M8 15h6"></path>
+          </svg>
+        </span>
+
+        <span class="budget-summary-card__copy">
+          <small>
+            Todos
+          </small>
+
+          <strong id="budget-summary-total">
+            0
+          </strong>
+        </span>
+      </button>
+
+      <button type="button" class="budget-summary-card" data-budget-status="rascunho" aria-pressed="false">
+        <span class="budget-summary-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 3h11l3 3v15H5z"></path>
+            <path d="M16 3v4h4"></path>
+            <path d="M8 11h8"></path>
+            <path d="M8 15h5"></path>
+          </svg>
+        </span>
+
+        <span class="budget-summary-card__copy">
+          <small>
+            Rascunhos
+          </small>
+
+          <strong id="budget-summary-draft">
+            0
+          </strong>
+        </span>
+      </button>
+
+      <button type="button" class="budget-summary-card" data-budget-status="enviado" aria-pressed="false">
+        <span class="budget-summary-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m3 11 18-8-8 18-2-7z"></path>
+            <path d="m11 14 4-4"></path>
+          </svg>
+        </span>
+
+        <span class="budget-summary-card__copy">
+          <small>
+            Enviados
+          </small>
+
+          <strong id="budget-summary-sent">
+            0
+          </strong>
+        </span>
+      </button>
+
+      <button type="button" class="budget-summary-card" data-budget-status="aprovado" aria-pressed="false">
+        <span class="budget-summary-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m8 12 3 3 5-6"></path>
+          </svg>
+        </span>
+
+        <span class="budget-summary-card__copy">
+          <small>
+            Aprovados
+          </small>
+
+          <strong id="budget-summary-approved">
+            0
+          </strong>
+        </span>
+      </button>
+
+      <button type="button" class="budget-summary-card" data-budget-status="encerrado" aria-pressed="false">
+        <span class="budget-summary-card__icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m9 9 6 6"></path>
+            <path d="m15 9-6 6"></path>
+          </svg>
+        </span>
+
+        <span class="budget-summary-card__copy">
+          <small>
+            Encerrados
+          </small>
+
+          <strong id="budget-summary-closed">
+            0
+          </strong>
+        </span>
+      </button>
+    </section>
+
+    <!-- =========================================================
+    PESQUISA E FILTROS
+    ========================================================== -->
+
+    <section class="budgets-tools">
+      <label class="budget-search" for="budget-search-input">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+        <input id="budget-search-input" type="search" placeholder="Pesquisar código, cliente, condomínio ou serviço" autocomplete="off" />
+      </label>
+
+      <button id="open-budget-filter" type="button" class="budget-filter-button" aria-expanded="false" aria-controls="budget-filter-panel">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16"></path>
+          <path d="M7 12h10"></path>
+          <path d="M10 18h4"></path>
+        </svg>
+
+        <span>
+          Filtros
+        </span>
+
+        <span id="budget-filter-count" class="budget-filter-button__count" hidden>
+          0
+        </span>
+      </button>
+    </section>
+
+    <!-- =========================================================
+    FILTROS ATIVOS
+    ========================================================== -->
+
+    <div id="budget-active-filters" class="budget-active-filters" aria-label="Filtros ativos" hidden></div>
+
+    <!-- =========================================================
+    PAINEL DE FILTROS
+    ========================================================== -->
+
+    <section id="budget-filter-panel" class="budget-filter-panel" hidden>
+      <div class="budget-filter-panel__header">
+        <div>
+          <p class="eyebrow">
+            Refine a listagem
+          </p>
+
+          <h2>
+            Filtros
+          </h2>
+        </div>
+
+        <button id="close-budget-filter" type="button" class="budget-filter-panel__close" aria-label="Fechar filtros">
+          ×
+        </button>
+      </div>
+
+      <div class="budget-filter-grid">
+
+        <label class="budget-filter-field">
+          <span>
+            Status
+          </span>
+
+          <select id="budget-status-filter">
+            <option value="">
+              Todos os status
+            </option>
+
+            <option value="rascunho">
+              Rascunho
+            </option>
+
+            <option value="enviado">
+              Enviado
+            </option>
+
+            <option value="aprovado">
+              Aprovado
+            </option>
+
+            <option value="recusado">
+              Recusado
+            </option>
+
+            <option value="expirado">
+              Expirado
+            </option>
+          </select>
+        </label>
+
+        <label class="budget-filter-field">
+          <span>
+            Período
+          </span>
+
+          <select id="budget-period-filter">
+            <option value="">
+              Todo o período
+            </option>
+
+            <option value="30">
+              Últimos 30 dias
+            </option>
+
+            <option value="90">
+              Últimos 90 dias
+            </option>
+
+            <option value="180">
+              Últimos 6 meses
+            </option>
+
+            <option value="365">
+              Últimos 12 meses
+            </option>
+          </select>
+        </label>
+
+      </div>
+
+      <div class="budget-filter-panel__actions">
+        <button id="clear-budget-filters" type="button" class="budget-filter-clear">
+          Limpar filtros
+        </button>
+
+        <button id="apply-budget-filters" type="button" class="budget-filter-apply">
+          Aplicar filtros
+        </button>
+      </div>
+    </section>
+
+    <!-- =========================================================
+    CABEÇALHO DA LISTAGEM
+    ========================================================== -->
+
+    <section class="budgets-list-heading">
+      <div>
+        <p class="eyebrow">
+          Histórico comercial
+        </p>
+
+        <h2>
+          Orçamentos cadastrados
+        </h2>
+      </div>
+
+      <span id="budget-results-count">
+        0 propostas
+      </span>
+    </section>
+
+    <!-- =========================================================
+    CARREGAMENTO
+    ========================================================== -->
+
+    <section id="budgets-loading" class="budgets-state-card" aria-live="polite">
+      <span class="budgets-state-card__loader"></span>
+
+      <strong>
+        Carregando orçamentos
+      </strong>
+
+      <p>
+        Aguarde enquanto as propostas comerciais são consultadas.
+      </p>
+    </section>
+
+    <!-- =========================================================
+    ERRO
+    ========================================================== -->
+
+    <section id="budgets-error" class="budgets-state-card" hidden>
+      <span class="budgets-state-card__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 8v5"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      </span>
+
+      <strong>
+        Não foi possível carregar os orçamentos
+      </strong>
+
+      <p id="budgets-error-message">
+        Atualize a página e tente novamente.
+      </p>
+
+      <button id="retry-budgets-button" type="button">
+        Tentar novamente
+      </button>
+    </section>
+
+    <!-- =========================================================
+    LISTAGEM
+    ========================================================== -->
+
+    <section id="budgets-list" class="budgets-list" aria-live="polite" hidden></section>
+
+    <!-- =========================================================
+    ESTADO VAZIO
+    ========================================================== -->
+
+    <section id="budgets-empty" class="budgets-empty" hidden>
+      <span class="budgets-empty__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M5 3h11l3 3v15H5z"></path>
+          <path d="M16 3v4h4"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+      </span>
+
+      <p class="eyebrow">
+        Nenhuma proposta encontrada
+      </p>
+
+      <h2 id="budgets-empty-title">
+        Ainda não existem orçamentos
+      </h2>
+
+      <p id="budgets-empty-description">
+        Crie a primeira proposta comercial da Salvateck.
+      </p>
+
+      <a href="novo-orcamento.html?perfil=admin" class="budgets-empty__button">
+        Criar orçamento
+      </a>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+  FEEDBACK
+  ========================================================== -->
+
+  <div id="budgets-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="js/orcamentos.js?v=1.0.0"></script>
+</body>
+
+</html>
