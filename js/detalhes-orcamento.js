@@ -1976,22 +1976,29 @@ async function createBudgetPdf() {
 
   pdf.setTextColor(...PDF_COLORS.dark);
 
-  pdf.text(fitLines(addressText, 57, 3), 13, 107);
+  pdf.text(fitLines(addressText, 57, 2), 13, 107);
 
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(7.5);
   pdf.setTextColor(...PDF_COLORS.gold);
 
-  pdf.text("UNIDADE", 13, 119);
-
-  pdf.text("CNPJ", 42, 119);
+  pdf.text("UNIDADE", 13, 116);
 
   pdf.setFontSize(7.8);
   pdf.setTextColor(...PDF_COLORS.dark);
 
-  pdf.text(fitLines(unitText, 25, 1), 26, 119);
+  pdf.text(fitLines(unitText, 43, 1), 29, 116);
 
-  pdf.text(fitLines(cnpjText, 31, 1), 52, 119);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(...PDF_COLORS.gold);
+
+  pdf.text("CNPJ", 13, 122);
+
+  pdf.setFontSize(7.8);
+  pdf.setTextColor(...PDF_COLORS.dark);
+
+  pdf.text(fitLines(cnpjText, 48, 1), 24, 122);
 
   drawSectionHeading(83, 72, 2, "Proposta", 44);
 
@@ -2428,9 +2435,16 @@ AÇÕES TEMPORÁRIAS
 ========================================================= */
 
 function handleEditBudget() {
-  showFeedback(
-    "A edição do orçamento será conectada ao formulário na próxima etapa.",
-  );
+  if (!currentBudgetId) {
+    showFeedback(
+      "Não foi possível identificar o orçamento para edição.",
+      "error",
+    );
+
+    return;
+  }
+
+  window.location.href = `novo-orcamento.html?id=${encodeURIComponent(currentBudgetId)}&modo=editar`;
 }
 
 function handleDuplicateBudget() {

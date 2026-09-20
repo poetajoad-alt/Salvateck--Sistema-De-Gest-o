@@ -170,6 +170,16 @@ let savingBudget = false;
 
 let feedbackTimer = null;
 
+let editMode = false;
+
+let editingBudgetId = "";
+
+let editingBudgetData = null;
+
+let editingPrivateData = null;
+
+let existingImageData = null;
+
 const maxOriginalImageSize = 10 * 1024 * 1024;
 
 const targetCompressedImageSize = 900 * 1024;
@@ -284,6 +294,283 @@ function getCreatorName() {
       currentSession?.email ||
       "Administrador",
   );
+}
+
+function getEditBudgetIdFromUrl() {
+  const parameters = new URLSearchParams(window.location.search);
+
+  const mode = text(parameters.get("modo")).toLowerCase();
+
+  const id = text(parameters.get("id"));
+
+  editMode = mode === "editar" && Boolean(id);
+
+  editingBudgetId = editMode ? id : "";
+
+  return editingBudgetId;
+}
+
+function setEditModePresentation() {
+  if (!editMode || !editingBudgetData) {
+    return;
+  }
+
+  document.title = `Editar ${editingBudgetData.codigo || "Orçamento"} | Salvateck`;
+
+  const headerTitle = document.querySelector(".budget-header__copy strong");
+
+  if (headerTitle) {
+    headerTitle.textContent = "Editar Orçamento";
+  }
+
+  const pageTitle = document.getElementById("budget-page-title");
+
+  if (pageTitle) {
+    pageTitle.textContent = `Editar ${editingBudgetData.codigo || "orçamento"}`;
+  }
+
+  saveDraftButton.hidden = true;
+
+  saveButton.querySelector("span").textContent = "Salvar alterações";
+}
+
+function populateServicesForEdit(services) {
+  const items = Array.isArray(services)
+    ? services.map(text).filter(Boolean)
+    : [];
+
+  servicesList.innerHTML = "";
+
+  const values = items.length > 0 ? items : [""];
+
+  values.forEach((service) => {
+    const item = createServiceItem();
+
+    const input = item.querySelector("[data-service-input]");
+
+    if (input) {
+      input.value = service;
+    }
+
+    servicesList.appendChild(item);
+  });
+
+  updateServiceItems();
+}
+
+async function populateBudgetForEdit() {
+  if (!editingBudgetData) {
+    return;
+  }
+
+  const data = editingBudgetData;
+
+  const condominiumData = data.condominio || {};
+
+  const clientData = data.cliente || {};
+
+  const conditions = data.condicoes || {};
+
+  const investment = data.investimento || {};
+
+  const proposal = data.proposta || {};
+
+  const condominiumId = text(data.condominioId || condominiumData.id);
+
+  const clientId = text(data.clienteUid || clientData.id);
+
+  selectedCondominium =
+    condominiums.find((condominium) => condominium.id === condominiumId) ||
+    null;
+
+  if (!selectedCondominium && condominiumId) {
+    selectedCondominium = {
+      id: condominiumId,
+
+      codigo: text(condominiumData.codigo),
+
+      nome: text(condominiumData.nome || data.condominioNome) || "Condomínio",
+
+      cnpj: text(condominiumData.cnpj),
+
+      status: "ativo",
+
+      endereco: condominiumData.endereco || {},
+
+      clientesIds: clientId ? [clientId] : [],
+
+      clientesVinculados: [],
+    };
+
+    const label = [selectedCondominium.codigo, selectedCondominium.nome]
+      .filter(Boolean)
+      .join(" — ");
+
+    condominiumSelect.appendChild(
+      createOption(selectedCondominium.id, label || "Condomínio do orçamento"),
+    );
+  }
+
+  condominiumSelect.value = selectedCondominium?.id || "";
+
+  if (selectedCondominium) {
+    await loadLinkedClients();
+  }
+
+  selectedClient =
+    linkedClients.find((client) => client.id === clientId) ||
+    (clientId
+      ? {
+          ...clientData,
+          id: clientId,
+        }
+      : null);
+
+  if (clientId) {
+    const hasClientOption = Array.from(clientSelect.options).some(
+      (option) => option.value === clientId,
+    );
+
+    if (!hasClientOption) {
+      const clientLabel = [
+        text(clientData.nome || data.clienteNome),
+        text(clientData.telefone),
+      ]
+        .filter(Boolean)
+        .join(" — ");
+
+      clientSelect.appendChild(
+        createOption(clientId, clientLabel || "Cliente do orçamento"),
+      );
+    }
+
+    clientSelect.disabled = false;
+
+    clientSelect.value = clientId;
+  }
+
+  clientName.value = text(clientData.nome || data.clienteNome);
+
+  clientPhone.value = text(clientData.telefone);
+
+  clientEmail.value = text(clientData.email);
+
+  addressInput.value = text(condominiumData?.endereco?.resumo || data.endereco);
+
+  condominiumUnit.value = text(condominiumData.unidade);
+
+  condominiumCnpj.value = text(condominiumData.cnpj);
+
+  budgetCode.value = text(data.codigo);
+
+  budgetDate.value = text(proposal.data) || getSaoPauloDate();
+
+  const validityValue = String(Number(proposal.validadeDias || 15));
+
+  if (
+    validityValue &&
+    !Array.from(budgetValidity.options).some(
+      (option) => option.value === validityValue,
+    )
+  ) {
+    budgetValidity.appendChild(
+      createOption(validityValue, `${validityValue} dias`),
+    );
+  }
+
+  budgetValidity.value = validityValue || "15";
+
+  const statusValue = text(data.status) || "rascunho";
+
+  if (
+    statusValue &&
+    !Array.from(budgetStatus.options).some(
+      (option) => option.value === statusValue,
+    )
+  ) {
+    budgetStatus.appendChild(
+      createOption(statusValue, statusLabels[statusValue] || statusValue),
+    );
+  }
+
+  budgetStatus.value = statusValue;
+
+  budgetTitle.value = text(data.titulo);
+
+  budgetSubtitle.value = text(data.subtitulo);
+
+  serviceDescription.value = text(data.descricaoServico);
+
+  budgetObjective.value = text(data.objetivo);
+
+  populateServicesForEdit(data.servicosInclusos);
+
+  materialsNote.value = text(data.materiaisFornecimento);
+
+  const originalValue = Number(
+    investment.valorServico ?? data.valorServico ?? 0,
+  );
+
+  const discount = Number(investment.desconto ?? data.desconto ?? 0);
+
+  serviceValue.value = originalValue > 0 ? formatCurrency(originalValue) : "";
+
+  discountValue.value = discount > 0 ? formatCurrency(discount) : "";
+
+  discountDescription.value = text(investment.descricaoDesconto);
+
+  generalConditions.value = Array.isArray(conditions.gerais)
+    ? conditions.gerais.map(text).filter(Boolean).join("\n\n")
+    : "";
+
+  warranty.value = text(conditions.garantia);
+
+  executionTime.value = text(conditions.prazoExecucao);
+
+  paymentConditions.value = text(conditions.pagamento);
+
+  publicNote.value = text(data.observacoes?.publica);
+
+  internalNote.value = text(editingPrivateData?.observacaoInterna);
+
+  existingImageData = data.imagemPrincipal || null;
+
+  setEditModePresentation();
+
+  updateSummary();
+}
+
+async function loadBudgetForEdit() {
+  if (!editingBudgetId) {
+    return;
+  }
+
+  const budgetReference = doc(db, "orcamentos", editingBudgetId);
+
+  const privateReference = doc(db, "orcamentosPrivados", editingBudgetId);
+
+  const [budgetSnapshot, privateSnapshot] = await Promise.all([
+    getDoc(budgetReference),
+    getDoc(privateReference),
+  ]);
+
+  if (!budgetSnapshot.exists()) {
+    throw new Error("BUDGET_NOT_FOUND");
+  }
+
+  editingBudgetData = {
+    id: budgetSnapshot.id,
+    ...budgetSnapshot.data(),
+  };
+
+  editingPrivateData = privateSnapshot.exists()
+    ? {
+        id: privateSnapshot.id,
+        ...privateSnapshot.data(),
+      }
+    : null;
+
+  await populateBudgetForEdit();
 }
 
 /* =========================================================
@@ -1135,10 +1422,17 @@ function validateBudget() {
 DADOS DO ORÇAMENTO
 ========================================================= */
 
-function buildBudgetData({ id, number, code, status, imageData }) {
+function buildBudgetData({
+  id,
+  number,
+  code,
+  status,
+  imageData,
+  existingData = null,
+}) {
   const address = selectedCondominium
     ? getCondominiumAddress(selectedCondominium)
-    : {};
+    : existingData?.condominio?.endereco || {};
 
   const values = getInvestmentValues();
 
@@ -1260,17 +1554,31 @@ function buildBudgetData({ id, number, code, status, imageData }) {
       criadoNoPainelAdmin: true,
     },
 
-    enviadoEm: finalStatus === "enviado" ? serverTimestamp() : null,
+    enviadoEm:
+      finalStatus === "enviado"
+        ? existingData?.enviadoEm || serverTimestamp()
+        : existingData?.enviadoEm || null,
 
-    aprovadoEm: finalStatus === "aprovado" ? serverTimestamp() : null,
+    aprovadoEm:
+      finalStatus === "aprovado"
+        ? existingData?.aprovadoEm || serverTimestamp()
+        : existingData?.aprovadoEm || null,
 
-    recusadoEm: finalStatus === "recusado" ? serverTimestamp() : null,
+    recusadoEm:
+      finalStatus === "recusado"
+        ? existingData?.recusadoEm || serverTimestamp()
+        : existingData?.recusadoEm || null,
 
-    criadoEm: serverTimestamp(),
+    expiradoEm:
+      finalStatus === "expirado"
+        ? existingData?.expiradoEm || serverTimestamp()
+        : existingData?.expiradoEm || null,
 
-    criadoPorUid: currentSession.uid,
+    criadoEm: existingData?.criadoEm || serverTimestamp(),
 
-    criadoPorNome: creatorName,
+    criadoPorUid: text(existingData?.criadoPorUid) || currentSession.uid,
+
+    criadoPorNome: text(existingData?.criadoPorNome) || creatorName,
 
     atualizadoEm: serverTimestamp(),
 
@@ -1284,7 +1592,92 @@ function buildBudgetData({ id, number, code, status, imageData }) {
 SALVAMENTO NO FIRESTORE
 ========================================================= */
 
+async function updateExistingBudget(status) {
+  if (!editingBudgetId || !editingBudgetData) {
+    throw new Error("BUDGET_NOT_FOUND");
+  }
+
+  const budgetReference = doc(db, "orcamentos", editingBudgetId);
+
+  const privateReference = doc(db, "orcamentosPrivados", editingBudgetId);
+
+  let uploadedImage = null;
+
+  if (selectedImage) {
+    uploadedImage = await uploadBudgetImage(editingBudgetId);
+  }
+
+  const imageData = uploadedImage?.data || existingImageData || null;
+
+  const budgetData = buildBudgetData({
+    id: editingBudgetId,
+
+    number: Number(editingBudgetData.numero || 0),
+
+    code: text(editingBudgetData.codigo),
+
+    status,
+
+    imageData,
+
+    existingData: editingBudgetData,
+  });
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(budgetReference);
+
+    if (!snapshot.exists()) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    transaction.set(budgetReference, budgetData, {
+      merge: true,
+    });
+
+    transaction.set(
+      privateReference,
+      {
+        orcamentoId: editingBudgetId,
+
+        codigo: text(editingBudgetData.codigo),
+
+        observacaoInterna: text(internalNote.value),
+
+        criadoEm: editingPrivateData?.criadoEm || serverTimestamp(),
+
+        atualizadoEm: serverTimestamp(),
+
+        atualizadoPorUid: currentSession.uid,
+      },
+      {
+        merge: true,
+      },
+    );
+  });
+
+  editingBudgetData = {
+    ...editingBudgetData,
+    ...budgetData,
+  };
+
+  existingImageData = imageData;
+
+  return {
+    id: editingBudgetId,
+
+    numero: Number(editingBudgetData.numero || 0),
+
+    codigo: text(editingBudgetData.codigo),
+
+    status,
+  };
+}
+
 async function saveBudget(status) {
+  if (editMode) {
+    return updateExistingBudget(status);
+  }
+
   const counterReference = doc(db, "contadores", "orcamentos");
 
   const budgetReference = doc(collection(db, "orcamentos"));
@@ -1387,6 +1780,10 @@ ERROS
 ========================================================= */
 
 function getErrorMessage(error) {
+  if (error?.message === "BUDGET_NOT_FOUND") {
+    return "O orçamento que você tentou editar não foi encontrado.";
+  }
+
   if (error?.message === "INVALID_BUDGET_COUNTER") {
     return "O contador dos orçamentos possui um valor inválido.";
   }
@@ -1425,14 +1822,18 @@ function setSavingState(isSaving, mode = "budget") {
   saveDraftButton.disabled = isSaving;
 
   if (!isSaving) {
-    saveButton.querySelector("span").textContent = "Salvar orçamento";
+    saveButton.querySelector("span").textContent = editMode
+      ? "Salvar alterações"
+      : "Salvar orçamento";
 
     saveDraftButton.querySelector("span").textContent = "Salvar rascunho";
 
     return;
   }
 
-  if (mode === "draft") {
+  if (editMode) {
+    saveButton.querySelector("span").textContent = "Salvando alterações...";
+  } else if (mode === "draft") {
     saveDraftButton.querySelector("span").textContent = "Salvando rascunho...";
   } else {
     saveButton.querySelector("span").textContent = "Salvando orçamento...";
@@ -1492,6 +1893,17 @@ async function handleBudgetSave({ mode, status }) {
 
   try {
     const savedBudget = await saveBudget(status);
+
+    if (editMode) {
+      const parameters = new URLSearchParams({
+        perfil: "admin",
+        id: savedBudget.id,
+      });
+
+      window.location.href = `detalhes-orcamento.html?${parameters.toString()}`;
+
+      return;
+    }
 
     showSuccess(savedBudget);
 
@@ -1649,6 +2061,8 @@ async function initializePage() {
       return;
     }
 
+    getEditBudgetIdFromUrl();
+
     budgetDate.value = getSaoPauloDate();
 
     budgetValidity.value = "15";
@@ -1660,6 +2074,10 @@ async function initializePage() {
     updateSummary();
 
     await loadCondominiums();
+
+    if (editMode) {
+      await loadBudgetForEdit();
+    }
   } catch (error) {
     console.error("[Orçamentos] Não foi possível iniciar a página:", error);
 
