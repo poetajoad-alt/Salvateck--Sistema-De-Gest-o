@@ -11,6 +11,8 @@ import {
 
 import {
   deleteObject,
+  getBytes,
+  getDownloadURL,
   ref,
   uploadBytes,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
@@ -289,12 +291,18 @@ let currentLinkedOrder = null;
 let currentInspectionDocument = null;
 
 let generatingInspectionPdf = false;
+let preparedInspectionPdf = null;
+
+let preparedInspectionPdfFile = null;
+
+let preparedInspectionPdfFileName = "";
 
 let pendingInspectionAdminAction = null;
 
 let feedbackTimeout;
 
 let selectedInspectionPhotos = [];
+let storedInspectionPhotos = [];
 
 let processingInspectionPhotos = false;
 
@@ -1077,6 +1085,8 @@ async function loadExistingInspection(inspectionId) {
   renderChecklist();
 
   applyStoredChecklistState();
+
+  await loadStoredInspectionPhotos(inspectionSnapshot.id);
 
   updateInspectionSummary();
 
@@ -2222,7 +2232,130 @@ function setInspectionPhotoStatus({
     inspectionPhotoError.hidden = !errorMessage;
   }
 }
+async function loadStoredInspectionPhotos(inspectionId) {
+  storedInspectionPhotos = [];
 
+  if (!inspectionPhotoPreview) {
+    return;
+  }
+
+  const uploadArea = inspectionPhotoInput?.closest(".photo-upload");
+
+  const photoDescription = document.querySelector(
+    '[data-section="fotos"] .form-card__description',
+  );
+
+  if (uploadArea) {
+    uploadArea.hidden = true;
+  }
+
+  if (photoDescription) {
+    photoDescription.textContent =
+      "Confira abaixo os registros fotográficos salvos nesta vistoria.";
+  }
+
+  inspectionPhotoPreview.innerHTML = "";
+
+  try {
+    const photoSnapshot = await getDocs(
+      collection(db, "vistorias", inspectionId, "fotos"),
+    );
+
+    const photoRecords = photoSnapshot.docs
+      .map((photoDocument) => ({
+        id: photoDocument.id,
+        ...photoDocument.data(),
+      }))
+      .sort(
+        (photoA, photoB) =>
+          (Number(photoA.posicao) || 0) - (Number(photoB.posicao) || 0),
+      );
+
+    if (photoRecords.length === 0) {
+      setInspectionPhotoStatus({
+        countText: "Nenhuma foto registrada",
+        compressionText: "Esta vistoria não possui registros fotográficos.",
+      });
+
+      return;
+    }
+
+    const resolvedPhotos = await Promise.all(
+      photoRecords.map(async (photo) => {
+        const storagePath = String(photo.storagePath || "").trim();
+
+        if (!storagePath) {
+          return null;
+        }
+
+        try {
+          const url = await getDownloadURL(ref(storage, storagePath));
+
+          return {
+            ...photo,
+            url,
+          };
+        } catch (error) {
+          console.error(
+            `[Nova Vistoria] Não foi possível carregar a foto ${photo.id}:`,
+            error,
+          );
+
+          return null;
+        }
+      }),
+    );
+
+    const availablePhotos = resolvedPhotos.filter(Boolean);
+    storedInspectionPhotos = availablePhotos;
+    availablePhotos.forEach((photo, index) => {
+      const previewItem = document.createElement("div");
+
+      previewItem.className = "photo-preview__item";
+
+      const image = document.createElement("img");
+
+      image.src = photo.url;
+      image.alt = photo.nome || `Foto da vistoria ${index + 1}`;
+      image.loading = "lazy";
+
+      previewItem.appendChild(image);
+
+      inspectionPhotoPreview.appendChild(previewItem);
+    });
+
+    setInspectionPhotoStatus({
+      countText:
+        photoRecords.length === 1
+          ? "1 foto registrada"
+          : `${photoRecords.length} fotos registradas`,
+      compressionText:
+        availablePhotos.length === photoRecords.length
+          ? "Registros fotográficos carregados."
+          : `${availablePhotos.length} de ${photoRecords.length} fotos disponíveis.`,
+      state:
+        availablePhotos.length === photoRecords.length
+          ? "is-success"
+          : "is-error",
+      errorMessage:
+        availablePhotos.length === photoRecords.length
+          ? ""
+          : "Algumas fotos não puderam ser carregadas.",
+    });
+  } catch (error) {
+    console.error(
+      "[Nova Vistoria] Não foi possível consultar as fotos da vistoria:",
+      error,
+    );
+
+    setInspectionPhotoStatus({
+      countText: "Fotos indisponíveis",
+      compressionText: "Não foi possível consultar os registros fotográficos.",
+      state: "is-error",
+      errorMessage: "Não foi possível carregar as fotos desta vistoria.",
+    });
+  }
+}
 function updateInspectionPhotoSelectionStatus() {
   const quantity = selectedInspectionPhotos.length;
 
@@ -4050,8 +4183,199 @@ function addInspectionPdfFooters(pdf, code) {
     );
   }
 }
+async function loadInspectionPhotoForPdf(photo) {
+  const storagePath = String(photo?.storagePath || "").trim();
 
-function createInspectionPdf() {
+  if (!storagePath) {
+    throw new Error("INSPECTION_PHOTO_STORAGE_PATH_NOT_FOUND");
+  }
+
+  const photoBytes = await getBytes(ref(storage, storagePath));
+
+  const blob = new Blob([photoBytes], {
+    type: String(photo?.contentType || "image/webp"),
+  });
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  try {
+    const image = await new Promise((resolve, reject) => {
+      const imageElement = new Image();
+
+      imageElement.onload = () => resolve(imageElement);
+
+      imageElement.onerror = () =>
+        reject(new Error("INSPECTION_PHOTO_PDF_DECODE_FAILED"));
+
+      imageElement.src = objectUrl;
+    });
+
+    const originalWidth = Number(image.naturalWidth || image.width || 0);
+
+    const originalHeight = Number(image.naturalHeight || image.height || 0);
+
+    if (!originalWidth || !originalHeight) {
+      throw new Error("INSPECTION_PHOTO_PDF_INVALID_DIMENSIONS");
+    }
+
+    const largestDimension = Math.max(originalWidth, originalHeight);
+
+    const scale = largestDimension > 1600 ? 1600 / largestDimension : 1;
+
+    const width = Math.max(1, Math.round(originalWidth * scale));
+
+    const height = Math.max(1, Math.round(originalHeight * scale));
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+
+    canvas.height = height;
+
+    const context = canvas.getContext("2d", {
+      alpha: false,
+    });
+
+    if (!context) {
+      throw new Error("INSPECTION_PHOTO_PDF_CANVAS_UNAVAILABLE");
+    }
+
+    context.fillStyle = "#ffffff";
+
+    context.fillRect(0, 0, width, height);
+
+    context.drawImage(image, 0, 0, width, height);
+
+    return {
+      dataUrl: canvas.toDataURL("image/jpeg", 0.82),
+      width,
+      height,
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function addInspectionPdfPhotos(pdf, y, code) {
+  if (storedInspectionPhotos.length === 0) {
+    return y;
+  }
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const gap = 6;
+
+  const cardWidth = (contentWidth - gap) / 2;
+
+  const cardHeight = 61;
+
+  const maxImageWidth = cardWidth - 6;
+
+  const maxImageHeight = 47;
+
+  y = addInspectionPdfSectionTitle(pdf, y, "Registros fotográficos", code);
+
+  for (let index = 0; index < storedInspectionPhotos.length; index += 2) {
+    y = ensureInspectionPdfSpace(pdf, y, cardHeight + 5, code);
+
+    const rowPhotos = storedInspectionPhotos.slice(index, index + 2);
+
+    const preparedPhotos = await Promise.all(
+      rowPhotos.map(async (photo) => {
+        try {
+          return await loadInspectionPhotoForPdf(photo);
+        } catch (error) {
+          console.error(
+            `[PDF Vistoria] Não foi possível preparar a foto ${
+              photo.id || ""
+            }:`,
+            error,
+          );
+
+          return null;
+        }
+      }),
+    );
+
+    rowPhotos.forEach((photo, columnIndex) => {
+      const x = 16 + columnIndex * (cardWidth + gap);
+
+      const preparedPhoto = preparedPhotos[columnIndex];
+
+      pdf.setFillColor(...INSPECTION_PDF_COLORS.white);
+
+      pdf.setDrawColor(...INSPECTION_PDF_COLORS.border);
+
+      pdf.roundedRect(x, y, cardWidth, cardHeight, 2, 2, "FD");
+
+      if (preparedPhoto) {
+        const aspectRatio = preparedPhoto.width / preparedPhoto.height;
+
+        let imageWidth = maxImageWidth;
+
+        let imageHeight = imageWidth / aspectRatio;
+
+        if (imageHeight > maxImageHeight) {
+          imageHeight = maxImageHeight;
+
+          imageWidth = imageHeight * aspectRatio;
+        }
+
+        const imageX = x + (cardWidth - imageWidth) / 2;
+
+        const imageY = y + 3 + (maxImageHeight - imageHeight) / 2;
+
+        pdf.addImage(
+          preparedPhoto.dataUrl,
+          "JPEG",
+          imageX,
+          imageY,
+          imageWidth,
+          imageHeight,
+          undefined,
+          "FAST",
+        );
+      } else {
+        pdf.setFillColor(...INSPECTION_PDF_COLORS.lightGray);
+
+        pdf.roundedRect(
+          x + 3,
+          y + 3,
+          maxImageWidth,
+          maxImageHeight,
+          1.5,
+          1.5,
+          "F",
+        );
+
+        pdf.setTextColor(...INSPECTION_PDF_COLORS.gray);
+
+        pdf.setFont("helvetica", "normal");
+
+        pdf.setFontSize(7.5);
+
+        pdf.text("Imagem indisponível", x + cardWidth / 2, y + 27, {
+          align: "center",
+        });
+      }
+
+      pdf.setTextColor(...INSPECTION_PDF_COLORS.dark);
+
+      pdf.setFont("helvetica", "bold");
+
+      pdf.setFontSize(7.5);
+
+      pdf.text(`Foto ${index + columnIndex + 1}`, x + 4, y + cardHeight - 4);
+    });
+
+    y += cardHeight + 5;
+  }
+
+  return y;
+}
+async function createInspectionPdf() {
   const PdfConstructor = window.jspdf?.jsPDF;
 
   if (!PdfConstructor) {
@@ -4267,7 +4591,7 @@ function createInspectionPdf() {
       });
     });
   }
-
+  y = await addInspectionPdfPhotos(pdf, y, code);
   y = ensureInspectionPdfSpace(pdf, y, 28, code);
 
   pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
@@ -4292,7 +4616,7 @@ function createInspectionPdf() {
   return pdf;
 }
 
-function openInspectionPdfModal() {
+async function openInspectionPdfModal() {
   if (!currentInspectionDocument || !inspectionPdfModal) {
     showFeedback("Não foi possível identificar a vistoria.", "error");
 
@@ -4304,6 +4628,40 @@ function openInspectionPdfModal() {
   inspectionPdfModal.setAttribute("aria-hidden", "false");
 
   document.body.classList.add("inspection-pdf-modal-open");
+
+  preparedInspectionPdf = null;
+
+  preparedInspectionPdfFile = null;
+
+  preparedInspectionPdfFileName = "";
+
+  setInspectionPdfBusy(true);
+
+  try {
+    const pdf = await createInspectionPdf();
+
+    const fileName = getInspectionPdfFileName();
+
+    const pdfBlob = pdf.output("blob");
+
+    preparedInspectionPdf = pdf;
+
+    preparedInspectionPdfFileName = fileName;
+
+    preparedInspectionPdfFile = new File([pdfBlob], fileName, {
+      type: "application/pdf",
+
+      lastModified: Date.now(),
+    });
+  } catch (error) {
+    handleInspectionPdfError(error);
+
+    closeInspectionPdfModal();
+
+    return;
+  } finally {
+    setInspectionPdfBusy(false);
+  }
 
   confirmInspectionPdfButton?.focus();
 }
@@ -4368,84 +4726,76 @@ async function shareInspectionPdf() {
     return;
   }
 
-  setInspectionPdfBusy(true);
-
-  try {
-    const pdf = createInspectionPdf();
-
-    const fileName = getInspectionPdfFileName();
-
-    const pdfBlob = pdf.output("blob");
-
-    const pdfFile = new File([pdfBlob], fileName, {
-      type: "application/pdf",
-
-      lastModified: Date.now(),
-    });
-
-    const inspectionCode = String(
-      currentInspectionDocument?.codigo ||
-        currentLinkedOrder?.codigo ||
-        "Vistoria técnica",
-    ).trim();
-
-    const responsibleName = String(selectedResponsible?.nome || "").trim();
-
-    const shareData = {
-      title: `${inspectionCode} | Salvateck`,
-
-      text: [
-        responsibleName ? `Olá, ${responsibleName}!` : "Olá!",
-        "",
-        "Segue o relatório da vistoria técnica:",
-        "",
-        `Vistoria: ${inspectionCode}`,
-        `Local: ${getInspectionCommunicationCondominiumName()}`,
-        "",
-        "Agradecemos a confiança!",
-      ].join("\n"),
-
-      files: [pdfFile],
-    };
-
-    const canShareFile =
-      typeof navigator.share === "function" &&
-      (typeof navigator.canShare !== "function" ||
-        navigator.canShare(shareData));
-
-    if (canShareFile) {
-      try {
-        await navigator.share(shareData);
-
-        closeInspectionPdfModal();
-
-        showFeedback("PDF da vistoria compartilhado com sucesso!");
-
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") {
-          return;
-        }
-
-        console.warn(
-          "[PDF Vistoria] O compartilhamento direto não foi concluído:",
-          error,
-        );
-      }
-    }
-
-    pdf.save(fileName);
-
-    closeInspectionPdfModal();
-
+  if (
+    !preparedInspectionPdf ||
+    !preparedInspectionPdfFile ||
+    !preparedInspectionPdfFileName
+  ) {
     showFeedback(
-      "O compartilhamento direto não está disponível. O PDF foi baixado.",
+      "O PDF ainda está sendo preparado. Aguarde alguns instantes.",
+      "error",
     );
-  } catch (error) {
-    handleInspectionPdfError(error);
-  } finally {
-    setInspectionPdfBusy(false);
+
+    return;
   }
+
+  const inspectionCode = String(
+    currentInspectionDocument?.codigo ||
+      currentLinkedOrder?.codigo ||
+      "Vistoria técnica",
+  ).trim();
+
+  const responsibleName = String(selectedResponsible?.nome || "").trim();
+
+  const shareData = {
+    title: `${inspectionCode} | Salvateck`,
+
+    text: [
+      responsibleName ? `Olá, ${responsibleName}!` : "Olá!",
+      "",
+      "Segue o relatório da vistoria técnica:",
+      "",
+      `Vistoria: ${inspectionCode}`,
+      `Local: ${getInspectionCommunicationCondominiumName()}`,
+      "",
+      "Agradecemos a confiança!",
+    ].join("\n"),
+
+    files: [preparedInspectionPdfFile],
+  };
+
+  const canShareFile =
+    typeof navigator.share === "function" &&
+    (typeof navigator.canShare !== "function" || navigator.canShare(shareData));
+
+  if (canShareFile) {
+    try {
+      await navigator.share(shareData);
+
+      closeInspectionPdfModal();
+
+      showFeedback("PDF da vistoria compartilhado com sucesso!");
+
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        return;
+      }
+
+      console.warn(
+        "[PDF Vistoria] O compartilhamento direto não foi concluído:",
+        error,
+      );
+    }
+  }
+
+  preparedInspectionPdf.save(preparedInspectionPdfFileName);
+
+  closeInspectionPdfModal();
+
+  showFeedback(
+    "O compartilhamento direto não está disponível. O PDF foi baixado.",
+  );
 }
 /* =========================================
    MODAL ADMINISTRATIVO DA VISTORIA
