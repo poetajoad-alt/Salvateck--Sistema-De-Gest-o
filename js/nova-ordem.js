@@ -484,7 +484,7 @@ let selectedEmployee = null;
 let inspectionSchedulingSelected = false;
 
 let inspectionImmediateSelected = false;
-
+let inspectionModeAutoOpenPending = false;
 let hasRegisteredAddress = false;
 
 let clientEditing = false;
@@ -1420,6 +1420,8 @@ function applyLinkedClient(client) {
   updateClientSummary();
   updateSummary();
   updateProgress();
+
+  tryOpenInspectionModeWhenReady();
 
   console.log("[Nova Ordem] Responsável selecionado:", {
     uid: selectedClientUid,
@@ -2443,7 +2445,35 @@ function renderServices() {
   updateSummary();
   updateProgress();
 }
+function tryOpenInspectionModeWhenReady() {
+  if (
+    !inspectionModeAutoOpenPending ||
+    currentProfile !== "admin" ||
+    !getSelectedCategories().includes("vistoria") ||
+    !selectedCondominium?.id ||
+    !isClientDataComplete()
+  ) {
+    return false;
+  }
 
+  inspectionModeAutoOpenPending = false;
+
+  openInspectionModeModal();
+
+  return true;
+}
+
+function guideInspectionModePrerequisite() {
+  if (!selectedCondominium?.id) {
+    scrollToElement(document.getElementById("condominium-field"));
+
+    return;
+  }
+
+  if (!isClientDataComplete()) {
+    scrollToElement(nomeCliente.closest(".form-card"));
+  }
+}
 function preselectCategoryFromURL() {
   const requestedType = normalizeText(orderUrlParams.get("tipo"));
 
@@ -2467,12 +2497,14 @@ function preselectCategoryFromURL() {
   renderServices();
   updatePhotoLimitPresentation();
 
-  window.setTimeout(() => {
-    scrollToElement(servicesSection);
+  inspectionModeAutoOpenPending = currentProfile === "admin";
 
-    if (currentProfile === "admin") {
-      openInspectionModeModal();
+  window.setTimeout(() => {
+    if (tryOpenInspectionModeWhenReady()) {
+      return;
     }
+
+    guideInspectionModePrerequisite();
   }, 150);
 }
 
@@ -3308,7 +3340,11 @@ async function handleCategoryChange(event) {
     changedInput.checked &&
     changedInput.value === "vistoria"
   ) {
-    openInspectionModeModal();
+    inspectionModeAutoOpenPending = true;
+
+    if (!tryOpenInspectionModeWhenReady()) {
+      guideInspectionModePrerequisite();
+    }
   }
 }
 
