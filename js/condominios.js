@@ -701,6 +701,8 @@ let clientes = [];
 
 let ordens = [];
 
+let vistorias = [];
+
 let ambientesCatalogo = [];
 
 let equipamentosCatalogo = [];
@@ -1369,6 +1371,12 @@ function obterCondominioIdDaOrdem(ordem) {
   return String(ordem?.condominio?.id || ordem?.condominioId || "").trim();
 }
 
+function obterCondominioIdDaVistoria(vistoria) {
+  return String(
+    vistoria?.condominio?.id || vistoria?.condominioId || "",
+  ).trim();
+}
+
 function criarHistoricoDaOrdem(ordem) {
   const vistoria = ordem.tipoAtendimento === "vistoria";
 
@@ -1394,30 +1402,37 @@ function criarHistoricoDaOrdem(ordem) {
   };
 }
 
-function calcularPendenciasDoCondominio(condominio, ordensRelacionadas) {
-  const documentosPendentes = condominio.documentos.filter(
-    (documento) => atualizarStatusDocumento(documento) !== "regular",
-  ).length;
-
-  const pendenciasDeVistorias = ordensRelacionadas
-    .filter((ordem) => ordem.tipoAtendimento === "vistoria")
-    .reduce((total, ordem) => {
-      const vistoria = ordem.vistoria || {};
-
-      return (
-        total +
-        Math.max(0, Number(vistoria.naoConformidades) || 0) +
-        Math.max(0, Number(vistoria.pendenciasCriticas) || 0)
-      );
-    }, 0);
-
-  const total = documentosPendentes + pendenciasDeVistorias;
-
-  if (condominio.status === "atencao" && total === 0) {
-    return 1;
+function itemDeVistoriaPossuiPendenciaAberta(item) {
+  if (normalizarTexto(item?.resultado) !== "precisa-ajuste") {
+    return false;
   }
 
-  return total;
+  const statusPendencia = normalizarTexto(item?.pendencia?.status);
+
+  return statusPendencia !== "resolvida";
+}
+
+function calcularPendenciasDoCondominio(vistoriasRelacionadas) {
+  return vistoriasRelacionadas.reduce((total, vistoria) => {
+    const statusVistoria = normalizarTexto(vistoria?.status);
+
+    const vistoriaValidada =
+      vistoria?.validada === true || statusVistoria === "concluida";
+
+    if (!vistoriaValidada) {
+      return total;
+    }
+
+    const checklist = Array.isArray(vistoria?.checklist)
+      ? vistoria.checklist
+      : [];
+
+    const pendenciasAbertas = checklist.filter(
+      itemDeVistoriaPossuiPendenciaAberta,
+    ).length;
+
+    return total + pendenciasAbertas;
+  }, 0);
 }
 
 function aplicarOrdensAosCondominios() {
@@ -1430,6 +1445,10 @@ function aplicarOrdensAosCondominios() {
       (ordem) => obterCondominioIdDaOrdem(ordem) === condominio.id,
     );
 
+    const vistoriasRelacionadas = vistorias.filter(
+      (vistoria) => obterCondominioIdDaVistoria(vistoria) === condominio.id,
+    );
+
     const historicoOperacional = ordensRelacionadas.map(criarHistoricoDaOrdem);
 
     condominio.historico = [
@@ -1438,8 +1457,7 @@ function aplicarOrdensAosCondominios() {
     ];
 
     condominio.pendencias = calcularPendenciasDoCondominio(
-      condominio,
-      ordensRelacionadas,
+      vistoriasRelacionadas,
     );
   });
 }
@@ -1457,6 +1475,8 @@ async function carregarDadosDeCondominiosDoFirestore() {
 
     getDocs(collection(db, "ordens")),
 
+    getDocs(collection(db, "vistorias")),
+
     getDocs(collection(db, "ambientes")),
 
     getDocs(collection(db, "equipamentos")),
@@ -1466,6 +1486,7 @@ async function carregarDadosDeCondominiosDoFirestore() {
     resultadoCondominios,
     resultadoClientes,
     resultadoOrdens,
+    resultadoVistorias,
     resultadoAmbientes,
     resultadoEquipamentos,
   ] = resultados;
@@ -1591,6 +1612,33 @@ async function carregarDadosDeCondominiosDoFirestore() {
     );
   }
 
+  /* =========================================
+     VISTORIAS
+  ========================================= */
+
+  vistorias = [];
+
+  if (resultadoVistorias.status === "fulfilled") {
+    resultadoVistorias.value.docs.forEach((vistoriaSnapshot) => {
+      try {
+        vistorias.push({
+          id: vistoriaSnapshot.id,
+          ...vistoriaSnapshot.data(),
+        });
+      } catch (error) {
+        console.error(
+          `[Condomínios] Erro ao interpretar a vistoria ${vistoriaSnapshot.id}:`,
+          error,
+        );
+      }
+    });
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar as vistorias:",
+      resultadoVistorias.reason,
+    );
+  }
+
   atualizarStatusDosDocumentos();
   aplicarOrdensAosCondominios();
 
@@ -1598,6 +1646,7 @@ async function carregarDadosDeCondominiosDoFirestore() {
     `[Condomínios] ${condominios.length} condomínio(s), ` +
       `${clientes.length} cliente(s), ` +
       `${ordens.length} ordem(ns), ` +
+      `${vistorias.length} vistoria(s), ` +
       `${ambientesCatalogo.length} ambiente(s) e ` +
       `${equipamentosCatalogo.length} equipamento(s) carregados.`,
   );

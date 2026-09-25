@@ -2401,6 +2401,16 @@ function normalizarItemChecklistVistoria(item, index) {
     localizacao: texto(item.localizacao).slice(0, 500),
     resultado,
     observacao,
+    ...(resultado === "precisa-ajuste" ?
+      {
+        pendencia: {
+          status: "aberta",
+          orcamentoId: "",
+          osExecucaoId: "",
+          resolvidaEm: null,
+        },
+      } :
+      {}),
   };
 }
 

@@ -554,7 +554,32 @@ function normalizeInspectionText(value) {
     .toLowerCase()
     .trim();
 }
+function normalizeInspectionPendingState(item = {}) {
+  if (normalizeInspectionText(item.resultado) !== "precisa-ajuste") {
+    return null;
+  }
 
+  const pending =
+    item.pendencia && typeof item.pendencia === "object" ? item.pendencia : {};
+
+  const normalizedStatus = normalizeInspectionText(pending.status);
+
+  const status = [
+    "aberta",
+    "orcada",
+    "aguardando-execucao",
+    "resolvida",
+  ].includes(normalizedStatus)
+    ? normalizedStatus
+    : "aberta";
+
+  return {
+    status,
+    orcamentoId: String(pending.orcamentoId || "").trim(),
+    osExecucaoId: String(pending.osExecucaoId || "").trim(),
+    resolvidaEm: pending.resolvidaEm || null,
+  };
+}
 function getOrderLinkedInspectionId(order = {}) {
   return String(
     order.vistoria?.id || order.vistoria?.vistoriaId || order.vistoriaId || "",
@@ -811,6 +836,8 @@ async function loadOrderForExecution(orderId) {
           resultado: String(item.resultado || "").trim(),
 
           observacao: String(item.observacao || "").trim(),
+
+          pendencia: normalizeInspectionPendingState(item),
         }))
       : [];
 
@@ -1014,6 +1041,8 @@ async function loadExistingInspection(inspectionId) {
         resultado: String(item.resultado || "").trim(),
 
         observacao: String(item.observacao || "").trim(),
+
+        pendencia: normalizeInspectionPendingState(item),
       }))
     : [];
 
@@ -2923,6 +2952,12 @@ function buildInspectionData({ id, numero, codigo }) {
       resultado: item.resultado || "",
 
       observacao: String(item.observacao || "").trim(),
+
+      ...(item.resultado === "precisa-ajuste"
+        ? {
+            pendencia: normalizeInspectionPendingState(item),
+          }
+        : {}),
     })),
 
     totalItens: checklistItems.length,
@@ -3157,6 +3192,12 @@ async function saveEmployeeInspectionForValidation() {
       resultado: item.resultado || "",
 
       observacao: item.observacao || "",
+
+      ...(item.resultado === "precisa-ajuste"
+        ? {
+            pendencia: normalizeInspectionPendingState(item),
+          }
+        : {}),
     })),
   });
 
