@@ -9,7 +9,13 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-import { db } from "./firebase-config.js";
+import {
+  deleteObject,
+  ref,
+  uploadBytes,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+
+import { db, storage } from "./firebase-config.js";
 
 const inspectionUrlParameters = new URLSearchParams(window.location.search);
 
@@ -186,6 +192,26 @@ const saveInspectionButton = document.getElementById("btnSalvarVistoria");
 
 const feedbackMessage = document.getElementById("feedback-message");
 
+const inspectionPhotoInput = document.getElementById("fotosVistoria");
+
+const inspectionPhotoSelectionStatus = document.getElementById(
+  "inspection-photo-selection-status",
+);
+
+const inspectionPhotoSelectionCount = document.getElementById(
+  "inspection-photo-selection-count",
+);
+
+const inspectionPhotoCompressionStatus = document.getElementById(
+  "inspection-photo-compression-status",
+);
+
+const inspectionPhotoError = document.getElementById("inspection-photo-error");
+
+const inspectionPhotoPreview = document.getElementById(
+  "inspection-photo-preview",
+);
+
 const inspectionOrderSummary = document.getElementById(
   "inspection-order-summary",
 );
@@ -267,6 +293,26 @@ let generatingInspectionPdf = false;
 let pendingInspectionAdminAction = null;
 
 let feedbackTimeout;
+
+let selectedInspectionPhotos = [];
+
+let processingInspectionPhotos = false;
+
+let savedInspectionPendingPhotoUpload = null;
+
+const maxOriginalInspectionPhotoSize = 10 * 1024 * 1024;
+
+const targetCompressedInspectionPhotoSize = 1 * 1024 * 1024;
+
+const maxCompressedInspectionPhotoSize = 2 * 1024 * 1024;
+
+const maxInspectionPhotoDimension = 1920;
+
+const acceptedInspectionPhotoTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 /* =========================================
    FUNÇÕES AUXILIARES
@@ -2097,6 +2143,636 @@ function handleResponsibleChange() {
 }
 
 /* =========================================
+   FOTOS DA VISTORIA
+========================================= */
+
+function formatInspectionPhotoSize(bytes) {
+  const size = Number(bytes || 0);
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function setInspectionPhotoStatus({
+  countText = "",
+  compressionText = "",
+  state = "",
+  errorMessage = "",
+} = {}) {
+  if (inspectionPhotoSelectionCount) {
+    inspectionPhotoSelectionCount.textContent = countText;
+  }
+
+  if (inspectionPhotoCompressionStatus) {
+    inspectionPhotoCompressionStatus.textContent = compressionText;
+  }
+
+  if (inspectionPhotoSelectionStatus) {
+    inspectionPhotoSelectionStatus.classList.remove(
+      "is-processing",
+      "is-success",
+      "is-error",
+    );
+
+    if (state) {
+      inspectionPhotoSelectionStatus.classList.add(state);
+    }
+  }
+
+  if (inspectionPhotoError) {
+    inspectionPhotoError.textContent =
+      errorMessage || "Não foi possível preparar as imagens selecionadas.";
+
+    inspectionPhotoError.hidden = !errorMessage;
+  }
+}
+
+function updateInspectionPhotoSelectionStatus() {
+  const quantity = selectedInspectionPhotos.length;
+
+  if (quantity === 0) {
+    setInspectionPhotoStatus({
+      countText: "Nenhuma imagem selecionada",
+      compressionText: "As imagens serão compactadas para WebP",
+    });
+
+    return;
+  }
+
+  const totalSize = selectedInspectionPhotos.reduce(
+    (total, file) => total + Number(file.size || 0),
+    0,
+  );
+
+  setInspectionPhotoStatus({
+    countText:
+      quantity === 1 ? "1 imagem preparada" : `${quantity} imagens preparadas`,
+    compressionText: `Total após compactação: ${formatInspectionPhotoSize(totalSize)}`,
+    state: "is-success",
+  });
+}
+
+function createCompressedInspectionPhotoName(originalName) {
+  const name = String(originalName || "foto")
+    .trim()
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return `${name || "foto"}.webp`;
+}
+
+function loadInspectionPhotoImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      reject(new Error("INSPECTION_PHOTO_DECODE_FAILED"));
+    };
+
+    image.src = objectUrl;
+  });
+}
+
+function inspectionCanvasToWebpBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("INSPECTION_PHOTO_COMPRESSION_FAILED"));
+
+          return;
+        }
+
+        resolve(blob);
+      },
+      "image/webp",
+      quality,
+    );
+  });
+}
+
+async function compressInspectionPhoto(file) {
+  const image = await loadInspectionPhotoImage(file);
+
+  const originalWidth = Number(image.naturalWidth || image.width || 0);
+
+  const originalHeight = Number(image.naturalHeight || image.height || 0);
+
+  if (!originalWidth || !originalHeight) {
+    throw new Error("INSPECTION_PHOTO_INVALID_DIMENSIONS");
+  }
+
+  const largestDimension = Math.max(originalWidth, originalHeight);
+
+  const initialScale =
+    largestDimension > maxInspectionPhotoDimension
+      ? maxInspectionPhotoDimension / largestDimension
+      : 1;
+
+  let finalWidth = Math.max(1, Math.round(originalWidth * initialScale));
+
+  let finalHeight = Math.max(1, Math.round(originalHeight * initialScale));
+
+  const canvas = document.createElement("canvas");
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+  });
+
+  if (!context) {
+    throw new Error("INSPECTION_PHOTO_CANVAS_UNAVAILABLE");
+  }
+
+  let compressedBlob = null;
+
+  let quality = 0.86;
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    canvas.width = finalWidth;
+
+    canvas.height = finalHeight;
+
+    context.fillStyle = "#ffffff";
+
+    context.fillRect(0, 0, finalWidth, finalHeight);
+
+    context.drawImage(image, 0, 0, finalWidth, finalHeight);
+
+    compressedBlob = await inspectionCanvasToWebpBlob(canvas, quality);
+
+    if (compressedBlob.size <= targetCompressedInspectionPhotoSize) {
+      break;
+    }
+
+    if (quality > 0.58) {
+      quality -= 0.07;
+    } else {
+      finalWidth = Math.max(720, Math.round(finalWidth * 0.88));
+
+      finalHeight = Math.max(720, Math.round(finalHeight * 0.88));
+    }
+  }
+
+  if (
+    !compressedBlob ||
+    compressedBlob.size > maxCompressedInspectionPhotoSize
+  ) {
+    throw new Error("INSPECTION_PHOTO_STILL_TOO_LARGE");
+  }
+
+  return new File(
+    [compressedBlob],
+    createCompressedInspectionPhotoName(file.name),
+    {
+      type: "image/webp",
+
+      lastModified: file.lastModified || Date.now(),
+    },
+  );
+}
+
+function syncInspectionPhotoInputFiles() {
+  if (!inspectionPhotoInput) {
+    return;
+  }
+
+  try {
+    const dataTransfer = new DataTransfer();
+
+    selectedInspectionPhotos.forEach((file) => {
+      dataTransfer.items.add(file);
+    });
+
+    inspectionPhotoInput.files = dataTransfer.files;
+  } catch (error) {
+    console.warn(
+      "[Nova Vistoria] Não foi possível sincronizar o campo de fotos:",
+      error,
+    );
+  }
+}
+
+function renderInspectionPhotoPreview() {
+  if (!inspectionPhotoPreview) {
+    return;
+  }
+
+  inspectionPhotoPreview.innerHTML = "";
+
+  selectedInspectionPhotos.forEach((file, index) => {
+    const previewItem = document.createElement("div");
+
+    previewItem.className = "photo-preview__item";
+
+    const image = document.createElement("img");
+
+    image.alt = `Pré-visualização da foto ${index + 1}`;
+
+    const objectUrl = URL.createObjectURL(file);
+
+    image.src = objectUrl;
+
+    image.addEventListener(
+      "load",
+      () => {
+        URL.revokeObjectURL(objectUrl);
+      },
+      {
+        once: true,
+      },
+    );
+
+    const removeButton = document.createElement("button");
+
+    removeButton.type = "button";
+
+    removeButton.className = "photo-preview__remove";
+
+    removeButton.textContent = "×";
+
+    removeButton.setAttribute("aria-label", `Remover foto ${index + 1}`);
+
+    removeButton.addEventListener("click", () => {
+      if (processingInspectionPhotos) {
+        return;
+      }
+
+      selectedInspectionPhotos.splice(index, 1);
+
+      syncInspectionPhotoInputFiles();
+
+      renderInspectionPhotoPreview();
+
+      updateInspectionPhotoSelectionStatus();
+    });
+
+    previewItem.append(image, removeButton);
+
+    inspectionPhotoPreview.appendChild(previewItem);
+  });
+}
+
+async function handleInspectionPhotoSelection() {
+  if (processingInspectionPhotos || !inspectionPhotoInput) {
+    return;
+  }
+
+  const incomingFiles = Array.from(inspectionPhotoInput.files || []);
+
+  if (incomingFiles.length === 0) {
+    return;
+  }
+
+  processingInspectionPhotos = true;
+
+  inspectionPhotoInput.disabled = true;
+
+  setInspectionPhotoStatus({
+    countText:
+      selectedInspectionPhotos.length === 1
+        ? "1 imagem preparada"
+        : `${selectedInspectionPhotos.length} imagens preparadas`,
+    compressionText: "Validando e compactando imagens...",
+    state: "is-processing",
+  });
+
+  const errors = [];
+
+  try {
+    for (const file of incomingFiles) {
+      if (!acceptedInspectionPhotoTypes.has(file.type)) {
+        errors.push(`${file.name}: formato não permitido.`);
+
+        continue;
+      }
+
+      if (file.size <= 0) {
+        errors.push(`${file.name}: arquivo vazio.`);
+
+        continue;
+      }
+
+      if (file.size > maxOriginalInspectionPhotoSize) {
+        errors.push(`${file.name}: o arquivo original ultrapassa 10 MB.`);
+
+        continue;
+      }
+
+      const alreadyExists = selectedInspectionPhotos.some(
+        (selectedFile) =>
+          selectedFile.name ===
+            createCompressedInspectionPhotoName(file.name) &&
+          selectedFile.lastModified === file.lastModified,
+      );
+
+      if (alreadyExists) {
+        errors.push(`${file.name}: esta imagem já foi adicionada.`);
+
+        continue;
+      }
+
+      try {
+        const compressedFile = await compressInspectionPhoto(file);
+
+        selectedInspectionPhotos.push(compressedFile);
+      } catch (error) {
+        console.error(
+          `[Nova Vistoria] Não foi possível compactar ${file.name}:`,
+          error,
+        );
+
+        errors.push(`${file.name}: não foi possível compactar a imagem.`);
+      }
+    }
+  } finally {
+    processingInspectionPhotos = false;
+
+    inspectionPhotoInput.disabled = false;
+
+    syncInspectionPhotoInputFiles();
+
+    renderInspectionPhotoPreview();
+
+    updateInspectionPhotoSelectionStatus();
+  }
+
+  if (errors.length > 0) {
+    setInspectionPhotoStatus({
+      countText:
+        selectedInspectionPhotos.length === 1
+          ? "1 imagem preparada"
+          : `${selectedInspectionPhotos.length} imagens preparadas`,
+      compressionText:
+        selectedInspectionPhotos.length > 0
+          ? "As imagens válidas foram preparadas."
+          : "Nenhuma imagem válida foi adicionada.",
+      state: "is-error",
+      errorMessage: errors.join(" "),
+    });
+
+    showFeedback(errors[0], "error");
+
+    return;
+  }
+
+  setInspectionPhotoStatus({
+    countText:
+      selectedInspectionPhotos.length === 1
+        ? "1 imagem preparada"
+        : `${selectedInspectionPhotos.length} imagens preparadas`,
+    compressionText: "Compactação concluída com sucesso.",
+    state: "is-success",
+  });
+}
+
+let registrarFotosVistoriaFunction = null;
+
+async function getRegistrarFotosVistoriaFunction() {
+  if (registrarFotosVistoriaFunction) {
+    return registrarFotosVistoriaFunction;
+  }
+
+  const [appModule, functionsModule] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js"),
+  ]);
+
+  const apps = appModule.getApps();
+
+  if (!apps.length) {
+    throw new Error("FIREBASE_APP_NAO_INICIALIZADO");
+  }
+
+  const functions = functionsModule.getFunctions(apps[0], "southamerica-east1");
+
+  registrarFotosVistoriaFunction = functionsModule.httpsCallable(
+    functions,
+    "registrarFotosVistoria",
+  );
+
+  return registrarFotosVistoriaFunction;
+}
+
+function createInspectionStoragePhotoName(index) {
+  const uniqueId =
+    window.crypto?.randomUUID?.() ||
+    `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return `foto-${uniqueId}.webp`;
+}
+
+async function uploadInspectionPhotos(savedInspection) {
+  const inspectionId = String(savedInspection?.id || "").trim();
+
+  if (!inspectionId) {
+    throw new Error("INSPECTION_ID_REQUIRED_FOR_PHOTOS");
+  }
+
+  if (selectedInspectionPhotos.length === 0) {
+    return {
+      sucesso: true,
+      vistoriaId: inspectionId,
+      quantidadeFotos: 0,
+    };
+  }
+
+  processingInspectionPhotos = true;
+
+  if (inspectionPhotoInput) {
+    inspectionPhotoInput.disabled = true;
+  }
+
+  const uploadedPhotos = [];
+
+  let uploadedCount = 0;
+
+  try {
+    for (let start = 0; start < selectedInspectionPhotos.length; start += 4) {
+      const batch = selectedInspectionPhotos.slice(start, start + 4);
+
+      await Promise.all(
+        batch.map(async (file, batchIndex) => {
+          const position = start + batchIndex + 1;
+
+          const fileName = createInspectionStoragePhotoName(position);
+
+          const storagePath = `vistorias/${inspectionId}/imagens/${fileName}`;
+
+          const storageReference = ref(storage, storagePath);
+
+          await uploadBytes(storageReference, file, {
+            contentType: "image/webp",
+
+            customMetadata: {
+              vistoriaId: inspectionId,
+
+              enviadoPorUid: currentSession?.uid || "",
+
+              enviadoPorPerfil: currentSession?.role || "",
+
+              origem: "vistoria",
+
+              nomeOriginal: file.name || fileName,
+            },
+          });
+
+          uploadedCount += 1;
+
+          uploadedPhotos.push({
+            storageReference,
+
+            data: {
+              storagePath,
+
+              nome: file.name || fileName,
+
+              tamanho: Number(file.size || 0),
+
+              posicao: position,
+            },
+          });
+
+          setInspectionPhotoStatus({
+            countText: `${uploadedCount} de ${selectedInspectionPhotos.length} imagens enviadas`,
+
+            compressionText: "Enviando fotos da vistoria...",
+
+            state: "is-processing",
+          });
+        }),
+      );
+    }
+
+    uploadedPhotos.sort(
+      (photoA, photoB) => photoA.data.posicao - photoB.data.posicao,
+    );
+
+    const registrarFotos = await getRegistrarFotosVistoriaFunction();
+
+    const response = await registrarFotos({
+      vistoriaId: inspectionId,
+
+      fotos: uploadedPhotos.map((photo) => photo.data),
+    });
+
+    const result = response.data || {};
+
+    if (result.sucesso !== true) {
+      throw new Error("INSPECTION_PHOTO_REGISTRATION_FAILED");
+    }
+
+    const quantity = Number(result.quantidadeFotos || uploadedPhotos.length);
+
+    setInspectionPhotoStatus({
+      countText:
+        quantity === 1 ? "1 imagem enviada" : `${quantity} imagens enviadas`,
+
+      compressionText: "Fotos armazenadas com sucesso.",
+
+      state: "is-success",
+    });
+
+    return result;
+  } catch (error) {
+    console.error("[Nova Vistoria] Não foi possível enviar as fotos:", error);
+
+    await Promise.allSettled(
+      uploadedPhotos.map((photo) => deleteObject(photo.storageReference)),
+    );
+
+    setInspectionPhotoStatus({
+      countText: "Upload não concluído",
+
+      compressionText: "As fotos não foram vinculadas à vistoria.",
+
+      state: "is-error",
+
+      errorMessage: "Não foi possível enviar todas as fotos. Tente novamente.",
+    });
+
+    throw error;
+  } finally {
+    processingInspectionPhotos = false;
+
+    if (inspectionPhotoInput) {
+      inspectionPhotoInput.disabled = false;
+    }
+  }
+}
+
+function finishSavedInspection(savedInspection, isEmployeeInspection) {
+  if (isEmployeeInspection) {
+    saveInspectionButton.textContent = "Enviada para validação";
+
+    form.querySelectorAll("input, select, textarea").forEach((field) => {
+      field.disabled = true;
+    });
+
+    showFeedback(
+      `${savedInspection.codigo} enviada ao administrador para validação!`,
+    );
+
+    window.setTimeout(() => {
+      window.location.href = "vistorias.html?perfil=funcionario";
+    }, 900);
+
+    return;
+  }
+
+  saveInspectionButton.textContent = `${savedInspection.codigo} salva`;
+
+  form.querySelectorAll("input, select, textarea").forEach((field) => {
+    field.disabled = true;
+  });
+
+  if (currentLinkedOrder?.id) {
+    showFeedback(
+      `${savedInspection.codigo} criada e vinculada à ${currentLinkedOrder.codigo}!`,
+    );
+
+    window.setTimeout(() => {
+      window.location.href = `detalhes-solicitacao.html?id=${encodeURIComponent(
+        currentLinkedOrder.id,
+      )}`;
+    }, 900);
+
+    return;
+  }
+
+  showFeedback(
+    `${savedInspection.codigo} criada e validada! Abrindo a vistoria...`,
+  );
+
+  window.setTimeout(() => {
+    const parameters = new URLSearchParams({
+      vistoria: savedInspection.id,
+      modo: "consulta",
+    });
+
+    window.location.href = `nova-vistoria.html?${parameters.toString()}`;
+  }, 900);
+}
+
+/* =========================================
    GRAVAÇÃO DA VISTORIA
 ========================================= */
 
@@ -2508,6 +3184,49 @@ async function saveEmployeeInspectionForValidation() {
 async function handleSubmit(event) {
   event.preventDefault();
 
+  if (processingInspectionPhotos) {
+    showFeedback(
+      "Aguarde a compactação ou o envio das imagens antes de salvar a vistoria.",
+      "error",
+    );
+
+    return;
+  }
+
+  const isEmployeeInspection = currentSession?.role === "funcionario";
+
+  if (savedInspectionPendingPhotoUpload) {
+    saveInspectionButton.disabled = true;
+
+    saveInspectionButton.textContent = `Enviando ${selectedInspectionPhotos.length} fotos...`;
+
+    try {
+      await uploadInspectionPhotos(savedInspectionPendingPhotoUpload);
+
+      const savedInspection = savedInspectionPendingPhotoUpload;
+
+      savedInspectionPendingPhotoUpload = null;
+
+      finishSavedInspection(savedInspection, isEmployeeInspection);
+    } catch (error) {
+      console.error(
+        "[Nova Vistoria] Nova tentativa de envio das fotos falhou:",
+        error,
+      );
+
+      saveInspectionButton.disabled = false;
+
+      saveInspectionButton.textContent = "Tentar enviar fotos novamente";
+
+      showFeedback(
+        "A vistoria foi salva, mas as fotos não foram enviadas. Tente novamente.",
+        "error",
+      );
+    }
+
+    return;
+  }
+
   if (!selectedCondominium?.id) {
     showFeedback("Selecione o condomínio da vistoria.", "error");
 
@@ -2583,70 +3302,38 @@ async function handleSubmit(event) {
   saveInspectionButton.textContent = "Salvando vistoria...";
 
   try {
-    const isEmployeeInspection = currentSession?.role === "funcionario";
-
     const savedInspection = isEmployeeInspection
       ? await saveEmployeeInspectionForValidation()
       : await saveInspectionInFirestore();
 
     console.log("[Nova Vistoria] Vistoria salva:", savedInspection);
 
-    if (isEmployeeInspection) {
-      saveInspectionButton.textContent = "Enviada para validação";
+    if (selectedInspectionPhotos.length > 0) {
+      savedInspectionPendingPhotoUpload = savedInspection;
 
-      form.querySelectorAll("input, select, textarea").forEach((field) => {
-        field.disabled = true;
-      });
+      saveInspectionButton.textContent = `Enviando ${selectedInspectionPhotos.length} fotos...`;
 
-      showFeedback(
-        `${savedInspection.codigo} enviada ao administrador para validação!`,
-      );
+      await uploadInspectionPhotos(savedInspection);
 
-      window.setTimeout(() => {
-        window.location.href = "vistorias.html?perfil=funcionario";
-      }, 900);
-
-      return;
+      savedInspectionPendingPhotoUpload = null;
     }
 
-    saveInspectionButton.textContent = `${savedInspection.codigo} salva`;
-
-    form.querySelectorAll("input, select, textarea").forEach((field) => {
-      field.disabled = true;
-    });
-
-    if (currentLinkedOrder?.id) {
-      showFeedback(
-        `${savedInspection.codigo} criada e vinculada à ${currentLinkedOrder.codigo}!`,
-      );
-
-      window.setTimeout(() => {
-        window.location.href = `detalhes-solicitacao.html?id=${encodeURIComponent(
-          currentLinkedOrder.id,
-        )}`;
-      }, 900);
-
-      return;
-    }
-
-    showFeedback(
-      `${savedInspection.codigo} criada e validada! Abrindo a vistoria...`,
-    );
-
-    window.setTimeout(() => {
-      const parameters = new URLSearchParams({
-        vistoria: savedInspection.id,
-        modo: "consulta",
-      });
-
-      window.location.href = `nova-vistoria.html?${parameters.toString()}`;
-    }, 900);
-
-    return;
+    finishSavedInspection(savedInspection, isEmployeeInspection);
   } catch (error) {
     console.error("[Nova Vistoria] Não foi possível salvar:", error);
 
     saveInspectionButton.disabled = false;
+
+    if (savedInspectionPendingPhotoUpload) {
+      saveInspectionButton.textContent = "Tentar enviar fotos novamente";
+
+      showFeedback(
+        "A vistoria foi salva, mas as fotos não foram enviadas. Tente novamente.",
+        "error",
+      );
+
+      return;
+    }
 
     saveInspectionButton.textContent = originalButtonText;
 
@@ -4592,6 +5279,11 @@ async function initializePage() {
 ========================================= */
 
 form.addEventListener("submit", handleSubmit);
+
+inspectionPhotoInput?.addEventListener(
+  "change",
+  handleInspectionPhotoSelection,
+);
 
 condominiumSelect.addEventListener("change", handleCondominiumChange);
 

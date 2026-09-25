@@ -342,6 +342,14 @@ const photoCompressionStatus = document.getElementById(
 
 const photoError = document.getElementById("photo-error");
 
+const photoFormDescription = document.querySelector(
+  '[data-section="fotos"] .form-card__description',
+);
+
+const photoUploadDescription = document.getElementById(
+  "photo-upload-description",
+);
+
 /* Observações */
 
 /* Progresso */
@@ -475,6 +483,8 @@ let selectedEmployee = null;
 
 let inspectionSchedulingSelected = false;
 
+let inspectionImmediateSelected = false;
+
 let hasRegisteredAddress = false;
 
 let clientEditing = false;
@@ -572,6 +582,33 @@ function getSelectedCategories() {
   return Array.from(categoryInputs)
     .filter((input) => input.checked)
     .map((input) => input.value);
+}
+
+function isInspectionOrder() {
+  return getSelectedCategories().includes("vistoria");
+}
+
+function updatePhotoLimitPresentation() {
+  const inspectionOrder = isInspectionOrder();
+
+  if (photoFormDescription) {
+    photoFormDescription.textContent = inspectionOrder
+      ? "Adicione quantas imagens forem necessárias para registrar a vistoria. Cada arquivo original pode ter no máximo 10 MB e será comprimido automaticamente antes do envio."
+      : "Adicione até 6 imagens. Cada arquivo original pode ter no máximo 10 MB e será comprimido automaticamente antes do envio.";
+  }
+
+  if (photoUploadDescription) {
+    photoUploadDescription.textContent = inspectionOrder
+      ? "JPG, PNG ou WebP — sem limite de quantidade e 10 MB por arquivo."
+      : "JPG, PNG ou WebP — máximo de 6 imagens e 10 MB por arquivo.";
+  }
+
+  if (fotosProblema && !processingPhotos) {
+    fotosProblema.disabled =
+      !inspectionOrder && selectedFiles.length >= maxPhotos;
+  }
+
+  updatePhotoSelectionStatus();
 }
 
 function getSelectedPeriod() {
@@ -945,6 +982,18 @@ async function saveOrderInFirestore({
    UPLOAD DAS IMAGENS DA ORDEM
 ========================================= */
 
+function createOrderPhotoStorageName(position, inspectionOrder) {
+  if (!inspectionOrder) {
+    return `foto-${position}.webp`;
+  }
+
+  const uniqueId =
+    window.crypto?.randomUUID?.() ||
+    `${Date.now()}-${position}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return `foto-${uniqueId}.webp`;
+}
+
 async function uploadOrderPhotos(savedOrder) {
   const orderId = String(savedOrder?.id || "").trim();
 
@@ -956,7 +1005,10 @@ async function uploadOrderPhotos(savedOrder) {
     return [];
   }
 
-  if (selectedFiles.length > maxPhotos) {
+  const inspectionOrder =
+    savedOrder?.tipoAtendimento === "vistoria" || isInspectionOrder();
+
+  if (!inspectionOrder && selectedFiles.length > maxPhotos) {
     throw new Error("PHOTO_LIMIT_EXCEEDED");
   }
 
@@ -964,60 +1016,77 @@ async function uploadOrderPhotos(savedOrder) {
 
   const uploadedPhotos = [];
 
+  let uploadedCount = 0;
+
   try {
-    for (let index = 0; index < selectedFiles.length; index += 1) {
-      const file = selectedFiles[index];
+    for (let start = 0; start < selectedFiles.length; start += 4) {
+      const batch = selectedFiles.slice(start, start + 4);
 
-      const position = index + 1;
+      await Promise.all(
+        batch.map(async (file, batchIndex) => {
+          const position = start + batchIndex + 1;
 
-      const fileName = `foto-${position}.webp`;
+          const fileName = createOrderPhotoStorageName(
+            position,
+            inspectionOrder,
+          );
 
-      const storagePath = `ordens/${orderId}/imagens/${fileName}`;
+          const storagePath = `ordens/${orderId}/imagens/${fileName}`;
 
-      const storageReference = ref(storage, storagePath);
+          const storageReference = ref(storage, storagePath);
 
-      setPhotoStatus({
-        countText: `${position} de ${selectedFiles.length}`,
-        compressionText: `Enviando imagem ${position}...`,
-        state: "is-processing",
-      });
+          await uploadBytes(storageReference, file, {
+            contentType: "image/webp",
 
-      await uploadBytes(storageReference, file, {
-        contentType: "image/webp",
+            customMetadata: {
+              ordemId: orderId,
 
-        customMetadata: {
-          ordemId: orderId,
+              enviadoPorUid: currentSession?.uid || "",
 
-          enviadoPorUid: currentSession?.uid || "",
+              enviadoPorPerfil: currentProfile || "",
 
-          enviadoPorPerfil: currentProfile || "",
+              nomeOriginal: file.name || fileName,
+            },
+          });
 
-          nomeOriginal: file.name || fileName,
-        },
-      });
+          uploadedCount += 1;
 
-      uploadedPhotos.push({
-        storageReference,
+          uploadedPhotos.push({
+            storageReference,
 
-        data: {
-          storagePath,
+            data: {
+              storagePath,
 
-          nome: file.name || fileName,
+              nome: file.name || fileName,
 
-          contentType: "image/webp",
+              contentType: "image/webp",
 
-          tamanho: Number(file.size || 0),
+              tamanho: Number(file.size || 0),
 
-          posicao: position,
+              posicao: position,
 
-          enviadoPorUid: currentSession?.uid || "",
+              enviadoPorUid: currentSession?.uid || "",
 
-          enviadoPorPerfil: currentProfile || "",
+              enviadoPorPerfil: currentProfile || "",
 
-          enviadoEm: new Date().toISOString(),
-        },
-      });
+              enviadoEm: new Date().toISOString(),
+            },
+          });
+
+          setPhotoStatus({
+            countText: `${uploadedCount} de ${selectedFiles.length}`,
+            compressionText: `Enviando imagens da ${
+              inspectionOrder ? "vistoria" : "OS"
+            }...`,
+            state: "is-processing",
+          });
+        }),
+      );
     }
+
+    uploadedPhotos.sort(
+      (photoA, photoB) => photoA.data.posicao - photoB.data.posicao,
+    );
 
     const photoData = uploadedPhotos.map((photo) => photo.data);
 
@@ -2396,6 +2465,7 @@ function preselectCategoryFromURL() {
 
   syncCategoryStyles();
   renderServices();
+  updatePhotoLimitPresentation();
 
   window.setTimeout(() => {
     scrollToElement(servicesSection);
@@ -2863,7 +2933,22 @@ function validateImmediateInspectionData() {
 }
 
 async function startInspectionNow() {
-  if (!startInspectionNowButton || !validateImmediateInspectionData()) {
+  if (!startInspectionNowButton) {
+    return;
+  }
+
+  inspectionImmediateSelected = true;
+
+  inspectionSchedulingSelected = false;
+
+  updateInspectionEmployeeSection();
+
+  resetScheduleSelection();
+
+  if (!validateImmediateInspectionData()) {
+    updateSummary();
+    updateProgress();
+
     return;
   }
 
@@ -2901,6 +2986,25 @@ async function startInspectionNow() {
     savedOrder = await saveOrderInFirestore({
       isImmediate: true,
     });
+
+    if (selectedFiles.length > 0) {
+      if (buttonTitle) {
+        buttonTitle.textContent = "Enviando imagens...";
+      }
+
+      try {
+        await uploadOrderPhotos(savedOrder);
+      } catch (photoError) {
+        console.error(
+          "[Nova Ordem] A OS foi criada, mas as imagens não foram enviadas:",
+          photoError,
+        );
+      }
+    }
+
+    if (buttonTitle) {
+      buttonTitle.textContent = "Abrindo vistoria...";
+    }
 
     const iniciarVistoria = await obterIniciadorVistoriaAgora();
 
@@ -3147,6 +3251,8 @@ function handleInspectionEmployeeChange() {
 }
 
 async function scheduleInspection() {
+  inspectionImmediateSelected = false;
+
   inspectionSchedulingSelected = true;
 
   closeInspectionModeModal({
@@ -3174,14 +3280,21 @@ async function handleCategoryChange(event) {
 
     if (changedInput.value !== "vistoria") {
       inspectionSchedulingSelected = false;
+      inspectionImmediateSelected = false;
+    } else {
+      inspectionSchedulingSelected = false;
+      inspectionImmediateSelected = false;
     }
   } else if (changedInput.value === "vistoria") {
     inspectionSchedulingSelected = false;
+    inspectionImmediateSelected = false;
   }
 
   updateInspectionEmployeeSection();
 
   syncCategoryStyles();
+
+  updatePhotoLimitPresentation();
 
   categoryError.hidden = true;
 
@@ -3810,9 +3923,14 @@ function updatePhotoSelectionStatus() {
     0,
   );
 
+  const inspectionOrder = isInspectionOrder();
+
   setPhotoStatus({
-    countText:
-      quantity === 1
+    countText: inspectionOrder
+      ? quantity === 1
+        ? "1 imagem preparada"
+        : `${quantity} imagens preparadas`
+      : quantity === 1
         ? "1 de 6 imagens preparada"
         : `${quantity} de 6 imagens preparadas`,
     compressionText: `Total após compressão: ${formatPhotoSize(totalSize)}`,
@@ -4010,9 +4128,13 @@ async function handlePhotoSelection() {
     return;
   }
 
-  const availableSlots = maxPhotos - selectedFiles.length;
+  const inspectionOrder = isInspectionOrder();
 
-  if (availableSlots <= 0) {
+  const availableSlots = inspectionOrder
+    ? incomingFiles.length
+    : maxPhotos - selectedFiles.length;
+
+  if (!inspectionOrder && availableSlots <= 0) {
     syncPhotoInputFiles();
 
     showFeedback(`A OS já possui o limite de ${maxPhotos} imagens.`, "error");
@@ -4025,16 +4147,22 @@ async function handlePhotoSelection() {
   fotosProblema.disabled = true;
 
   setPhotoStatus({
-    countText: `${selectedFiles.length} de ${maxPhotos} imagens preparadas`,
+    countText: inspectionOrder
+      ? selectedFiles.length === 1
+        ? "1 imagem preparada"
+        : `${selectedFiles.length} imagens preparadas`
+      : `${selectedFiles.length} de ${maxPhotos} imagens preparadas`,
     compressionText: "Validando e comprimindo imagens...",
     state: "is-processing",
   });
 
-  const filesToProcess = incomingFiles.slice(0, availableSlots);
+  const filesToProcess = inspectionOrder
+    ? incomingFiles
+    : incomingFiles.slice(0, availableSlots);
 
   const errors = [];
 
-  if (incomingFiles.length > availableSlots) {
+  if (!inspectionOrder && incomingFiles.length > availableSlots) {
     errors.push(
       `Somente ${availableSlots} imagem(ns) foram considerada(s), pois o limite da OS é ${maxPhotos}.`,
     );
@@ -4092,7 +4220,8 @@ async function handlePhotoSelection() {
   } finally {
     processingPhotos = false;
 
-    fotosProblema.disabled = selectedFiles.length >= maxPhotos;
+    fotosProblema.disabled =
+      !inspectionOrder && selectedFiles.length >= maxPhotos;
 
     syncPhotoInputFiles();
     renderPhotoPreview();
@@ -4102,8 +4231,11 @@ async function handlePhotoSelection() {
 
   if (errors.length > 0) {
     setPhotoStatus({
-      countText:
-        selectedFiles.length === 1
+      countText: inspectionOrder
+        ? selectedFiles.length === 1
+          ? "1 imagem preparada"
+          : `${selectedFiles.length} imagens preparadas`
+        : selectedFiles.length === 1
           ? "1 de 6 imagens preparada"
           : `${selectedFiles.length} de 6 imagens preparadas`,
       compressionText:
@@ -4120,8 +4252,11 @@ async function handlePhotoSelection() {
   }
 
   setPhotoStatus({
-    countText:
-      selectedFiles.length === 1
+    countText: inspectionOrder
+      ? selectedFiles.length === 1
+        ? "1 imagem preparada"
+        : `${selectedFiles.length} imagens preparadas`
+      : selectedFiles.length === 1
         ? "1 de 6 imagens preparada"
         : `${selectedFiles.length} de 6 imagens preparadas`,
     compressionText: "Compressão concluída com sucesso.",
@@ -4305,7 +4440,13 @@ function validateForm() {
     return false;
   }
 
-  if (!isScheduleComplete()) {
+  const requiresSchedule = !(
+    currentProfile === "admin" &&
+    getSelectedCategories().includes("vistoria") &&
+    inspectionImmediateSelected
+  );
+
+  if (requiresSchedule && !isScheduleComplete()) {
     scheduleError.hidden = false;
 
     scheduleSection.classList.add("has-error");
@@ -4892,6 +5033,16 @@ async function handleSubmit(event) {
 
   updateSummary();
   updateProgress();
+
+  if (
+    currentProfile === "admin" &&
+    getSelectedCategories().includes("vistoria") &&
+    inspectionImmediateSelected
+  ) {
+    await startInspectionNow();
+
+    return;
+  }
 
   if (!validateForm()) {
     showFeedback("Revise os campos obrigatórios antes de continuar.", "error");

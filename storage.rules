@@ -28,11 +28,18 @@ service firebase.storage {
         ).data.role == "admin";
     }
 
-    function eCliente() {
+        function eCliente() {
       return usuarioAtivo()
         && firestore.get(
           /databases/(default)/documents/usuarios/$(request.auth.uid)
         ).data.role == "cliente";
+    }
+
+    function eFuncionario() {
+      return usuarioAtivo()
+        && firestore.get(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        ).data.role == "funcionario";
     }
 
     /* =====================================
@@ -95,19 +102,32 @@ service firebase.storage {
         );
     }
 
-        function imagemValida(ordemId, arquivo) {
-      return arquivo.matches('foto-[1-6][.]webp')
+        function ordemEhVistoria(ordemId) {
+  return ordemExiste(ordemId)
+    && firestore.get(
+      /databases/(default)/documents/ordens/$(ordemId)
+    ).data.tipoAtendimento == "vistoria";
+}
 
-        && request.resource.size > 0
+function imagemValida(ordemId, arquivo) {
+  return (
+    arquivo.matches('foto-[1-6][.]webp')
+    || (
+      ordemEhVistoria(ordemId)
+      && arquivo.matches('foto-[A-Za-z0-9_-]+[.]webp')
+    )
+  )
 
-        && request.resource.size <= 2 * 1024 * 1024
+    && request.resource.size > 0
 
-        && request.resource.contentType == "image/webp"
+    && request.resource.size <= 2 * 1024 * 1024
 
-        && request.resource.metadata.ordemId == ordemId
+    && request.resource.contentType == "image/webp"
 
-        && request.resource.metadata.enviadoPorUid == request.auth.uid;
-    }
+    && request.resource.metadata.ordemId == ordemId
+
+    && request.resource.metadata.enviadoPorUid == request.auth.uid;
+}
 
     function imagemOsRapidaValida(ordemId, arquivo) {
       return imagemValida(ordemId, arquivo)
@@ -153,6 +173,92 @@ service firebase.storage {
           || resource.metadata.enviadoPorUid == request.auth.uid
         )
       );
+    }
+    /* =====================================
+       IMAGENS DAS VISTORIAS
+    ===================================== */
+
+    function vistoriaExiste(vistoriaId) {
+      return firestore.exists(
+        /databases/(default)/documents/vistorias/$(vistoriaId)
+      );
+    }
+
+    function funcionarioPodeAcessarVistoria(vistoriaId) {
+      return eFuncionario()
+        && vistoriaExiste(vistoriaId)
+        && (
+          (
+            "tecnico" in firestore.get(
+              /databases/(default)/documents/vistorias/$(vistoriaId)
+            ).data
+            && firestore.get(
+              /databases/(default)/documents/vistorias/$(vistoriaId)
+            ).data.tecnico.uid == request.auth.uid
+          )
+          ||
+          (
+            "execucaoFuncionario" in firestore.get(
+              /databases/(default)/documents/vistorias/$(vistoriaId)
+            ).data
+            && firestore.get(
+              /databases/(default)/documents/vistorias/$(vistoriaId)
+            ).data.execucaoFuncionario.funcionarioUid == request.auth.uid
+          )
+        );
+    }
+
+    function clientePodeAcessarVistoria(vistoriaId) {
+      return eCliente()
+        && vistoriaExiste(vistoriaId)
+        && "clienteUid" in firestore.get(
+          /databases/(default)/documents/vistorias/$(vistoriaId)
+        ).data
+        && firestore.get(
+          /databases/(default)/documents/vistorias/$(vistoriaId)
+        ).data.clienteUid == request.auth.uid;
+    }
+
+    function podeAcessarVistoria(vistoriaId) {
+      return vistoriaExiste(vistoriaId)
+        && (
+          eAdministrador()
+          || funcionarioPodeAcessarVistoria(vistoriaId)
+          || clientePodeAcessarVistoria(vistoriaId)
+        );
+    }
+
+    function podeEnviarImagemVistoria(vistoriaId) {
+      return vistoriaExiste(vistoriaId)
+        && (
+          eAdministrador()
+          || funcionarioPodeAcessarVistoria(vistoriaId)
+        );
+    }
+
+    function imagemVistoriaValida(vistoriaId, arquivo) {
+      return arquivo.matches('foto-[A-Za-z0-9_-]+[.]webp')
+        && request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType == "image/webp"
+        && request.resource.metadata.vistoriaId == vistoriaId
+        && request.resource.metadata.enviadoPorUid == request.auth.uid
+        && request.resource.metadata.origem == "vistoria";
+    }
+
+    match /vistorias/{vistoriaId}/imagens/{arquivo} {
+      allow read: if podeAcessarVistoria(vistoriaId);
+
+      allow create: if podeEnviarImagemVistoria(vistoriaId)
+        && imagemVistoriaValida(vistoriaId, arquivo);
+
+      allow update: if false;
+
+      allow delete: if eAdministrador()
+        || (
+          funcionarioPodeAcessarVistoria(vistoriaId)
+          && resource.metadata.enviadoPorUid == request.auth.uid
+        );
     }
 
     /* =====================================

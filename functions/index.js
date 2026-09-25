@@ -98,10 +98,7 @@ function validarPayload(payload) {
 
   if (payload.acao === "criar" || payload.acao === "atualizar") {
     if (!payload.codigo) {
-      throw new HttpsError(
-          "invalid-argument",
-          "O código da OS é obrigatório.",
-      );
+      throw new HttpsError("invalid-argument", "O código da OS é obrigatório.");
     }
 
     if (!payload.data) {
@@ -121,10 +118,7 @@ function validarPayload(payload) {
 
   if (payload.acao === "atualizar" || payload.acao === "excluir") {
     if (!payload.eventId) {
-      throw new HttpsError(
-          "invalid-argument",
-          "O ID do evento é obrigatório.",
-      );
+      throw new HttpsError("invalid-argument", "O ID do evento é obrigatório.");
     }
   }
 }
@@ -287,10 +281,7 @@ function obterIntervaloAgenda(valor, duracaoMinutos) {
   const correspondencia = horario.match(/^(\d{1,2}):(\d{2})$/);
 
   if (!correspondencia) {
-    throw new HttpsError(
-        "invalid-argument",
-        "O horário informado é inválido.",
-    );
+    throw new HttpsError("invalid-argument", "O horário informado é inválido.");
   }
 
   const horas = Number(correspondencia[1]);
@@ -304,10 +295,7 @@ function obterIntervaloAgenda(valor, duracaoMinutos) {
     minutos < 0 ||
     minutos > 59
   ) {
-    throw new HttpsError(
-        "invalid-argument",
-        "O horário informado é inválido.",
-    );
+    throw new HttpsError("invalid-argument", "O horário informado é inválido.");
   }
 
   const inicioMinutos = horas * 60 + minutos;
@@ -525,13 +513,10 @@ function mapearOcupacaoDaAgenda(snapshot, ordemIgnoradaId = "") {
     try {
       intervalo = obterIntervaloAgenda(horarioExistente, duracaoMinutos);
     } catch (error) {
-      logger.warn(
-          "OS com horário confirmado inválido ignorada na checagem.",
-          {
-            ordemId: ordemSnapshot.id,
-            horario: horarioExistente,
-          },
-      );
+      logger.warn("OS com horário confirmado inválido ignorada na checagem.", {
+        ordemId: ordemSnapshot.id,
+        horario: horarioExistente,
+      });
 
       continue;
     }
@@ -565,11 +550,7 @@ function encontrarConflito(intervaloNovo, ocupacoes) {
           ocupacao.fimMinutos,
       )
     ) {
-      return montarDadosDoConflito(
-          ocupacao.ordemId,
-          ocupacao.ordem,
-          ocupacao,
-      );
+      return montarDadosDoConflito(ocupacao.ordemId, ocupacao.ordem, ocupacao);
     }
   }
 
@@ -666,10 +647,7 @@ exports.listarDisponibilidadeAgenda = onCall(
         "funcionario",
       ]);
 
-      const {ano, mes} = validarMesAgenda(
-          request.data?.ano,
-          request.data?.mes,
-      );
+      const {ano, mes} = validarMesAgenda(request.data?.ano, request.data?.mes);
 
       const tipoAtendimento = normalizarTipoAtendimento(
           request.data?.tipoAtendimento,
@@ -690,9 +668,7 @@ exports.listarDisponibilidadeAgenda = onCall(
       const documentosPorData = new Map();
 
       snapshot.docs.forEach((ordemSnapshot) => {
-        const data = texto(
-            ordemSnapshot.data()?.atendimento?.dataConfirmada,
-        );
+        const data = texto(ordemSnapshot.data()?.atendimento?.dataConfirmada);
 
         if (!documentosPorData.has(data)) {
           documentosPorData.set(data, []);
@@ -718,17 +694,17 @@ exports.listarDisponibilidadeAgenda = onCall(
         };
         const ocupacao = mapearOcupacaoDaAgenda(snapshotDaData);
         const limiteVistoriasAtingido =
-          tipoAtendimento === "vistoria" &&
-          ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA;
+        tipoAtendimento === "vistoria" &&
+        ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA;
 
         const horarios =
-          diaUtil && dataFutura && !limiteVistoriasAtingido ?
-            criarListaDeHorarios({
-              data,
-              tipoAtendimento,
-              ocupacoes: ocupacao.ocupacoes,
-            }) :
-            [];
+        diaUtil && dataFutura && !limiteVistoriasAtingido ?
+          criarListaDeHorarios({
+            data,
+            tipoAtendimento,
+            ocupacoes: ocupacao.ocupacoes,
+          }) :
+          [];
 
         dias.push({
           data,
@@ -795,8 +771,8 @@ exports.verificarDisponibilidadeAgenda = onCall(
 
       const conflito = encontrarConflito(agendamento, ocupacao.ocupacoes);
       const limiteVistoriasAtingido =
-        agendamento.tipoAtendimento === "vistoria" &&
-        ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA;
+      agendamento.tipoAtendimento === "vistoria" &&
+      ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA;
 
       return {
         sucesso: true,
@@ -852,10 +828,7 @@ function sanitizarValor(valor, profundidade = 0) {
   if (typeof valor === "object") {
     return Object.entries(valor).reduce((resultado, [chave, item]) => {
       if (item !== undefined) {
-        resultado[chave.slice(0, 120)] = sanitizarValor(
-            item,
-            profundidade + 1,
-        );
+        resultado[chave.slice(0, 120)] = sanitizarValor(item, profundidade + 1);
       }
 
       return resultado;
@@ -929,20 +902,23 @@ function construirDadosOrdemAgendada({
     criadoPorUid: usuario.uid,
     criadoPorNome:
       limitarTexto(usuario.nome, 180) || limitarTexto(usuario.email, 180),
-    ...(possuiFuncionario ? {
-      funcionarioResponsavelUid: funcionarioUid,
-      funcionarioResponsavel: {
-        funcionarioId: limitarTexto(funcionarioPayload.funcionarioId, 160),
-        usuarioUid: funcionarioUid,
-        codigo: limitarTexto(funcionarioPayload.codigo, 80),
-        nome: limitarTexto(funcionarioPayload.nome, 180),
-        cargo: limitarTexto(funcionarioPayload.cargo, 120),
-        designadoEm: FieldValue.serverTimestamp(),
-        designadoPorUid: usuario.uid,
-        designadoPorNome:
-          limitarTexto(usuario.nome, 180) || limitarTexto(usuario.email, 180),
-      },
-    } : {}),
+    ...(possuiFuncionario ?
+      {
+        funcionarioResponsavelUid: funcionarioUid,
+        funcionarioResponsavel: {
+          funcionarioId: limitarTexto(funcionarioPayload.funcionarioId, 160),
+          usuarioUid: funcionarioUid,
+          codigo: limitarTexto(funcionarioPayload.codigo, 80),
+          nome: limitarTexto(funcionarioPayload.nome, 180),
+          cargo: limitarTexto(funcionarioPayload.cargo, 120),
+          designadoEm: FieldValue.serverTimestamp(),
+          designadoPorUid: usuario.uid,
+          designadoPorNome:
+              limitarTexto(usuario.nome, 180) ||
+              limitarTexto(usuario.email, 180),
+        },
+      } :
+      {}),
     clienteUid,
     condominioId,
     clientesAutorizadosIds: clientesIds,
@@ -971,26 +947,27 @@ function construirDadosOrdemAgendada({
       cnpj: limitarTexto(condominio.cnpj, 40),
       endereco: sanitizarValor(mapa(condominio.endereco)),
       estruturaAmbientes: sanitizarValor(
-          Array.isArray(condominio.estruturaAmbientes) ?
-            condominio.estruturaAmbientes :
-            [],
+        Array.isArray(condominio.estruturaAmbientes) ?
+          condominio.estruturaAmbientes :
+          [],
       ),
       equipamentos: sanitizarValor(
-          Array.isArray(condominio.equipamentos) ?
-            condominio.equipamentos :
-            [],
+        Array.isArray(condominio.equipamentos) ? condominio.equipamentos : [],
       ),
     },
     endereco: sanitizarValor(enderecoPayload),
     categorias: [categoriaPadrao],
-    servicos: [{
-      categoria: categoriaPadrao,
-      servico: limitarTexto(payload.servicoPrincipal, 240) || tituloPadrao,
-    }],
+    servicos: [
+      {
+        categoria: categoriaPadrao,
+        servico: limitarTexto(payload.servicoPrincipal, 240) || tituloPadrao,
+      },
+    ],
     atendimento: {
       modo: "agendado",
       dataPreferida: agendamento.data,
-      periodo: limitarTexto(atendimentoPayload.periodo, 20) ||
+      periodo:
+        limitarTexto(atendimentoPayload.periodo, 20) ||
         (agendamento.inicioMinutos < 12 * 60 ? "manha" : "tarde"),
       horarioPreferido: agendamento.horario,
       dataConfirmada: agendamento.data,
@@ -1018,29 +995,32 @@ function construirDadosOrdemAgendada({
     arquivado: false,
     quantidadeFotos: 0,
     vistoria:
-      agendamento.tipoAtendimento === "vistoria" ? {
-        id: limitarTexto(vistoriaPayload.id, 160),
-        codigo: limitarTexto(vistoriaPayload.codigo, 80),
-        tipo: limitarTexto(vistoriaPayload.tipo, 240) || "Vistoria técnica",
-        status: limitarTexto(vistoriaPayload.status, 80) || "agendada",
-        validada: vistoriaPayload.validada === true,
-        progresso: numeroSeguro(vistoriaPayload.progresso),
-        checklist: sanitizarValor(
-            Array.isArray(vistoriaPayload.checklist) ?
-              vistoriaPayload.checklist :
-              [],
-        ),
-        totalItens: numeroSeguro(vistoriaPayload.totalItens),
-        itensConcluidos: numeroSeguro(vistoriaPayload.itensConcluidos),
-        equipamentosAvaliados: numeroSeguro(
-            vistoriaPayload.equipamentosAvaliados,
-        ),
-        naoConformidades: numeroSeguro(vistoriaPayload.naoConformidades),
-        pendenciasCriticas: numeroSeguro(vistoriaPayload.pendenciasCriticas),
-        quantidadeFotos: numeroSeguro(vistoriaPayload.quantidadeFotos),
-        concluidaEm: sanitizarValor(vistoriaPayload.concluidaEm),
-      } :
-      null,
+      agendamento.tipoAtendimento === "vistoria" ?
+        {
+          id: limitarTexto(vistoriaPayload.id, 160),
+          codigo: limitarTexto(vistoriaPayload.codigo, 80),
+          tipo: limitarTexto(vistoriaPayload.tipo, 240) || "Vistoria técnica",
+          status: limitarTexto(vistoriaPayload.status, 80) || "agendada",
+          validada: vistoriaPayload.validada === true,
+          progresso: numeroSeguro(vistoriaPayload.progresso),
+          checklist: sanitizarValor(
+              Array.isArray(vistoriaPayload.checklist) ?
+                vistoriaPayload.checklist :
+                [],
+          ),
+          totalItens: numeroSeguro(vistoriaPayload.totalItens),
+          itensConcluidos: numeroSeguro(vistoriaPayload.itensConcluidos),
+          equipamentosAvaliados: numeroSeguro(
+              vistoriaPayload.equipamentosAvaliados,
+          ),
+          naoConformidades: numeroSeguro(vistoriaPayload.naoConformidades),
+          pendenciasCriticas: numeroSeguro(
+              vistoriaPayload.pendenciasCriticas,
+          ),
+          quantidadeFotos: numeroSeguro(vistoriaPayload.quantidadeFotos),
+          concluidaEm: sanitizarValor(vistoriaPayload.concluidaEm),
+        } :
+        null,
     origem: {
       tipo:
         limitarTexto(origemPayload.tipo, 80) ||
@@ -1058,36 +1038,42 @@ async function sincronizarNovaOrdemNaAgenda(ordem, token) {
   let eventId = "";
 
   try {
-    const payload = montarPayload({
-      acao: "criar",
-      codigo: ordem.codigo,
-      servico: ordem.titulo,
-      condominio: ordem.condominio?.nome,
-      cliente: ordem.cliente?.nome,
-      telefone: ordem.cliente?.telefone,
-      descricao: ordem.observacoes?.cliente,
-      endereco: formatarEnderecoAgenda(ordem.endereco),
-      data: ordem.atendimento?.dataConfirmada,
-      horario: ordem.atendimento?.horarioConfirmado,
-      horarioFinal: ordem.atendimento?.horarioFinal,
-      duracaoMinutos: ordem.atendimento?.duracaoMinutos,
-    }, token);
+    const payload = montarPayload(
+        {
+          acao: "criar",
+          codigo: ordem.codigo,
+          servico: ordem.titulo,
+          condominio: ordem.condominio?.nome,
+          cliente: ordem.cliente?.nome,
+          telefone: ordem.cliente?.telefone,
+          descricao: ordem.observacoes?.cliente,
+          endereco: formatarEnderecoAgenda(ordem.endereco),
+          data: ordem.atendimento?.dataConfirmada,
+          horario: ordem.atendimento?.horarioConfirmado,
+          horarioFinal: ordem.atendimento?.horarioFinal,
+          duracaoMinutos: ordem.atendimento?.duracaoMinutos,
+        },
+        token,
+    );
 
     validarPayload(payload);
 
     const resultado = await chamarAppsScript(payload);
     eventId = texto(resultado.eventId);
 
-    await db.collection("ordens").doc(ordem.id).update({
-      agendaGoogle: {
-        eventId,
-        status: "sincronizado",
-        ultimaAcao: "criar",
-        sincronizadoEm: FieldValue.serverTimestamp(),
-        erro: "",
-      },
-      atualizadoEm: FieldValue.serverTimestamp(),
-    });
+    await db
+        .collection("ordens")
+        .doc(ordem.id)
+        .update({
+          agendaGoogle: {
+            eventId,
+            status: "sincronizado",
+            ultimaAcao: "criar",
+            sincronizadoEm: FieldValue.serverTimestamp(),
+            erro: "",
+          },
+          atualizadoEm: FieldValue.serverTimestamp(),
+        });
   } catch (error) {
     logger.error("Agendamento criado, mas a Google Agenda falhou.", {
       ordemId: ordem.id,
@@ -1095,16 +1081,19 @@ async function sincronizarNovaOrdemNaAgenda(ordem, token) {
       message: error.message,
     });
 
-    await db.collection("ordens").doc(ordem.id).update({
-      agendaGoogle: {
-        eventId,
-        status: "erro",
-        ultimaAcao: "criar",
-        sincronizadoEm: null,
-        erro: texto(error.message) || "ERRO_DESCONHECIDO",
-      },
-      atualizadoEm: FieldValue.serverTimestamp(),
-    });
+    await db
+        .collection("ordens")
+        .doc(ordem.id)
+        .update({
+          agendaGoogle: {
+            eventId,
+            status: "erro",
+            ultimaAcao: "criar",
+            sincronizadoEm: null,
+            erro: texto(error.message) || "ERRO_DESCONHECIDO",
+          },
+          atualizadoEm: FieldValue.serverTimestamp(),
+        });
   }
 }
 
@@ -1137,8 +1126,7 @@ exports.criarAgendamentoSeguro = onCall(
 
       if (
         texto(agendamentoRecebido.horarioFinal) !== agendamento.horarioFinal ||
-        Number(agendamentoRecebido.duracaoMinutos) !==
-          agendamento.duracaoMinutos
+      Number(agendamentoRecebido.duracaoMinutos) !== agendamento.duracaoMinutos
       ) {
         throw new HttpsError(
             "invalid-argument",
@@ -1147,9 +1135,9 @@ exports.criarAgendamentoSeguro = onCall(
       }
 
       const clienteUid =
-        texto(usuario.role) === "cliente" ?
-          usuario.uid :
-          texto(payload.clienteUid);
+      texto(usuario.role) === "cliente" ?
+        usuario.uid :
+        texto(payload.clienteUid);
 
       if (!clienteUid) {
         throw new HttpsError(
@@ -1185,9 +1173,7 @@ exports.criarAgendamentoSeguro = onCall(
         );
       }
 
-      const condominioReference = db
-          .collection("condominios")
-          .doc(condominioId);
+      const condominioReference = db.collection("condominios").doc(condominioId);
       const condominioSnapshot = await condominioReference.get();
 
       if (!condominioSnapshot.exists) {
@@ -1199,12 +1185,12 @@ exports.criarAgendamentoSeguro = onCall(
 
       const condominio = condominioSnapshot.data() || {};
       const clientesIds = Array.isArray(condominio.clientesIds) ?
-        condominio.clientesIds :
-        [];
+      condominio.clientesIds :
+      [];
 
       if (
         texto(usuario.role) === "cliente" &&
-        !clientesIds.includes(usuario.uid)
+      !clientesIds.includes(usuario.uid)
       ) {
         throw new HttpsError(
             "permission-denied",
@@ -1219,15 +1205,15 @@ exports.criarAgendamentoSeguro = onCall(
           .doc(agendamento.data);
       const vistoriaId = texto(payload.vistoria?.id);
       const vistoriaReference = vistoriaId ?
-        db.collection("vistorias").doc(vistoriaId) :
-        null;
+      db.collection("vistorias").doc(vistoriaId) :
+      null;
       const observacaoInterna =
-        texto(usuario.role) === "admin" ?
-          limitarTexto(request.data?.observacaoInterna, 5000) :
-          "";
+      texto(usuario.role) === "admin" ?
+        limitarTexto(request.data?.observacaoInterna, 5000) :
+        "";
       const ordemPrivadaReference = observacaoInterna ?
-        db.collection("ordensPrivadas").doc(ordemReference.id) :
-        null;
+      db.collection("ordensPrivadas").doc(ordemReference.id) :
+      null;
 
       const resultado = await db.runTransaction(async (transaction) => {
         await transaction.get(bloqueioReference);
@@ -1266,10 +1252,7 @@ exports.criarAgendamentoSeguro = onCall(
           transaction,
         });
 
-        const conflito = encontrarConflito(
-            agendamento,
-            ocupacao.ocupacoes,
-        );
+        const conflito = encontrarConflito(agendamento, ocupacao.ocupacoes);
 
         if (conflito) {
           throw new HttpsError(
@@ -1281,7 +1264,7 @@ exports.criarAgendamentoSeguro = onCall(
 
         if (
           agendamento.tipoAtendimento === "vistoria" &&
-          ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA
+        ocupacao.totalVistorias >= LIMITE_VISTORIAS_DIA
         ) {
           throw new HttpsError(
               "resource-exhausted",
@@ -1289,9 +1272,7 @@ exports.criarAgendamentoSeguro = onCall(
           );
         }
 
-        const numeroAtual = Number(
-            contadorSnapshot.data()?.ultimoNumero || 0,
-        );
+        const numeroAtual = Number(contadorSnapshot.data()?.ultimoNumero || 0);
 
         if (!Number.isInteger(numeroAtual) || numeroAtual < 0) {
           throw new HttpsError(
@@ -1321,11 +1302,15 @@ exports.criarAgendamentoSeguro = onCall(
           atualizadoEm: FieldValue.serverTimestamp(),
         });
 
-        transaction.set(bloqueioReference, {
-          data: agendamento.data,
-          versao: FieldValue.increment(1),
-          atualizadoEm: FieldValue.serverTimestamp(),
-        }, {merge: true});
+        transaction.set(
+            bloqueioReference,
+            {
+              data: agendamento.data,
+              versao: FieldValue.increment(1),
+              atualizadoEm: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+        );
 
         transaction.set(ordemReference, ordem);
 
@@ -1368,10 +1353,7 @@ exports.criarAgendamentoSeguro = onCall(
         codigo: resultado.codigo,
       };
 
-      await sincronizarNovaOrdemNaAgenda(
-          ordemCriada,
-          salvateckApiToken.value(),
-      );
+      await sincronizarNovaOrdemNaAgenda(ordemCriada, salvateckApiToken.value());
 
       logger.info("Agendamento criado com segurança.", {
         uid: request.auth.uid,
@@ -1539,10 +1521,14 @@ async function enviarPushParaUsuarios({
       const batch = db.batch();
 
       invalidos.forEach((reference) => {
-        batch.set(reference, {
-          ativo: false,
-          invalidadoEm: FieldValue.serverTimestamp(),
-        }, {merge: true});
+        batch.set(
+            reference,
+            {
+              ativo: false,
+              invalidadoEm: FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+        );
       });
 
       await batch.commit();
@@ -1574,8 +1560,10 @@ function montarUrlDetalhes(ordemId) {
 }
 
 function deveIgnorarNotificacoes(ordem = {}) {
-  return ordem.notificacoes?.habilitadas === false ||
-    texto(ordem.origem?.tipo) === "os-rapida";
+  return (
+    ordem.notificacoes?.habilitadas === false ||
+    texto(ordem.origem?.tipo) === "os-rapida"
+  );
 }
 
 exports.notificarNovaOrdem = onDocumentCreated(
@@ -1619,19 +1607,18 @@ exports.notificarNovaOrdem = onDocumentCreated(
         mensagemAdmin = `${codigo} foi registrada como emergência.`;
         tipoCliente = "emergencia-registrada";
         tituloCliente = "Emergência registrada";
-        mensagemCliente =
-          `${codigo} foi registrada. A equipe da Salvateck foi avisada.`;
+        mensagemCliente = `${codigo} foi registrada. A equipe da Salvateck foi avisada.`;
       } else if (agendada) {
         tipoAdmin = "novo-agendamento";
         tituloAdmin = "Novo agendamento";
         mensagemAdmin =
-          `${codigo} foi agendada para ${dataAgendada}, ` +
-          `às ${horarioInicial}.`;
+        `${codigo} foi agendada para ${dataAgendada}, ` +
+        `às ${horarioInicial}.`;
         tipoCliente = "agendamento-realizado";
         tituloCliente = "Agendamento realizado";
         mensagemCliente =
-          `${codigo} está agendada para ${dataAgendada}, ` +
-          `das ${horarioInicial} às ${horarioFinal}.`;
+        `${codigo} está agendada para ${dataAgendada}, ` +
+        `das ${horarioInicial} às ${horarioFinal}.`;
       }
 
       await publicarNotificacao({
@@ -1682,7 +1669,7 @@ exports.notificarAlteracaoOrdem = onDocumentUpdated(
       const horarioAnterior = texto(anterior.atendimento?.horarioConfirmado);
       const horarioAtual = texto(atual.atendimento?.horarioConfirmado);
       const horarioMudou =
-        dataAnterior !== dataAtual || horarioAnterior !== horarioAtual;
+      dataAnterior !== dataAtual || horarioAnterior !== horarioAtual;
       const url = montarUrlDetalhes(ordemId);
 
       if (!clienteUid) {
@@ -1694,8 +1681,7 @@ exports.notificarAlteracaoOrdem = onDocumentUpdated(
           destinatarios: [clienteUid],
           tipo: "agendamento-cancelado",
           titulo: "Agendamento cancelado",
-          mensagem:
-            `${codigo} foi cancelada. O horário foi liberado na agenda.`,
+          mensagem: `${codigo} foi cancelada. O horário foi liberado na agenda.`,
           ordemId,
           codigo,
           url,
@@ -1710,8 +1696,8 @@ exports.notificarAlteracaoOrdem = onDocumentUpdated(
           tipo: "agendamento-alterado",
           titulo: "Agendamento alterado",
           mensagem:
-            `${codigo} foi reagendada para ${dataAtual}, ` +
-            `das ${horarioAtual} às ${atual.atendimento?.horarioFinal}.`,
+          `${codigo} foi reagendada para ${dataAtual}, ` +
+          `das ${horarioAtual} às ${atual.atendimento?.horarioFinal}.`,
           ordemId,
           codigo,
           url,
@@ -1759,9 +1745,11 @@ function identificarLembrete(diferencaMinutos) {
     {chave: "10min", alvo: 10, titulo: "Atendimento em 10 minutos"},
   ];
 
-  return lembretes.find(
-      (lembrete) => Math.abs(diferencaMinutos - lembrete.alvo) <= 3,
-  ) || null;
+  return (
+    lembretes.find(
+        (lembrete) => Math.abs(diferencaMinutos - lembrete.alvo) <= 3,
+    ) || null
+  );
 }
 
 exports.processarLembretesAgenda = onSchedule(
@@ -1774,10 +1762,12 @@ exports.processarLembretesAgenda = onSchedule(
     async () => {
       const datas = obterDatasParaLembretes();
       const snapshots = await Promise.all(
-          datas.map((data) => db
-              .collection("ordens")
-              .where("atendimento.dataConfirmada", "==", data)
-              .get()),
+          datas.map((data) =>
+            db
+                .collection("ordens")
+                .where("atendimento.dataConfirmada", "==", data)
+                .get(),
+          ),
       );
       const agora = Date.now();
 
@@ -1810,16 +1800,14 @@ exports.processarLembretesAgenda = onSchedule(
             continue;
           }
 
-          const campoLembrete =
-            `atendimento.lembretesEnviados.${lembrete.chave}`;
+          const campoLembrete = `atendimento.lembretesEnviados.${lembrete.chave}`;
           const notificationReference = db.collection("notificacoes").doc();
-          const mensagemLembrete =
-            `${texto(ordem.codigo)} está agendada para ${horario}.`;
+          const mensagemLembrete = `${texto(ordem.codigo)} está agendada para ${horario}.`;
           const url = montarUrlDetalhes(ordemSnapshot.id);
           const criado = await db.runTransaction(async (transaction) => {
             const atual = await transaction.get(ordemSnapshot.ref);
             const lembretesEnviados =
-              atual.data()?.atendimento?.lembretesEnviados || {};
+            atual.data()?.atendimento?.lembretesEnviados || {};
 
             if (lembretesEnviados[lembrete.chave]) {
               return false;
@@ -1918,9 +1906,9 @@ exports.iniciarVistoriaAgora = onCall(
           }
 
           const vistoriaId =
-            texto(ordem.vistoria?.id) ||
-            texto(ordem.vistoria?.vistoriaId) ||
-            texto(ordem.vistoriaId);
+          texto(ordem.vistoria?.id) ||
+          texto(ordem.vistoria?.vistoriaId) ||
+          texto(ordem.vistoriaId);
 
           if (vistoriaId) {
             throw new HttpsError(
@@ -2016,10 +2004,7 @@ exports.criarAcessoFuncionario = onCall(
       const funcionarioSnapshot = await funcionarioReference.get();
 
       if (!funcionarioSnapshot.exists) {
-        throw new HttpsError(
-            "not-found",
-            "O funcionário não foi encontrado.",
-        );
+        throw new HttpsError("not-found", "O funcionário não foi encontrado.");
       }
 
       const funcionario = funcionarioSnapshot.data() || {};
@@ -2079,9 +2064,7 @@ exports.criarAcessoFuncionario = onCall(
           disabled: false,
         });
 
-        const usuarioReference = db
-            .collection("usuarios")
-            .doc(usuarioCriado.uid);
+        const usuarioReference = db.collection("usuarios").doc(usuarioCriado.uid);
 
         const batch = db.batch();
 
@@ -2241,9 +2224,7 @@ exports.enviarExecucaoParaValidacao = onCall(
               .collection("funcionarios")
               .doc(funcionarioId);
 
-          const funcionarioSnapshot = await transaction.get(
-              funcionarioReference,
-          );
+          const funcionarioSnapshot = await transaction.get(funcionarioReference);
 
           if (!funcionarioSnapshot.exists) {
             throw new HttpsError(
@@ -2260,13 +2241,12 @@ exports.enviarExecucaoParaValidacao = onCall(
 
           if (
             funcionario.ativo !== true ||
-            funcionarioStatus === "inativo" ||
-            funcionarioUid !== request.auth.uid
+          funcionarioStatus === "inativo" ||
+          funcionarioUid !== request.auth.uid
           ) {
             throw new HttpsError(
                 "permission-denied",
-                "O funcionário não possui autorização " +
-                  "para esta operação.",
+                "O funcionário não possui autorização " + "para esta operação.",
             );
           }
 
@@ -2283,14 +2263,13 @@ exports.enviarExecucaoParaValidacao = onCall(
 
           const funcionarioResponsavelUid = texto(
               ordem.funcionarioResponsavelUid ||
-              ordem.funcionarioResponsavel?.usuarioUid,
+            ordem.funcionarioResponsavel?.usuarioUid,
           );
 
           if (funcionarioResponsavelUid !== request.auth.uid) {
             throw new HttpsError(
                 "permission-denied",
-                "Esta Ordem de Serviço não está atribuída " +
-                  "a este funcionário.",
+                "Esta Ordem de Serviço não está atribuída " + "a este funcionário.",
             );
           }
 
@@ -2313,7 +2292,7 @@ exports.enviarExecucaoParaValidacao = onCall(
           }
 
           const funcionarioNome =
-            texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
+          texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
 
           const funcionarioCodigo = texto(funcionario.codigo);
 
@@ -2356,15 +2335,12 @@ exports.enviarExecucaoParaValidacao = onCall(
           throw error;
         }
 
-        logger.error(
-            "Não foi possível enviar a execução para validação.",
-            {
-              funcionarioUid: request.auth.uid,
-              ordemId,
-              message: error.message,
-              code: error.code || null,
-            },
-        );
+        logger.error("Não foi possível enviar a execução para validação.", {
+          funcionarioUid: request.auth.uid,
+          ordemId,
+          message: error.message,
+          code: error.code || null,
+        });
 
         throw new HttpsError(
             "internal",
@@ -2448,8 +2424,8 @@ exports.enviarVistoriaParaValidacao = onCall(
       const ordemId = texto(request.data?.ordemId);
 
       const checklistRecebido = Array.isArray(request.data?.checklist) ?
-        request.data.checklist :
-        [];
+      request.data.checklist :
+      [];
 
       if (!ordemId) {
         throw new HttpsError(
@@ -2515,9 +2491,7 @@ exports.enviarVistoriaParaValidacao = onCall(
               .collection("funcionarios")
               .doc(funcionarioId);
 
-          const funcionarioSnapshot = await transaction.get(
-              funcionarioReference,
-          );
+          const funcionarioSnapshot = await transaction.get(funcionarioReference);
 
           if (!funcionarioSnapshot.exists) {
             throw new HttpsError(
@@ -2534,13 +2508,12 @@ exports.enviarVistoriaParaValidacao = onCall(
 
           if (
             funcionario.ativo !== true ||
-            funcionarioStatus === "inativo" ||
-            funcionarioUid !== request.auth.uid
+          funcionarioStatus === "inativo" ||
+          funcionarioUid !== request.auth.uid
           ) {
             throw new HttpsError(
                 "permission-denied",
-                "O funcionário não possui autorização " +
-                  "para esta operação.",
+                "O funcionário não possui autorização " + "para esta operação.",
             );
           }
 
@@ -2566,7 +2539,7 @@ exports.enviarVistoriaParaValidacao = onCall(
 
           const funcionarioResponsavelUid = texto(
               ordem.funcionarioResponsavelUid ||
-              ordem.funcionarioResponsavel?.usuarioUid,
+            ordem.funcionarioResponsavel?.usuarioUid,
           );
 
           if (funcionarioResponsavelUid !== request.auth.uid) {
@@ -2586,9 +2559,9 @@ exports.enviarVistoriaParaValidacao = onCall(
           }
 
           const vistoriaIdExistente =
-            texto(ordem.vistoria?.id) ||
-            texto(ordem.vistoria?.vistoriaId) ||
-            texto(ordem.vistoriaId);
+          texto(ordem.vistoria?.id) ||
+          texto(ordem.vistoria?.vistoriaId) ||
+          texto(ordem.vistoriaId);
 
           let vistoriaReference = novaVistoriaReference;
 
@@ -2623,7 +2596,7 @@ exports.enviarVistoriaParaValidacao = onCall(
 
             if (
               vistoriaExistente.validada === true ||
-              texto(vistoriaExistente.status).toLowerCase() === "concluida"
+            texto(vistoriaExistente.status).toLowerCase() === "concluida"
             ) {
               throw new HttpsError(
                   "failed-precondition",
@@ -2634,13 +2607,13 @@ exports.enviarVistoriaParaValidacao = onCall(
             numeroVistoria = Number(vistoriaExistente.numero || 0);
 
             codigoVistoria =
-              texto(vistoriaExistente.codigo) || texto(ordem.codigoVistoria);
+            texto(vistoriaExistente.codigo) || texto(ordem.codigoVistoria);
           } else {
             const contadorSnapshot = await transaction.get(contadorReference);
 
             const numeroAtual = contadorSnapshot.exists ?
-              Number(contadorSnapshot.data().ultimoNumero || 0) :
-              0;
+            Number(contadorSnapshot.data().ultimoNumero || 0) :
+            0;
 
             if (!Number.isInteger(numeroAtual) || numeroAtual < 0) {
               throw new HttpsError(
@@ -2655,12 +2628,12 @@ exports.enviarVistoriaParaValidacao = onCall(
           }
 
           const funcionarioNome =
-            texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
+          texto(funcionario.nome) || texto(usuario.nome) || "Funcionário";
 
           const funcionarioCodigo = texto(funcionario.codigo);
 
           const funcionarioEmail =
-            texto(funcionario.email) || texto(usuario.email);
+          texto(funcionario.email) || texto(usuario.email);
 
           const itensComAjuste = checklist.filter(
               (item) => item.resultado === "precisa-ajuste",
@@ -2669,18 +2642,18 @@ exports.enviarVistoriaParaValidacao = onCall(
           const totalItens = checklist.length;
 
           const resumoExecucao =
-            itensComAjuste.length > 0 ?
-              [
-                "Vistoria técnica concluída com",
-                `${itensComAjuste.length} item(ns) que precisam de ajuste.`,
-              ].join(" ") :
-              "Vistoria técnica concluída sem ajustes apontados.";
+          itensComAjuste.length > 0 ?
+            [
+              "Vistoria técnica concluída com",
+              `${itensComAjuste.length} item(ns) que precisam de ajuste.`,
+            ].join(" ") :
+            "Vistoria técnica concluída sem ajustes apontados.";
 
           const estruturaAmbientes = Array.isArray(
               ordem.condominio?.estruturaAmbientes,
           ) ?
-            ordem.condominio.estruturaAmbientes :
-            [];
+          ordem.condominio.estruturaAmbientes :
+          [];
 
           const vistoriaData = {
             id: vistoriaReference.id,
@@ -2692,15 +2665,15 @@ exports.enviarVistoriaParaValidacao = onCall(
             tipoAtendimento: "vistoria",
             tipo: "Vistoria técnica",
             titulo:
-              texto(ordem.titulo) ||
-              texto(ordem.servicoPrincipal) ||
-              "Vistoria técnica",
+            texto(ordem.titulo) ||
+            texto(ordem.servicoPrincipal) ||
+            "Vistoria técnica",
             status: "aguardando-validacao",
             validada: false,
             progresso: 100,
             prioridade: texto(ordem.prioridade) || "normal",
             condominioId:
-              texto(ordem.condominioId) || texto(ordem.condominio?.id),
+            texto(ordem.condominioId) || texto(ordem.condominio?.id),
             clienteUid: texto(ordem.clienteUid) || texto(ordem.cliente?.id),
             condominio: {
               id: texto(ordem.condominio?.id) || texto(ordem.condominioId),
@@ -2857,7 +2830,194 @@ exports.enviarVistoriaParaValidacao = onCall(
       }
     },
 );
+function normalizarFotoVistoria(foto, index, vistoriaId) {
+  if (!foto || typeof foto !== "object") {
+    throw new HttpsError(
+        "invalid-argument",
+        `A foto ${index + 1} da vistoria é inválida.`,
+    );
+  }
 
+  const storagePath = texto(foto.storagePath);
+  const nome = texto(foto.nome);
+  const tamanho = Number(foto.tamanho || 0);
+  const prefixoEsperado = `vistorias/${vistoriaId}/imagens/`;
+
+  if (
+    !storagePath.startsWith(prefixoEsperado) ||
+    !storagePath.endsWith(".webp")
+  ) {
+    throw new HttpsError(
+        "invalid-argument",
+        `O caminho da foto ${index + 1} é inválido.`,
+    );
+  }
+
+  if (!Number.isFinite(tamanho) || tamanho <= 0 || tamanho > 2 * 1024 * 1024) {
+    throw new HttpsError(
+        "invalid-argument",
+        `O tamanho da foto ${index + 1} é inválido.`,
+    );
+  }
+
+  const nomeArquivo = storagePath.split("/").pop();
+
+  return {
+    id: nomeArquivo.replace(/[.]webp$/i, ""),
+    storagePath,
+    nome: nome.slice(0, 240) || nomeArquivo,
+    contentType: "image/webp",
+    tamanho,
+    posicao: index + 1,
+  };
+}
+
+exports.registrarFotosVistoria = onCall(
+    {
+      region: "southamerica-east1",
+      maxInstances: 10,
+    },
+    async (request) => {
+      if (!request.auth) {
+        throw new HttpsError(
+            "unauthenticated",
+            "É necessário estar autenticado.",
+        );
+      }
+
+      const vistoriaId = texto(request.data?.vistoriaId);
+
+      const fotosRecebidas = Array.isArray(request.data?.fotos) ?
+      request.data.fotos :
+      [];
+
+      if (!vistoriaId) {
+        throw new HttpsError(
+            "invalid-argument",
+            "O ID da vistoria é obrigatório.",
+        );
+      }
+
+      if (fotosRecebidas.length === 0) {
+        throw new HttpsError("invalid-argument", "Nenhuma foto foi informada.");
+      }
+
+      const usuarioReference = db.collection("usuarios").doc(request.auth.uid);
+
+      const vistoriaReference = db.collection("vistorias").doc(vistoriaId);
+
+      const [usuarioSnapshot, vistoriaSnapshot] = await Promise.all([
+        usuarioReference.get(),
+        vistoriaReference.get(),
+      ]);
+
+      if (!usuarioSnapshot.exists) {
+        throw new HttpsError("permission-denied", "Usuário não autorizado.");
+      }
+
+      if (!vistoriaSnapshot.exists) {
+        throw new HttpsError("not-found", "A vistoria não foi encontrada.");
+      }
+
+      const usuario = usuarioSnapshot.data() || {};
+      const vistoria = vistoriaSnapshot.data() || {};
+      const role = texto(usuario.role).toLowerCase();
+
+      if (usuario.ativo !== true) {
+        throw new HttpsError("permission-denied", "Usuário inativo.");
+      }
+
+      const tecnicoUid =
+      texto(vistoria.tecnico?.uid) ||
+      texto(vistoria.execucaoFuncionario?.funcionarioUid);
+
+      const podeRegistrar =
+      role === "admin" ||
+      (role === "funcionario" && tecnicoUid === request.auth.uid);
+
+      if (!podeRegistrar) {
+        throw new HttpsError(
+            "permission-denied",
+            "Você não possui permissão para registrar fotos nesta vistoria.",
+        );
+      }
+
+      const fotos = fotosRecebidas.map((foto, index) =>
+        normalizarFotoVistoria(foto, index, vistoriaId),
+      );
+
+      const fotosCollection = vistoriaReference.collection("fotos");
+
+      for (let inicio = 0; inicio < fotos.length; inicio += 400) {
+        const lote = fotos.slice(inicio, inicio + 400);
+        const batch = db.batch();
+
+        lote.forEach((foto) => {
+          const fotoReference = fotosCollection.doc(foto.id);
+
+          batch.set(
+              fotoReference,
+              {
+                vistoriaId,
+                storagePath: foto.storagePath,
+                nome: foto.nome,
+                contentType: foto.contentType,
+                tamanho: foto.tamanho,
+                posicao: foto.posicao,
+                enviadoPorUid: request.auth.uid,
+                enviadoPorPerfil: role,
+                enviadoEm: FieldValue.serverTimestamp(),
+              },
+              {
+                merge: true,
+              },
+          );
+        });
+
+        await batch.commit();
+      }
+
+      const contagemSnapshot = await fotosCollection.count().get();
+
+      const quantidadeFotos = Number(contagemSnapshot.data().count || 0);
+
+      const ordemId = texto(vistoria.ordemId);
+
+      const finalBatch = db.batch();
+
+      finalBatch.update(vistoriaReference, {
+        quantidadeFotos,
+        atualizadoEm: FieldValue.serverTimestamp(),
+      });
+
+      if (ordemId) {
+        const ordemReference = db.collection("ordens").doc(ordemId);
+
+        const ordemSnapshot = await ordemReference.get();
+
+        if (ordemSnapshot.exists) {
+          finalBatch.update(ordemReference, {
+            "vistoria.quantidadeFotos": quantidadeFotos,
+            "atualizadoEm": FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      await finalBatch.commit();
+
+      logger.info("Fotos da vistoria registradas.", {
+        vistoriaId,
+        uid: request.auth.uid,
+        quantidadeFotos,
+      });
+
+      return {
+        sucesso: true,
+        vistoriaId,
+        quantidadeFotos,
+      };
+    },
+);
 exports.sincronizarGoogleAgenda = onCall(
     {
       region: "southamerica-east1",
