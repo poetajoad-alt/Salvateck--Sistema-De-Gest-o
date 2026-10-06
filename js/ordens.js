@@ -1119,7 +1119,10 @@ function preencherCard(solicitacao) {
 
   iconSvg.innerHTML = obterIconePrincipal(solicitacao);
 
-  client.textContent = solicitacao.clienteNome;
+  client.textContent =
+    solicitacao.condominio?.nome ||
+    solicitacao.clienteNome ||
+    "Local não informado";
   client.hidden = perfilAtual !== "admin";
 
   title.textContent = solicitacao.titulo;
