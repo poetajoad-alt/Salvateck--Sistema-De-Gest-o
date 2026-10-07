@@ -516,6 +516,16 @@ function createBudgetCard(budget) {
 
   const finalValue = formatCurrency(getBudgetValue(budget));
 
+  const linkedOrderId = text(budget?.ordemId || budget?.osId);
+  const linkedOrderCode = text(budget?.codigoOS);
+
+  const linkedOrderText =
+    status === "aprovado"
+      ? linkedOrderId
+        ? `OS vinculada: ${linkedOrderCode || "Sim"}`
+        : "OS vinculada: Não"
+      : "";
+
   return `
     <article
       class="budget-card"
@@ -603,8 +613,14 @@ function createBudgetCard(budget) {
                 ></path>
               </svg>
 
-              ${escapeHtml(validityText)}
+                            ${escapeHtml(validityText)}
             </span>
+
+            ${
+              linkedOrderText
+                ? `<span class="budget-card__meta-item">${escapeHtml(linkedOrderText)}</span>`
+                : ""
+            }
           </div>
 
           <div class="budget-card__value">

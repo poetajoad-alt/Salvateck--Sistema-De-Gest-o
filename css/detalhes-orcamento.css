@@ -573,15 +573,15 @@ AÇÕES PRINCIPAIS
   color: #0d3861;
   background-color: #ffffff;
 
-  border: 1px solid rgba(13, 56, 97, 0.2);
+  border: 1px solid rgba(13, 56, 97, 0.18);
 
-  box-shadow: 0 7px 17px rgba(13, 56, 97, 0.08);
+  box-shadow: 0 7px 17px rgba(13, 56, 97, 0.07);
 }
 
 .action-button--secondary:hover:not(:disabled) {
-  background-color: rgba(221, 154, 23, 0.1);
+  background-color: rgba(13, 56, 97, 0.06);
 
-  border-color: rgba(221, 154, 23, 0.5);
+  border-color: rgba(13, 56, 97, 0.3);
 }
 
 .action-button--primary {
@@ -590,32 +590,14 @@ AÇÕES PRINCIPAIS
 
   border: 1px solid #dd9a17;
 
-  box-shadow: 0 8px 20px rgba(221, 154, 23, 0.22);
+  box-shadow: 0 8px 20px rgba(221, 154, 23, 0.2);
 }
 
 .action-button--primary:hover:not(:disabled) {
-  color: #dd9a17;
+  color: #ffffff;
   background-color: #0d3861;
 
-  border-color: rgba(221, 154, 23, 0.7);
-}
-
-.action-button--image {
-  grid-column: 1 / -1;
-
-  color: #f9f9f9;
-  background: linear-gradient(135deg, #0d3861 0%, #082e52 100%);
-
-  border: 1px solid rgba(13, 56, 97, 0.92);
-
-  box-shadow: 0 10px 22px rgba(13, 56, 97, 0.2);
-}
-
-.action-button--image:hover:not(:disabled) {
-  color: #0d3861;
-  background: linear-gradient(135deg, #dd9a17 0%, #e6a933 100%);
-
-  border-color: rgba(221, 154, 23, 0.9);
+  border-color: #0d3861;
 }
 
 .action-button:active:not(:disabled) {
@@ -628,6 +610,145 @@ AÇÕES PRINCIPAIS
   cursor: not-allowed;
 }
 
+/* =========================================================
+MAIS OPÇÕES
+========================================================= */
+
+.budget-more-actions {
+  grid-column: 1 / -1;
+
+  min-width: 0;
+
+  display: grid;
+  justify-items: end;
+}
+
+.budget-more-actions > summary {
+  min-height: 46px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 0 20px;
+
+  cursor: pointer;
+
+  list-style: none;
+
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 1px solid #dd9a17;
+  border-radius: 14px;
+
+  box-shadow: 0 8px 18px rgba(221, 154, 23, 0.25);
+}
+
+.budget-more-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.budget-more-actions > summary svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+  stroke: #0d3861;
+  stroke-width: 2;
+}
+
+.budget-more-actions__menu {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  margin-top: 12px;
+}
+
+.budget-more-actions__item {
+  min-width: 0;
+  min-height: 54px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 0 16px;
+
+  cursor: pointer;
+
+  font-family: "Montserrat", Arial, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: left;
+
+  border-radius: 14px;
+
+  box-shadow: 0 8px 18px rgba(4, 26, 47, 0.12);
+}
+
+.budget-more-actions__item:nth-child(1),
+.budget-more-actions__item:nth-child(4) {
+  color: #0d3861;
+  background-color: #f9f9f9;
+
+  border: 2px solid #dd9a17;
+}
+
+.budget-more-actions__item:nth-child(2),
+.budget-more-actions__item:nth-child(3) {
+  color: #0d3861;
+  background-color: #dd9a17;
+
+  border: 2px solid #dd9a17;
+}
+
+.budget-more-actions__item svg {
+  flex: 0 0 auto;
+
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: #0d3861;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.budget-more-actions__item:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow: 0 10px 22px rgba(4, 26, 47, 0.18);
+}
+
+.budget-more-actions__item:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+@media (max-width: 360px) {
+  .budget-more-actions__menu {
+    grid-template-columns: 1fr;
+  }
+
+  .budget-more-actions {
+    justify-items: stretch;
+  }
+
+  .budget-more-actions > summary {
+    width: 100%;
+  }
+}
 /* =========================================================
 CARDS
 ========================================================= */

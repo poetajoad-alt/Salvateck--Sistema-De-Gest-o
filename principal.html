@@ -38,11 +38,57 @@
         Painel de Controle
       </h1>
 
-      <a href="index.html" class="logout-button" id="logout-button" aria-label="Sair e voltar para a página inicial">
-        Sair
-      </a>
+      <div class="topbar__actions">
+
+        <button type="button" class="icon-button notification-button" id="notification-button" aria-label="Abrir notificações" aria-expanded="false" aria-controls="notifications-panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+            <path d="M10 21h4"></path>
+          </svg>
+
+          <span class="notification-badge" id="notification-badge" hidden></span>
+        </button>
+
+        <a href="index.html" class="logout-button" id="logout-button" aria-label="Sair e voltar para a página inicial">
+          Sair
+        </a>
+
+      </div>
 
     </header>
+
+    <section class="notifications-panel" id="notifications-panel" aria-label="Central de notificações" hidden>
+      <div class="notifications-panel__header">
+
+        <div>
+          <p class="notifications-panel__eyebrow">
+            Atualizações
+          </p>
+
+          <h2>
+            Central de notificações
+          </h2>
+        </div>
+
+        <button type="button" class="notifications-mark-all" id="notifications-mark-all" hidden>
+          Marcar todas como lidas
+        </button>
+
+      </div>
+
+      <div class="notifications-list" id="notifications-list"></div>
+
+      <div class="notifications-empty" id="notifications-empty">
+        <strong>
+          Nenhuma notificação
+        </strong>
+
+        <span>
+          As novas atualizações aparecerão aqui.
+        </span>
+      </div>
+
+    </section>
 
     <!-- Informações do usuário/empresa -->
     <section class="profile-section" aria-labelledby="profile-title">
@@ -128,6 +174,199 @@
     </section>
 
   </main>
+
+  <!-- =========================================================
+  MEUS ORÇAMENTOS - CLIENTE
+  ========================================================== -->
+  <div class="client-budgets-modal" id="client-budgets-modal" aria-hidden="true" hidden>
+    <button type="button" class="client-budgets-modal__backdrop" data-close-client-budgets aria-label="Fechar meus orçamentos"></button>
+
+    <section class="client-budgets-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="client-budgets-title">
+      <header class="client-budgets-modal__header">
+        <div>
+          <span class="client-budgets-modal__eyebrow">
+            Propostas comerciais
+          </span>
+
+          <h2 id="client-budgets-title">
+            Meus Orçamentos
+          </h2>
+        </div>
+
+        <button type="button" class="client-budgets-modal__close" data-close-client-budgets aria-label="Fechar">
+          ×
+        </button>
+      </header>
+
+      <!-- LISTAGEM -->
+      <div id="client-budgets-list-view">
+        <p class="client-budgets-modal__intro">
+          Consulte as propostas enviadas pela Salvateck e acompanhe o status de cada orçamento.
+        </p>
+
+        <div class="client-budgets-loading" id="client-budgets-loading" aria-live="polite">
+          <span class="client-budgets-loading__spinner"></span>
+
+          <strong>
+            Carregando orçamentos...
+          </strong>
+        </div>
+
+        <div class="client-budgets-empty" id="client-budgets-empty" hidden>
+          <strong>
+            Nenhum orçamento disponível
+          </strong>
+
+          <span>
+            Quando uma proposta for enviada para você, ela aparecerá aqui.
+          </span>
+        </div>
+
+        <div class="client-budgets-list" id="client-budgets-list" hidden></div>
+      </div>
+
+      <!-- DETALHES -->
+      <div class="client-budget-detail" id="client-budget-detail" hidden>
+        <button type="button" class="client-budget-detail__back" id="client-budget-detail-back">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+
+          Voltar aos orçamentos
+        </button>
+
+        <div class="client-budget-detail__heading">
+          <div>
+            <span class="client-budget-detail__status" id="client-budget-detail-status">
+              Enviado
+            </span>
+
+            <span class="client-budget-detail__code" id="client-budget-detail-code">
+              ORC-0000
+            </span>
+          </div>
+
+          <h3 id="client-budget-detail-title">
+            Orçamento
+          </h3>
+
+          <p id="client-budget-detail-subtitle">
+            Proposta comercial Salvateck
+          </p>
+        </div>
+
+        <div class="client-budget-detail__summary">
+          <div>
+            <span>
+              Condomínio
+            </span>
+
+            <strong id="client-budget-detail-condominium">
+              —
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Valor
+            </span>
+
+            <strong id="client-budget-detail-value">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Validade
+            </span>
+
+            <strong id="client-budget-detail-validity">
+              —
+            </strong>
+          </div>
+        </div>
+
+        <section class="client-budget-detail__section">
+          <span class="client-budget-detail__label">
+            Proposta
+          </span>
+
+          <p id="client-budget-detail-description">
+            —
+          </p>
+        </section>
+
+        <section class="client-budget-detail__section">
+          <span class="client-budget-detail__label">
+            Serviços incluídos
+          </span>
+
+          <div class="client-budget-detail__services" id="client-budget-detail-services"></div>
+        </section>
+
+        <section class="client-budget-detail__section">
+          <span class="client-budget-detail__label">
+            Condições comerciais
+          </span>
+
+          <p id="client-budget-detail-conditions">
+            —
+          </p>
+        </section>
+
+        <div class="client-budget-detail__response" id="client-budget-detail-response" hidden></div>
+
+        <div class="client-budget-detail__actions" id="client-budget-detail-actions">
+          <button type="button" class="client-budget-detail__button client-budget-detail__button--reject" id="client-budget-reject-button">
+            Recusar orçamento
+          </button>
+
+          <button type="button" class="client-budget-detail__button client-budget-detail__button--accept" id="client-budget-accept-button">
+            Aceitar orçamento
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- =========================================================
+  CONFIRMAÇÃO DE ORÇAMENTO - CLIENTE
+  ========================================================== -->
+  <div class="client-budget-confirm-modal" id="client-budget-confirm-modal" aria-hidden="true" hidden>
+    <div class="client-budget-confirm-modal__backdrop"></div>
+
+    <section class="client-budget-confirm-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="client-budget-confirm-title" aria-describedby="client-budget-confirm-message">
+      <div class="client-budget-confirm-modal__icon" id="client-budget-confirm-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3a9 9 0 1 1-9 9 9 9 0 0 1 9-9Z"></path>
+          <path d="m8 12 2.6 2.6L16.5 9"></path>
+        </svg>
+      </div>
+
+      <span class="client-budget-confirm-modal__eyebrow">
+        Confirmação
+      </span>
+
+      <h2 id="client-budget-confirm-title">
+        Confirmar resposta
+      </h2>
+
+      <p id="client-budget-confirm-message">
+        Confirme sua resposta para este orçamento.
+      </p>
+
+      <div class="client-budget-confirm-modal__actions">
+        <button type="button" class="client-budget-confirm-modal__button client-budget-confirm-modal__button--cancel" id="client-budget-confirm-cancel">
+          Cancelar
+        </button>
+
+        <button type="button" class="client-budget-confirm-modal__button client-budget-confirm-modal__button--confirm" id="client-budget-confirm-submit">
+          Confirmar
+        </button>
+      </div>
+    </section>
+  </div>
 
   <!-- JavaScript -->
   <script type="module" src="js/principal.js?v=1.0.10"></script>

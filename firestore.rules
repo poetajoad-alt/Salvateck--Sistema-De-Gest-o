@@ -1100,24 +1100,148 @@ service cloud.firestore {
 
     }
 
-    /* =====================================
+    match /agendaBloqueios/{dataAgenda} {
 
-       ACESSO ADMINISTRATIVO GERAL
+  allow read: if eAdministrador();
 
-    ===================================== */
+}
 
-    match /{document=**} {
+/* =====================================
 
-      allow read: if eAdministrador();
+   ORÇAMENTOS
 
-      allow create: if eAdministrador();
+===================================== */
 
-      allow update, delete: if eAdministrador()
+match /orcamentos/{orcamentoId} {
 
-        && !("documentoFinal" in resource.data);
+  allow read: if eAdministrador()
+    || (
+      estaAutenticado()
 
-    }
+      && resource.data.clienteUid == request.auth.uid
 
+      && resource.data.status in [
+        "enviado",
+        "aprovado",
+        "recusado",
+        "expirado"
+      ]
+    );
+
+  allow update: if eAdministrador()
+    || (
+      estaAutenticado()
+
+      && resource.data.clienteUid == request.auth.uid
+
+      && request.resource.data.clienteUid == request.auth.uid
+
+      && resource.data.status == "enviado"
+
+      && request.resource.data.status in [
+        "aprovado",
+        "recusado"
+      ]
+
+      && !("respostaCliente" in resource.data)
+
+      && request.resource.data
+        .diff(resource.data)
+        .affectedKeys()
+        .hasOnly([
+          "status",
+          "respostaCliente",
+          "statusAtualizadoEm",
+          "atualizadoEm",
+          "aprovadoEm",
+          "recusadoEm"
+        ])
+
+      && request.resource.data.respostaCliente is map
+
+      && request.resource.data.respostaCliente.keys().hasAll([
+        "status",
+        "uid",
+        "respondidoEm"
+      ])
+
+      && request.resource.data.respostaCliente.keys().hasOnly([
+        "status",
+        "uid",
+        "respondidoEm"
+      ])
+
+      && request.resource.data.respostaCliente.status
+        == request.resource.data.status
+
+      && request.resource.data.respostaCliente.uid
+        == request.auth.uid
+
+      && request.resource.data.respostaCliente.respondidoEm
+        == request.time
+
+      && request.resource.data.statusAtualizadoEm
+        == request.time
+
+      && request.resource.data.atualizadoEm
+        == request.time
+
+      && (
+        (
+          request.resource.data.status == "aprovado"
+
+          && request.resource.data.aprovadoEm
+            == request.time
+
+          && request.resource.data.recusadoEm
+            == resource.data.recusadoEm
+        )
+
+        ||
+
+        (
+          request.resource.data.status == "recusado"
+
+          && request.resource.data.recusadoEm
+            == request.time
+
+          && request.resource.data.aprovadoEm
+            == resource.data.aprovadoEm
+        )
+      )
+    );
+
+}
+
+/* =====================================
+
+   DADOS PRIVADOS DOS ORÇAMENTOS
+
+===================================== */
+
+match /orcamentosPrivados/{orcamentoId} {
+
+  allow read, create, update, delete: if eAdministrador();
+
+}
+
+/* =====================================
+
+   ACESSO ADMINISTRATIVO GERAL
+
+===================================== */
+
+match /{document=**} {
+
+  allow read: if eAdministrador();
+
+  allow create: if eAdministrador();
+
+  allow update, delete: if eAdministrador()
+
+    && !("documentoFinal" in resource.data);
+
+}
   }
 
 }

@@ -8,7 +8,10 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
+  serverTimestamp,
+  updateDoc,
   where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
@@ -33,6 +36,14 @@ const profileConfig = {
         target: "ordens.html",
         icon: "inbox",
       },
+
+      {
+        title: "Meus Orçamentos",
+        description: "Consulte propostas comerciais enviadas pela Salvateck.",
+        action: "client-budgets",
+        icon: "budget",
+      },
+
       {
         title: "Serviços Agendados",
         description: "Veja datas, períodos e horários já confirmados.",
@@ -337,6 +348,793 @@ const logoContainer = companyLogo.closest(".profile-logo");
 const backButton = document.getElementById("back-button");
 const logoutButton = document.getElementById("logout-button");
 
+const notificationButton = document.getElementById("notification-button");
+const notificationBadge = document.getElementById("notification-badge");
+const notificationsPanel = document.getElementById("notifications-panel");
+const notificationsList = document.getElementById("notifications-list");
+const notificationsEmpty = document.getElementById("notifications-empty");
+const notificationsMarkAll = document.getElementById("notifications-mark-all");
+
+/* ==============================
+   MEUS ORÇAMENTOS - CLIENTE
+================================ */
+
+const clientBudgetsModal = document.getElementById("client-budgets-modal");
+
+const clientBudgetsListView = document.getElementById(
+  "client-budgets-list-view",
+);
+
+const clientBudgetsLoading = document.getElementById("client-budgets-loading");
+
+const clientBudgetsEmpty = document.getElementById("client-budgets-empty");
+
+const clientBudgetsList = document.getElementById("client-budgets-list");
+
+const clientBudgetDetail = document.getElementById("client-budget-detail");
+
+const clientBudgetDetailBack = document.getElementById(
+  "client-budget-detail-back",
+);
+
+const clientBudgetDetailStatus = document.getElementById(
+  "client-budget-detail-status",
+);
+
+const clientBudgetDetailCode = document.getElementById(
+  "client-budget-detail-code",
+);
+
+const clientBudgetDetailTitle = document.getElementById(
+  "client-budget-detail-title",
+);
+
+const clientBudgetDetailSubtitle = document.getElementById(
+  "client-budget-detail-subtitle",
+);
+
+const clientBudgetDetailCondominium = document.getElementById(
+  "client-budget-detail-condominium",
+);
+
+const clientBudgetDetailValue = document.getElementById(
+  "client-budget-detail-value",
+);
+
+const clientBudgetDetailValidity = document.getElementById(
+  "client-budget-detail-validity",
+);
+
+const clientBudgetDetailDescription = document.getElementById(
+  "client-budget-detail-description",
+);
+
+const clientBudgetDetailServices = document.getElementById(
+  "client-budget-detail-services",
+);
+
+const clientBudgetDetailConditions = document.getElementById(
+  "client-budget-detail-conditions",
+);
+
+const clientBudgetDetailResponse = document.getElementById(
+  "client-budget-detail-response",
+);
+
+const clientBudgetDetailActions = document.getElementById(
+  "client-budget-detail-actions",
+);
+
+const clientBudgetRejectButton = document.getElementById(
+  "client-budget-reject-button",
+);
+
+const clientBudgetAcceptButton = document.getElementById(
+  "client-budget-accept-button",
+);
+
+const clientBudgetConfirmModal = document.getElementById(
+  "client-budget-confirm-modal",
+);
+
+const clientBudgetConfirmIcon = document.getElementById(
+  "client-budget-confirm-icon",
+);
+
+const clientBudgetConfirmTitle = document.getElementById(
+  "client-budget-confirm-title",
+);
+
+const clientBudgetConfirmMessage = document.getElementById(
+  "client-budget-confirm-message",
+);
+
+const clientBudgetConfirmCancel = document.getElementById(
+  "client-budget-confirm-cancel",
+);
+
+const clientBudgetConfirmSubmit = document.getElementById(
+  "client-budget-confirm-submit",
+);
+
+const clientBudgetsCloseButtons = document.querySelectorAll(
+  "[data-close-client-budgets]",
+);
+
+function formatClientBudgetCurrency(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function getClientBudgetStatusLabel(status) {
+  const labels = {
+    enviado: "Aguardando confirmação",
+    aprovado: "Aprovado",
+    recusado: "Recusado",
+    expirado: "Expirado",
+  };
+
+  return labels[status] || "Aguardando confirmação";
+}
+
+function formatClientBudgetDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(`${value}T12:00:00`);
+
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString("pt-BR");
+    }
+
+    return value;
+  }
+
+  if (value?.toDate) {
+    return value.toDate().toLocaleDateString("pt-BR");
+  }
+
+  return "—";
+}
+
+function getClientBudgetConditionsText(budget) {
+  const conditions = budget.condicoes || {};
+
+  const parts = [];
+
+  if (Array.isArray(conditions.gerais)) {
+    parts.push(
+      ...conditions.gerais
+        .map((item) => String(item || "").trim())
+        .filter(Boolean),
+    );
+  }
+
+  if (conditions.garantia) {
+    parts.push(`Garantia: ${conditions.garantia}`);
+  }
+
+  if (conditions.prazoExecucao) {
+    parts.push(`Prazo: ${conditions.prazoExecucao}`);
+  }
+
+  if (conditions.pagamento) {
+    parts.push(`Pagamento: ${conditions.pagamento}`);
+  }
+
+  return parts.length > 0 ? parts.join("\n\n") : "Não informado.";
+}
+
+function renderClientBudgetServices(services) {
+  clientBudgetDetailServices.innerHTML = "";
+
+  const items = Array.isArray(services)
+    ? services.map((service) => String(service || "").trim()).filter(Boolean)
+    : [];
+
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+
+    empty.textContent = "Nenhum serviço informado.";
+
+    clientBudgetDetailServices.appendChild(empty);
+
+    return;
+  }
+
+  items.forEach((service) => {
+    const item = document.createElement("div");
+
+    item.className = "client-budget-detail__service";
+
+    const info = document.createElement("div");
+
+    info.className = "client-budget-detail__service-info";
+
+    const title = document.createElement("strong");
+
+    title.textContent = service;
+
+    info.appendChild(title);
+
+    item.appendChild(info);
+
+    clientBudgetDetailServices.appendChild(item);
+  });
+}
+
+function openClientBudgetDetail(budget) {
+  if (!budget) {
+    return;
+  }
+  currentClientBudget = budget;
+  const status = String(budget.status || "enviado")
+    .trim()
+    .toLowerCase();
+
+  clientBudgetDetailStatus.dataset.status = status;
+
+  clientBudgetDetailStatus.textContent = getClientBudgetStatusLabel(status);
+
+  clientBudgetDetailCode.textContent = budget.codigo || "ORC-0000";
+
+  clientBudgetDetailTitle.textContent = budget.titulo || "Orçamento";
+
+  clientBudgetDetailSubtitle.textContent =
+    budget.subtitulo || "Proposta comercial Salvateck";
+
+  clientBudgetDetailCondominium.textContent =
+    budget.condominioNome || budget.condominio?.nome || "—";
+
+  clientBudgetDetailValue.textContent = formatClientBudgetCurrency(
+    budget.valorFinal ?? budget.investimento?.valorFinal ?? 0,
+  );
+
+  clientBudgetDetailValidity.textContent = formatClientBudgetDate(
+    budget.proposta?.validadeAte,
+  );
+
+  clientBudgetDetailDescription.textContent =
+    budget.descricaoServico || budget.objetivo || "Não informado.";
+
+  renderClientBudgetServices(budget.servicosInclusos);
+
+  clientBudgetDetailConditions.textContent =
+    getClientBudgetConditionsText(budget);
+
+  const responseFromClient =
+    budget.respostaCliente &&
+    budget.respostaCliente.uid === auth.currentUser?.uid &&
+    budget.respostaCliente.status === status;
+
+  clientBudgetDetailResponse.hidden = true;
+
+  if (status === "aprovado") {
+    clientBudgetDetailResponse.hidden = false;
+    clientBudgetDetailResponse.dataset.response = "aprovado";
+
+    clientBudgetDetailResponse.textContent = responseFromClient
+      ? "Você aprovou este orçamento."
+      : "Este orçamento foi marcado como aprovado pela Salvateck.";
+
+    clientBudgetDetailActions.hidden = true;
+  } else if (status === "recusado") {
+    clientBudgetDetailResponse.hidden = false;
+    clientBudgetDetailResponse.dataset.response = "recusado";
+
+    clientBudgetDetailResponse.textContent = responseFromClient
+      ? "Você recusou este orçamento."
+      : "Este orçamento foi marcado como recusado pela Salvateck.";
+
+    clientBudgetDetailActions.hidden = true;
+  } else if (status === "expirado") {
+    clientBudgetDetailResponse.hidden = false;
+    clientBudgetDetailResponse.dataset.response = "expirado";
+
+    clientBudgetDetailResponse.textContent = "Este orçamento está expirado.";
+
+    clientBudgetDetailActions.hidden = true;
+  } else {
+    clientBudgetDetailActions.hidden = false;
+  }
+
+  clientBudgetsListView.hidden = true;
+  clientBudgetDetail.hidden = false;
+
+  clientBudgetDetail.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
+function createClientBudgetCard(budget) {
+  const button = document.createElement("button");
+
+  button.type = "button";
+  button.className = "client-budget-card";
+
+  button.dataset.budgetId = budget.id;
+
+  const content = document.createElement("div");
+
+  content.className = "client-budget-card__content";
+
+  const top = document.createElement("div");
+
+  top.className = "client-budget-card__top";
+
+  const code = document.createElement("span");
+
+  code.className = "client-budget-card__code";
+  code.textContent = budget.codigo || "ORC-0000";
+
+  const status = document.createElement("span");
+
+  status.className = "client-budget-card__status";
+
+  const normalizedStatus = String(budget.status || "enviado")
+    .trim()
+    .toLowerCase();
+
+  status.dataset.status = normalizedStatus;
+
+  status.textContent = getClientBudgetStatusLabel(normalizedStatus);
+
+  top.append(code, status);
+
+  const title = document.createElement("strong");
+
+  title.className = "client-budget-card__title";
+
+  title.textContent = budget.titulo || "Orçamento Salvateck";
+
+  const condominium = document.createElement("span");
+
+  condominium.className = "client-budget-card__condominium";
+
+  condominium.textContent =
+    budget.condominioNome ||
+    budget.condominio?.nome ||
+    "Condomínio não informado";
+
+  const value = document.createElement("strong");
+
+  value.className = "client-budget-card__value";
+
+  value.textContent = formatClientBudgetCurrency(
+    budget.valorFinal ?? budget.investimento?.valorFinal ?? 0,
+  );
+
+  content.append(top, title, condominium, value);
+
+  const arrow = document.createElement("span");
+
+  arrow.className = "client-budget-card__arrow";
+
+  arrow.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 18 6-6-6-6"></path>
+    </svg>
+  `;
+
+  button.append(content, arrow);
+
+  button.addEventListener("click", () => {
+    openClientBudgetDetail(budget);
+  });
+
+  return button;
+}
+
+function renderClientBudgets(budgets) {
+  if (!clientBudgetsLoading || !clientBudgetsEmpty || !clientBudgetsList) {
+    return;
+  }
+
+  clientBudgetsLoading.hidden = true;
+
+  clientBudgetsList.innerHTML = "";
+
+  if (budgets.length === 0) {
+    clientBudgetsEmpty.hidden = false;
+    clientBudgetsList.hidden = true;
+
+    return;
+  }
+
+  clientBudgetsEmpty.hidden = true;
+  clientBudgetsList.hidden = false;
+
+  budgets.forEach((budget) => {
+    clientBudgetsList.appendChild(createClientBudgetCard(budget));
+  });
+}
+
+async function loadClientBudgets() {
+  if (!clientBudgetsLoading || !clientBudgetsEmpty || !clientBudgetsList) {
+    return;
+  }
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    return;
+  }
+
+  clientBudgetsLoading.hidden = false;
+  clientBudgetsEmpty.hidden = true;
+  clientBudgetsList.hidden = true;
+
+  try {
+    const budgetsQuery = query(
+      collection(db, "orcamentos"),
+      where("clienteUid", "==", user.uid),
+      where("status", "in", ["enviado", "aprovado", "recusado", "expirado"]),
+    );
+
+    const snapshot = await getDocs(budgetsQuery);
+
+    const visibleStatuses = new Set([
+      "enviado",
+      "aprovado",
+      "recusado",
+      "expirado",
+    ]);
+
+    const budgets = snapshot.docs
+      .map((documentSnapshot) => ({
+        id: documentSnapshot.id,
+        ...documentSnapshot.data(),
+      }))
+      .filter((budget) =>
+        visibleStatuses.has(
+          String(budget.status || "")
+            .trim()
+            .toLowerCase(),
+        ),
+      )
+      .sort((budgetA, budgetB) => {
+        const getTime = (budget) => {
+          const timestamp =
+            budget.enviadoEm || budget.atualizadoEm || budget.criadoEm;
+
+          if (timestamp?.toMillis) {
+            return timestamp.toMillis();
+          }
+
+          return 0;
+        };
+
+        return getTime(budgetB) - getTime(budgetA);
+      });
+
+    renderClientBudgets(budgets);
+  } catch (error) {
+    console.error(
+      "[Principal] Não foi possível carregar os orçamentos do cliente:",
+      error,
+    );
+
+    clientBudgetsLoading.hidden = true;
+    clientBudgetsList.hidden = true;
+
+    clientBudgetsEmpty.hidden = false;
+
+    const emptyTitle = clientBudgetsEmpty.querySelector("strong");
+
+    const emptyDescription = clientBudgetsEmpty.querySelector("span");
+
+    if (emptyTitle) {
+      emptyTitle.textContent = "Não foi possível carregar os orçamentos";
+    }
+
+    if (emptyDescription) {
+      emptyDescription.textContent =
+        error?.code === "permission-denied"
+          ? "O acesso aos orçamentos foi bloqueado pelo Firebase."
+          : "Tente novamente em alguns instantes.";
+    }
+  }
+}
+
+let pendingClientBudgetStatus = "";
+
+function closeClientBudgetConfirmModal() {
+  pendingClientBudgetStatus = "";
+
+  clientBudgetConfirmModal.hidden = true;
+  clientBudgetConfirmModal.setAttribute("aria-hidden", "true");
+  clientBudgetConfirmModal.removeAttribute("data-action");
+}
+
+function openClientBudgetConfirmModal(status) {
+  if (status !== "aprovado" && status !== "recusado") {
+    return;
+  }
+
+  pendingClientBudgetStatus = status;
+
+  clientBudgetConfirmModal.dataset.action = status;
+  clientBudgetConfirmCancel.hidden = false;
+
+  if (status === "aprovado") {
+    clientBudgetConfirmTitle.textContent = "Aceitar orçamento?";
+    clientBudgetConfirmMessage.textContent =
+      "Ao confirmar, este orçamento será registrado como aprovado e a Salvateck será notificada.";
+    clientBudgetConfirmSubmit.textContent = "Aceitar orçamento";
+  } else {
+    clientBudgetConfirmTitle.textContent = "Recusar orçamento?";
+    clientBudgetConfirmMessage.textContent =
+      "Ao confirmar, este orçamento será registrado como recusado e a Salvateck será notificada.";
+    clientBudgetConfirmSubmit.textContent = "Recusar orçamento";
+  }
+
+  clientBudgetConfirmModal.hidden = false;
+  clientBudgetConfirmModal.setAttribute("aria-hidden", "false");
+
+  setTimeout(() => clientBudgetConfirmSubmit.focus(), 50);
+}
+
+async function respondClientBudget(status) {
+  if (!currentClientBudget || currentClientBudget.status !== "enviado") {
+    return;
+  }
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    return;
+  }
+
+  if (status !== "aprovado" && status !== "recusado") {
+    return;
+  }
+
+  const actionLabel = status === "aprovado" ? "aceitar" : "recusar";
+
+  closeClientBudgetConfirmModal();
+
+  clientBudgetAcceptButton.disabled = true;
+  clientBudgetRejectButton.disabled = true;
+
+  const originalAcceptText = clientBudgetAcceptButton.textContent;
+
+  const originalRejectText = clientBudgetRejectButton.textContent;
+
+  if (status === "aprovado") {
+    clientBudgetAcceptButton.textContent = "Aceitando...";
+  } else {
+    clientBudgetRejectButton.textContent = "Recusando...";
+  }
+
+  const reference = doc(db, "orcamentos", currentClientBudget.id);
+
+  try {
+    const updates = {
+      status,
+
+      respostaCliente: {
+        status,
+        uid: user.uid,
+        respondidoEm: serverTimestamp(),
+      },
+
+      statusAtualizadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp(),
+    };
+
+    if (status === "aprovado") {
+      updates.aprovadoEm = serverTimestamp();
+    }
+
+    if (status === "recusado") {
+      updates.recusadoEm = serverTimestamp();
+    }
+
+    await updateDoc(reference, updates);
+
+    const snapshot = await getDoc(reference);
+
+    if (!snapshot.exists()) {
+      throw new Error("BUDGET_NOT_FOUND_AFTER_RESPONSE");
+    }
+
+    const updatedBudget = {
+      id: snapshot.id,
+      ...snapshot.data(),
+    };
+
+    currentClientBudget = updatedBudget;
+
+    await loadClientBudgets();
+
+    openClientBudgetDetail(updatedBudget);
+  } catch (error) {
+    console.error(
+      `[Principal] Não foi possível ${actionLabel} o orçamento:`,
+      error,
+    );
+
+    pendingClientBudgetStatus = "";
+
+    clientBudgetConfirmModal.dataset.action = "recusado";
+    clientBudgetConfirmCancel.hidden = true;
+
+    clientBudgetConfirmTitle.textContent =
+      "Não foi possível registrar sua resposta";
+
+    clientBudgetConfirmMessage.textContent =
+      error?.code === "permission-denied"
+        ? "O orçamento não está mais disponível para esta resposta."
+        : "Ocorreu um erro ao registrar sua resposta. Tente novamente.";
+
+    clientBudgetConfirmSubmit.textContent = "Fechar";
+
+    clientBudgetConfirmModal.hidden = false;
+    clientBudgetConfirmModal.setAttribute("aria-hidden", "false");
+  } finally {
+    clientBudgetAcceptButton.disabled = false;
+    clientBudgetRejectButton.disabled = false;
+
+    clientBudgetAcceptButton.textContent = originalAcceptText;
+
+    clientBudgetRejectButton.textContent = originalRejectText;
+  }
+}
+
+function openClientBudgetsModal() {
+  if (!clientBudgetsModal) {
+    return;
+  }
+
+  clientBudgetsModal.hidden = false;
+
+  clientBudgetsModal.setAttribute("aria-hidden", "false");
+
+  document.body.classList.add("client-budgets-modal-open");
+
+  if (clientBudgetsListView) {
+    clientBudgetsListView.hidden = false;
+  }
+
+  if (clientBudgetDetail) {
+    clientBudgetDetail.hidden = true;
+  }
+
+  loadClientBudgets();
+}
+
+function closeClientBudgetsModal() {
+  if (!clientBudgetsModal) {
+    return;
+  }
+
+  clientBudgetsModal.hidden = true;
+
+  clientBudgetsModal.setAttribute("aria-hidden", "true");
+
+  document.body.classList.remove("client-budgets-modal-open");
+}
+
+async function openClientBudgetFromNotification() {
+  const parameters = new URLSearchParams(window.location.search);
+
+  if (parameters.get("abrir") !== "orcamentos") {
+    return;
+  }
+
+  const budgetId = String(parameters.get("orcamento") || "").trim();
+
+  if (!budgetId) {
+    openClientBudgetsModal();
+
+    return;
+  }
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const reference = doc(db, "orcamentos", budgetId);
+
+    const snapshot = await getDoc(reference);
+
+    if (!snapshot.exists()) {
+      openClientBudgetsModal();
+
+      return;
+    }
+
+    const budget = {
+      id: snapshot.id,
+      ...snapshot.data(),
+    };
+
+    const status = String(budget.status || "")
+      .trim()
+      .toLowerCase();
+
+    const visibleStatuses = new Set([
+      "enviado",
+      "aprovado",
+      "recusado",
+      "expirado",
+    ]);
+
+    if (budget.clienteUid !== user.uid || !visibleStatuses.has(status)) {
+      openClientBudgetsModal();
+
+      return;
+    }
+
+    openClientBudgetsModal();
+
+    currentClientBudget = budget;
+
+    openClientBudgetDetail(budget);
+  } catch (error) {
+    console.error(
+      "[Principal] Não foi possível abrir o orçamento da notificação:",
+      error,
+    );
+
+    openClientBudgetsModal();
+  }
+}
+
+clientBudgetsCloseButtons.forEach((button) => {
+  button.addEventListener("click", closeClientBudgetsModal);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    clientBudgetsModal &&
+    !clientBudgetsModal.hidden
+  ) {
+    closeClientBudgetsModal();
+  }
+});
+
+if (clientBudgetDetailBack) {
+  clientBudgetDetailBack.addEventListener("click", () => {
+    clientBudgetDetail.hidden = true;
+    clientBudgetsListView.hidden = false;
+  });
+}
+
+if (clientBudgetAcceptButton) {
+  clientBudgetAcceptButton.addEventListener("click", () => {
+    openClientBudgetConfirmModal("aprovado");
+  });
+}
+
+if (clientBudgetRejectButton) {
+  clientBudgetRejectButton.addEventListener("click", () => {
+    openClientBudgetConfirmModal("recusado");
+  });
+}
+
+clientBudgetConfirmCancel?.addEventListener("click", () => {
+  closeClientBudgetConfirmModal();
+});
+
+clientBudgetConfirmSubmit?.addEventListener("click", () => {
+  if (!pendingClientBudgetStatus) {
+    return;
+  }
+
+  respondClientBudget(pendingClientBudgetStatus);
+});
+
+let currentClientBudget = null;
 let currentProfile = null;
 
 let authActionInProgress = false;
@@ -344,6 +1142,256 @@ let adminSearchItems = [];
 
 let adminSearchLoaded = false;
 
+let notificationsUnsubscribe = null;
+let notificationsItems = [];
+/* ==============================
+   CENTRAL DE NOTIFICAÇÕES
+================================ */
+
+function getNotificationTimestamp(notification) {
+  if (notification.criadaEm?.toMillis) {
+    return notification.criadaEm.toMillis();
+  }
+
+  return 0;
+}
+
+function formatNotificationDate(timestamp) {
+  if (!timestamp?.toDate) {
+    return "Agora";
+  }
+
+  const date = timestamp.toDate();
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+async function markNotificationAsRead(notificationId) {
+  if (!notificationId) {
+    return;
+  }
+
+  try {
+    await updateDoc(doc(db, "notificacoes", notificationId), {
+      lida: true,
+      lidaEm: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error(
+      "[Principal] Não foi possível marcar a notificação como lida:",
+      error,
+    );
+  }
+}
+
+function renderNotifications() {
+  if (
+    !notificationButton ||
+    !notificationBadge ||
+    !notificationsList ||
+    !notificationsEmpty ||
+    !notificationsMarkAll
+  ) {
+    return;
+  }
+
+  const sortedNotifications = [...notificationsItems].sort(
+    (a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a),
+  );
+
+  const unreadNotifications = sortedNotifications.filter(
+    (notification) => notification.lida !== true,
+  );
+
+  notificationsList.replaceChildren();
+
+  notificationsEmpty.hidden = sortedNotifications.length > 0;
+  notificationsMarkAll.hidden = unreadNotifications.length === 0;
+
+  if (unreadNotifications.length > 0) {
+    notificationBadge.hidden = false;
+
+    notificationBadge.textContent =
+      unreadNotifications.length > 99
+        ? "99+"
+        : String(unreadNotifications.length);
+
+    notificationButton.setAttribute(
+      "aria-label",
+      `Abrir notificações. ${unreadNotifications.length} não lida(s).`,
+    );
+  } else {
+    notificationBadge.hidden = true;
+    notificationBadge.textContent = "";
+
+    notificationButton.setAttribute("aria-label", "Abrir notificações");
+  }
+
+  sortedNotifications.forEach((notification) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+
+    button.className =
+      notification.lida === true
+        ? "notification-item"
+        : "notification-item is-unread";
+
+    const indicator = document.createElement("span");
+
+    indicator.className = "notification-item__indicator";
+    indicator.setAttribute("aria-hidden", "true");
+
+    const content = document.createElement("span");
+
+    content.className = "notification-item__content";
+
+    const title = document.createElement("strong");
+
+    title.className = "notification-item__title";
+    title.textContent = notification.titulo || "Atualização Salvateck";
+
+    const message = document.createElement("span");
+
+    message.className = "notification-item__message";
+    message.textContent =
+      notification.mensagem || "Há uma nova atualização disponível.";
+
+    content.append(title, message);
+
+    const date = document.createElement("time");
+
+    date.className = "notification-item__date";
+    date.textContent = formatNotificationDate(notification.criadaEm);
+
+    button.append(indicator, content, date);
+
+    button.addEventListener("click", async () => {
+      if (notification.lida !== true) {
+        await markNotificationAsRead(notification.id);
+      }
+
+      const target = String(notification.url || "principal.html").trim();
+
+      notificationsPanel.hidden = true;
+
+      notificationButton.setAttribute("aria-expanded", "false");
+
+      window.location.href = target || "principal.html";
+    });
+
+    notificationsList.appendChild(button);
+  });
+}
+
+function startNotificationsCenter(uid) {
+  if (!uid) {
+    return;
+  }
+
+  if (notificationsUnsubscribe) {
+    notificationsUnsubscribe();
+    notificationsUnsubscribe = null;
+  }
+
+  notificationsItems = [];
+
+  renderNotifications();
+
+  const notificationsQuery = query(
+    collection(db, "notificacoes"),
+    where("destinatarioUid", "==", uid),
+  );
+
+  notificationsUnsubscribe = onSnapshot(
+    notificationsQuery,
+    (snapshot) => {
+      notificationsItems = snapshot.docs.map((documentSnapshot) => ({
+        id: documentSnapshot.id,
+        ...documentSnapshot.data(),
+      }));
+
+      renderNotifications();
+    },
+    (error) => {
+      console.error(
+        "[Principal] Não foi possível carregar as notificações:",
+        error,
+      );
+    },
+  );
+}
+
+notificationButton?.addEventListener("click", () => {
+  if (!notificationsPanel) {
+    return;
+  }
+
+  const shouldOpen = notificationsPanel.hidden;
+
+  notificationsPanel.hidden = !shouldOpen;
+
+  notificationButton.setAttribute(
+    "aria-expanded",
+    shouldOpen ? "true" : "false",
+  );
+
+  if (shouldOpen) {
+    notificationsPanel.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }
+});
+
+notificationsMarkAll?.addEventListener("click", async () => {
+  const unreadNotifications = notificationsItems.filter(
+    (notification) => notification.lida !== true,
+  );
+
+  if (unreadNotifications.length === 0) {
+    return;
+  }
+
+  notificationsMarkAll.disabled = true;
+
+  try {
+    await Promise.all(
+      unreadNotifications.map((notification) =>
+        updateDoc(doc(db, "notificacoes", notification.id), {
+          lida: true,
+          lidaEm: serverTimestamp(),
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error(
+      "[Principal] Não foi possível marcar todas as notificações como lidas:",
+      error,
+    );
+  } finally {
+    notificationsMarkAll.disabled = false;
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (
+    event.key === "Escape" &&
+    notificationsPanel &&
+    !notificationsPanel.hidden
+  ) {
+    notificationsPanel.hidden = true;
+
+    notificationButton?.setAttribute("aria-expanded", "false");
+
+    notificationButton?.focus();
+  }
+});
 /* ==============================
    NORMALIZAÇÃO DA PESQUISA
 ================================ */
@@ -549,7 +1597,13 @@ function createCard(card) {
   button.className = "quick-card";
   button.type = "button";
 
-  button.dataset.target = card.target;
+  if (card.target) {
+    button.dataset.target = card.target;
+  }
+
+  if (card.action) {
+    button.dataset.action = card.action;
+  }
 
   button.setAttribute("aria-label", `Abrir ${card.title}`);
 
@@ -576,7 +1630,15 @@ function createCard(card) {
   `;
 
   button.addEventListener("click", () => {
-    window.location.href = card.target;
+    if (card.action === "client-budgets") {
+      openClientBudgetsModal();
+
+      return;
+    }
+
+    if (card.target) {
+      window.location.href = card.target;
+    }
   });
 
   return button;
@@ -835,6 +1897,14 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     changeProfile(role, userProfile);
+
+    changeProfile(role, userProfile);
+
+    startNotificationsCenter(user.uid);
+
+    if (role === "cliente") {
+      await openClientBudgetFromNotification();
+    }
 
     if (role === "admin") {
       loadAdminSearchData();

@@ -931,6 +931,20 @@ INFORMAÇÕES INFERIORES DO CARD
   color: #717980;
 }
 
+.budget-card[data-status="aprovado"]
+  .budget-card__meta-item
+  + .budget-card__meta-item {
+  flex: 0 0 auto;
+
+  padding: 5px 9px;
+
+  color: #236d43;
+  background-color: rgba(52, 168, 104, 0.12);
+
+  border: 1px solid rgba(52, 168, 104, 0.22);
+  border-radius: var(--radius-pill);
+}
+
 .budget-card__meta-item svg {
   width: 16px;
 

@@ -2,6 +2,7 @@ import "./auth-guard.js";
 
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -133,6 +134,8 @@ const summaryFinalValue = document.getElementById("summary-final-value");
 const saveDraftButton = document.getElementById("save-budget-draft");
 
 const saveButton = document.getElementById("save-budget");
+
+const sendBudgetButton = document.getElementById("send-budget");
 
 const feedback = document.getElementById("budget-feedback");
 
@@ -1630,6 +1633,21 @@ async function updateExistingBudget(status) {
       throw new Error("BUDGET_NOT_FOUND");
     }
 
+    const currentBudgetData = snapshot.data();
+
+    if (currentBudgetData.ordemId || currentBudgetData.osId) {
+      throw new Error("BUDGET_ALREADY_CONVERTED");
+    }
+
+    if (text(currentBudgetData.status) === "aprovado") {
+      budgetData.respostaCliente = deleteField();
+      budgetData.aprovadoEm = null;
+      budgetData.recusadoEm = null;
+      budgetData.expiradoEm = null;
+      budgetData.enviadoEm = status === "enviado" ? serverTimestamp() : null;
+      budgetData.statusAtualizadoEm = serverTimestamp();
+    }
+
     transaction.set(budgetReference, budgetData, {
       merge: true,
     });
@@ -1818,23 +1836,25 @@ function setSavingState(isSaving, mode = "budget") {
   savingBudget = isSaving;
 
   saveButton.disabled = isSaving;
-
   saveDraftButton.disabled = isSaving;
+  sendBudgetButton.disabled = isSaving;
 
   if (!isSaving) {
-    saveButton.querySelector("span").textContent = editMode
-      ? "Salvar alterações"
-      : "Salvar orçamento";
+    saveButton.querySelector("span").textContent = "Salvar orçamento";
 
     saveDraftButton.querySelector("span").textContent = "Salvar rascunho";
+
+    sendBudgetButton.querySelector("span").textContent =
+      "Enviar orçamento ao cliente";
 
     return;
   }
 
-  if (editMode) {
-    saveButton.querySelector("span").textContent = "Salvando alterações...";
-  } else if (mode === "draft") {
+  if (mode === "draft") {
     saveDraftButton.querySelector("span").textContent = "Salvando rascunho...";
+  } else if (mode === "send") {
+    sendBudgetButton.querySelector("span").textContent =
+      "Enviando orçamento...";
   } else {
     saveButton.querySelector("span").textContent = "Salvando orçamento...";
   }
@@ -2034,16 +2054,21 @@ form.addEventListener("submit", (event) => {
 
   handleBudgetSave({
     mode: "budget",
-
-    status: budgetStatus.value || "rascunho",
+    status: "rascunho",
   });
 });
 
 saveDraftButton.addEventListener("click", () => {
   handleBudgetSave({
     mode: "draft",
-
     status: "rascunho",
+  });
+});
+
+sendBudgetButton.addEventListener("click", () => {
+  handleBudgetSave({
+    mode: "send",
+    status: "enviado",
   });
 });
 

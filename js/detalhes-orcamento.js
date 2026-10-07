@@ -7,6 +7,7 @@ import {
   getDocs,
   limit,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
@@ -47,6 +48,11 @@ const duplicateBudgetButton = document.getElementById(
 );
 const generatePdfButton = document.getElementById("generate-budget-pdf-button");
 const shareBudgetButton = document.getElementById("share-budget-button");
+
+const sendBudgetClientButton = document.getElementById(
+  "send-budget-client-button",
+);
+
 const generateBudgetImageButton = document.getElementById(
   "generate-budget-image-button",
 );
@@ -123,6 +129,16 @@ const modalMessage = document.getElementById("budget-modal-message");
 const cancelModalButton = document.getElementById("cancel-budget-modal");
 const confirmModalButton = document.getElementById("confirm-budget-modal");
 
+const clientResponse = document.getElementById("budget-client-response");
+
+const clientResponseIdentity = document.getElementById(
+  "budget-client-response-identity",
+);
+
+const clientResponseDate = document.getElementById(
+  "budget-client-response-date",
+);
+
 const feedback = document.getElementById("budget-detail-feedback");
 
 /* =========================================================
@@ -135,6 +151,7 @@ let currentBudget = null;
 let currentPrivateData = null;
 let pendingStatus = "";
 let changingStatus = false;
+let convertingBudgetToOrder = false;
 let feedbackTimer = null;
 
 /* =========================================================
@@ -170,8 +187,9 @@ const statusConfig = {
 
 const statusConfirmations = {
   enviado: {
-    title: "Marcar como enviado?",
-    message: "O orçamento será identificado como enviado ao cliente.",
+    title: "Enviar orçamento ao cliente?",
+    message:
+      "O orçamento ficará disponível em Meus Orçamentos para o cliente aceitar ou recusar.",
   },
 
   aprovado: {
@@ -356,12 +374,61 @@ function renderStatus(status) {
   budgetStatus.textContent = config.label;
   approvalCurrentStatus.textContent = config.label;
 
-  markSentButton.hidden = status === "enviado";
-  approveButton.hidden = status === "aprovado";
-  rejectButton.hidden = status === "recusado";
-  expireButton.hidden = status === "expirado";
+  const respondedByCustomer =
+    ["aprovado", "recusado"].includes(status) &&
+    currentBudget?.respostaCliente?.status === status &&
+    Boolean(currentBudget?.respostaCliente?.uid);
 
-  conversionCard.hidden = status !== "aprovado";
+  const acceptedByCustomer = status === "aprovado" && respondedByCustomer;
+
+  const finalized =
+    ["recusado", "expirado"].includes(status) ||
+    Boolean(currentBudget?.ordemId || currentBudget?.osId);
+
+  // Ações administrativas
+  markSentButton.hidden = status !== "rascunho";
+
+  if (sendBudgetClientButton) {
+    sendBudgetClientButton.hidden = status !== "rascunho";
+  }
+
+  approveButton.hidden = true;
+  approveButton.disabled = true;
+  rejectButton.hidden = true;
+  rejectButton.disabled = true;
+  expireButton.hidden = status !== "enviado";
+
+  editBudgetButton.hidden = finalized;
+
+  // Resposta do cliente
+  if (clientResponse && clientResponseIdentity && clientResponseDate) {
+    clientResponse.hidden = !["aprovado", "recusado"].includes(status);
+
+    if (!clientResponse.hidden) {
+      clientResponseIdentity.textContent = respondedByCustomer
+        ? "Cliente identificado"
+        : "Sem resposta digital registrada";
+
+      clientResponseDate.textContent = formatDateTime(
+        currentBudget?.respostaCliente?.respondidoEm ||
+          currentBudget?.aprovadoEm ||
+          currentBudget?.recusadoEm,
+      );
+    }
+  }
+
+  // Conversão em Ordem de Serviço
+  const linkedOrderId = text(currentBudget?.ordemId || currentBudget?.osId);
+
+  conversionCard.hidden = !acceptedByCustomer;
+
+  if (acceptedByCustomer) {
+    if (linkedOrderId) {
+      convertBudgetOrderButton.textContent = "Abrir OS";
+    } else {
+      convertBudgetOrderButton.textContent = "Converter em OS";
+    }
+  }
 }
 
 /* =========================================================
@@ -753,6 +820,31 @@ function openStatusModal(status) {
 
   modalMessage.textContent = config.message;
 
+  confirmModalButton.textContent = "Confirmar";
+
+  confirmModal.hidden = false;
+
+  document.body.style.overflow = "hidden";
+
+  window.setTimeout(() => {
+    confirmModalButton.focus();
+  }, 50);
+}
+
+function openConversionModal() {
+  if (convertingBudgetToOrder || !currentBudget) {
+    return;
+  }
+
+  pendingStatus = "converter-os";
+
+  modalTitle.textContent = "Converter orçamento em OS?";
+
+  modalMessage.textContent =
+    "Será criada uma nova Ordem de Serviço vinculada a este orçamento aprovado. Esta conversão poderá ser realizada apenas uma vez.";
+
+  confirmModalButton.textContent = "Converter em OS";
+
   confirmModal.hidden = false;
 
   document.body.style.overflow = "hidden";
@@ -763,11 +855,13 @@ function openStatusModal(status) {
 }
 
 function closeStatusModal() {
-  if (changingStatus) {
+  if (changingStatus || convertingBudgetToOrder) {
     return;
   }
 
   pendingStatus = "";
+
+  confirmModalButton.textContent = "Confirmar";
 
   confirmModal.hidden = true;
 
@@ -2884,10 +2978,437 @@ async function handleGenerateBudgetImage() {
   }
 }
 
-function handleConvertBudgetToOrder() {
-  showFeedback(
-    "A conversão automática do orçamento aprovado em OS ficará para a próxima fase do módulo.",
+function formatOrderCode(number) {
+  return `OS-${String(number).padStart(4, "0")}`;
+}
+
+function getAuthorizedClientIds(condominiumData, clientUid) {
+  const directIds = Array.isArray(condominiumData?.clientesIds)
+    ? condominiumData.clientesIds
+    : [];
+
+  const relationshipIds = Array.isArray(condominiumData?.clientesVinculados)
+    ? condominiumData.clientesVinculados.map((relationship) =>
+        text(relationship?.clienteId),
+      )
+    : [];
+
+  return Array.from(
+    new Set(
+      [...directIds, ...relationshipIds, clientUid].map(text).filter(Boolean),
+    ),
   );
+}
+
+function buildOrderFromBudget({
+  budget,
+  orderId,
+  orderNumber,
+  orderCode,
+  condominiumData,
+}) {
+  const clientUid = text(budget.clienteUid);
+
+  const client = budget.cliente || {};
+
+  const condominium = budget.condominio || {};
+
+  const address = condominium.endereco || {};
+
+  const includedServices = Array.isArray(budget.servicosInclusos)
+    ? budget.servicosInclusos.map(text).filter(Boolean)
+    : [];
+
+  const mainService =
+    includedServices[0] ||
+    text(budget.titulo) ||
+    "Serviço aprovado em orçamento";
+
+  const description = [
+    text(budget.descricaoServico),
+    text(budget.objetivo) ? `Objetivo: ${text(budget.objetivo)}` : "",
+    `Orçamento aprovado: ${text(budget.codigo)}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const creatorName = text(
+    currentSession?.profile?.nome || currentSession?.email || "Administrador",
+  );
+
+  return {
+    id: orderId,
+
+    numero: orderNumber,
+
+    codigo: orderCode,
+
+    criadoEm: serverTimestamp(),
+
+    atualizadoEm: serverTimestamp(),
+
+    statusAtualizadoEm: serverTimestamp(),
+
+    perfilCriador: "admin",
+
+    criadoPorUid: currentSession?.uid || "",
+
+    criadoPorNome: creatorName,
+
+    clienteUid: clientUid,
+
+    condominioId: text(budget.condominioId || condominium.id),
+
+    clientesAutorizadosIds: getAuthorizedClientIds(condominiumData, clientUid),
+
+    tipoAtendimento: "servico",
+
+    categoriaPrincipal: "",
+
+    servicoPrincipal: mainService,
+
+    titulo: text(budget.titulo) || mainService,
+
+    cliente: {
+      id: clientUid,
+
+      nome: text(client.nome || budget.clienteNome),
+
+      telefone: text(client.telefone),
+
+      email: text(client.email),
+    },
+
+    condominio: {
+      id: text(budget.condominioId || condominium.id),
+
+      codigo: text(condominium.codigo),
+
+      nome: text(condominium.nome || budget.condominioNome),
+
+      cnpj: text(condominium.cnpj),
+
+      endereco: address,
+    },
+
+    endereco: {
+      tipo: "cadastrado",
+
+      enderecoCadastrado: true,
+
+      cep: text(address.cep),
+
+      rua: text(address.rua || address.logradouro),
+
+      logradouro: text(address.logradouro || address.rua),
+
+      numero: text(address.numero),
+
+      complemento: text(address.complemento),
+
+      bairro: text(address.bairro),
+
+      cidade: text(address.cidade),
+
+      estado: text(address.estado || address.uf),
+
+      uf: text(address.uf || address.estado),
+
+      referencia: text(address.referencia || address.pontoReferencia),
+
+      resumo: text(address.resumo),
+    },
+
+    categorias: [],
+
+    servicos: includedServices.map((service) => ({
+      categoria: "",
+      servico: service,
+    })),
+
+    atendimento: {
+      modo: "",
+
+      dataPreferida: "",
+
+      periodo: "",
+
+      horarioPreferido: "",
+
+      dataConfirmada: "",
+
+      periodoConfirmado: "",
+
+      horarioConfirmado: "",
+
+      horarioFinal: "",
+
+      duracaoMinutos: 0,
+
+      intervaloMinutos: 0,
+
+      fusoHorario: "America/Sao_Paulo",
+
+      agendadoEm: null,
+    },
+
+    observacoes: {
+      cliente: description,
+
+      resposta: "",
+
+      interna: "",
+    },
+
+    prioridade: "normal",
+
+    status: "nova-solicitacao",
+
+    ativo: true,
+
+    arquivado: false,
+
+    quantidadeFotos: 0,
+
+    vistoria: null,
+
+    origem: {
+      tipo: "orcamento",
+
+      orcamentoId: budget.id,
+
+      codigoOrcamento: text(budget.codigo),
+
+      ordemOrigemId: "",
+    },
+  };
+}
+
+async function convertApprovedBudgetToOrder() {
+  const budgetReference = doc(db, "orcamentos", currentBudgetId);
+
+  const counterReference = doc(db, "contadores", "ordens");
+
+  const orderReference = doc(collection(db, "ordens"));
+
+  return runTransaction(db, async (transaction) => {
+    const budgetSnapshot = await transaction.get(budgetReference);
+
+    if (!budgetSnapshot.exists()) {
+      throw new Error("BUDGET_NOT_FOUND");
+    }
+
+    const budget = {
+      id: budgetSnapshot.id,
+      ...budgetSnapshot.data(),
+    };
+
+    if (budget.ordemId || budget.osId) {
+      throw new Error("BUDGET_ALREADY_CONVERTED");
+    }
+
+    if (
+      text(budget.status) !== "aprovado" ||
+      text(budget.respostaCliente?.status) !== "aprovado" ||
+      !text(budget.respostaCliente?.uid) ||
+      text(budget.respostaCliente?.uid) !== text(budget.clienteUid)
+    ) {
+      throw new Error("BUDGET_NOT_APPROVED_BY_CLIENT");
+    }
+
+    const condominiumId = text(budget.condominioId || budget.condominio?.id);
+
+    if (!condominiumId) {
+      throw new Error("BUDGET_WITHOUT_CONDOMINIUM");
+    }
+
+    const counterSnapshot = await transaction.get(counterReference);
+
+    if (!counterSnapshot.exists()) {
+      throw new Error("ORDER_COUNTER_NOT_FOUND");
+    }
+
+    const condominiumReference = doc(db, "condominios", condominiumId);
+
+    const condominiumSnapshot = await transaction.get(condominiumReference);
+
+    const condominiumData = condominiumSnapshot.exists()
+      ? condominiumSnapshot.data()
+      : {};
+
+    const currentNumber = Number(counterSnapshot.data().ultimoNumero || 0);
+
+    if (!Number.isInteger(currentNumber) || currentNumber < 0) {
+      throw new Error("INVALID_ORDER_COUNTER");
+    }
+
+    const nextNumber = currentNumber + 1;
+
+    const orderCode = formatOrderCode(nextNumber);
+
+    const orderData = buildOrderFromBudget({
+      budget,
+      orderId: orderReference.id,
+      orderNumber: nextNumber,
+      orderCode,
+      condominiumData,
+    });
+
+    transaction.update(counterReference, {
+      ultimoNumero: nextNumber,
+
+      ultimoDocumentoId: orderReference.id,
+
+      atualizadoEm: serverTimestamp(),
+    });
+
+    transaction.set(orderReference, orderData);
+
+    transaction.update(budgetReference, {
+      ordemId: orderReference.id,
+
+      codigoOS: orderCode,
+
+      convertidoEm: serverTimestamp(),
+
+      convertidoPorUid: currentSession?.uid || "",
+
+      convertidoPorNome: text(
+        currentSession?.profile?.nome ||
+          currentSession?.email ||
+          "Administrador",
+      ),
+
+      atualizadoEm: serverTimestamp(),
+
+      atualizadoPorUid: currentSession?.uid || "",
+
+      atualizadoPorNome: text(
+        currentSession?.profile?.nome ||
+          currentSession?.email ||
+          "Administrador",
+      ),
+    });
+
+    return {
+      id: orderReference.id,
+      numero: nextNumber,
+      codigo: orderCode,
+    };
+  });
+}
+
+async function handleConvertBudgetToOrder(options = {}) {
+  const confirmed = options?.confirmed === true;
+
+  const linkedOrderId = text(currentBudget?.ordemId || currentBudget?.osId);
+
+  if (!confirmed && linkedOrderId) {
+    const parameters = new URLSearchParams({
+      id: linkedOrderId,
+      origem: "ordens",
+    });
+
+    window.location.href = `detalhes-solicitacao.html?${parameters.toString()}`;
+
+    return;
+  }
+
+  if (!confirmed) {
+    openConversionModal();
+
+    return;
+  }
+
+  if (convertingBudgetToOrder || !currentBudgetId || !currentBudget) {
+    return;
+  }
+
+  convertingBudgetToOrder = true;
+
+  const originalConfirmText = confirmModalButton.textContent;
+
+  confirmModalButton.disabled = true;
+
+  cancelModalButton.disabled = true;
+
+  convertBudgetOrderButton.disabled = true;
+
+  confirmModalButton.textContent = "Convertendo...";
+
+  try {
+    const savedOrder = await convertApprovedBudgetToOrder();
+
+    const budgetReference = doc(db, "orcamentos", currentBudgetId);
+
+    const budgetSnapshot = await getDoc(budgetReference);
+
+    if (!budgetSnapshot.exists()) {
+      throw new Error("BUDGET_NOT_FOUND_AFTER_CONVERSION");
+    }
+
+    currentBudget = {
+      id: budgetSnapshot.id,
+      ...budgetSnapshot.data(),
+    };
+
+    await renderBudget();
+
+    pendingStatus = "";
+
+    confirmModal.hidden = true;
+
+    document.body.style.overflow = "";
+
+    showFeedback(
+      `Orçamento convertido com sucesso na ${savedOrder.codigo}.`,
+      "success",
+    );
+  } catch (error) {
+    console.error(
+      "[Detalhes Orçamento] Falha ao converter orçamento em OS:",
+      error,
+    );
+
+    let message = "Não foi possível converter o orçamento em Ordem de Serviço.";
+
+    if (error?.message === "BUDGET_ALREADY_CONVERTED") {
+      message = "Este orçamento já foi convertido em uma Ordem de Serviço.";
+    }
+
+    if (error?.message === "BUDGET_NOT_APPROVED_BY_CLIENT") {
+      message =
+        "A conversão só pode ser realizada após a aprovação digital do cliente.";
+    }
+
+    if (error?.message === "BUDGET_WITHOUT_CONDOMINIUM") {
+      message = "Este orçamento não possui condomínio vinculado.";
+    }
+
+    if (error?.message === "ORDER_COUNTER_NOT_FOUND") {
+      message = "O contador de Ordens de Serviço não foi encontrado.";
+    }
+
+    if (error?.message === "INVALID_ORDER_COUNTER") {
+      message = "O contador de Ordens de Serviço está inválido.";
+    }
+
+    if (error?.code === "permission-denied") {
+      message = "O Firebase bloqueou a conversão deste orçamento.";
+    }
+
+    showFeedback(message, "error");
+  } finally {
+    convertingBudgetToOrder = false;
+
+    confirmModalButton.disabled = false;
+
+    cancelModalButton.disabled = false;
+
+    convertBudgetOrderButton.disabled = false;
+
+    confirmModalButton.textContent = originalConfirmText;
+  }
 }
 
 /* =========================================================
@@ -2895,6 +3416,10 @@ EVENTOS DE STATUS
 ========================================================= */
 
 markSentButton.addEventListener("click", () => {
+  openStatusModal("enviado");
+});
+
+sendBudgetClientButton?.addEventListener("click", () => {
   openStatusModal("enviado");
 });
 
@@ -2916,12 +3441,20 @@ EVENTOS DO MODAL
 
 cancelModalButton.addEventListener("click", closeStatusModal);
 
-confirmModalButton.addEventListener("click", () => {
+confirmModalButton.addEventListener("click", async () => {
   if (!pendingStatus) {
     return;
   }
 
-  updateBudgetStatus(pendingStatus);
+  if (pendingStatus === "converter-os") {
+    await handleConvertBudgetToOrder({
+      confirmed: true,
+    });
+
+    return;
+  }
+
+  await updateBudgetStatus(pendingStatus);
 });
 
 document.querySelectorAll("[data-close-budget-modal]").forEach((element) => {
