@@ -3180,8 +3180,65 @@ function buildOrderFromBudget({
       codigoOrcamento: text(budget.codigo),
 
       ordemOrigemId: "",
+
+      ...(text(budget.origem?.tipo) === "vistoria"
+        ? {
+            vistoriaId: text(budget.origem?.vistoriaId),
+
+            codigoVistoria: text(budget.origem?.codigoVistoria),
+          }
+        : {}),
     },
   };
+}
+
+function buildInspectionChecklistWithExecutionOrder(
+  checklist,
+  budgetId,
+  orderId,
+) {
+  let linkedItems = 0;
+
+  const updatedChecklist = (Array.isArray(checklist) ? checklist : []).map(
+    (item) => {
+      const pending =
+        item.pendencia && typeof item.pendencia === "object"
+          ? item.pendencia
+          : {};
+
+      if (text(pending.orcamentoId) !== budgetId) {
+        return item;
+      }
+
+      if (text(pending.status) !== "orcada") {
+        throw new Error("BUDGET_SOURCE_PENDING_ITEMS_INVALID");
+      }
+
+      linkedItems += 1;
+
+      return {
+        ...item,
+
+        pendencia: {
+          ...pending,
+
+          status: "aguardando-execucao",
+
+          orcamentoId: budgetId,
+
+          osExecucaoId: orderId,
+
+          resolvidaEm: null,
+        },
+      };
+    },
+  );
+
+  if (linkedItems === 0) {
+    throw new Error("BUDGET_SOURCE_PENDING_ITEMS_INVALID");
+  }
+
+  return updatedChecklist;
 }
 
 async function convertApprovedBudgetToOrder() {
@@ -3236,6 +3293,31 @@ async function convertApprovedBudgetToOrder() {
       ? condominiumSnapshot.data()
       : {};
 
+    const budgetOriginType = text(budget.origem?.tipo);
+
+    const sourceInspectionId =
+      budgetOriginType === "vistoria" ? text(budget.origem?.vistoriaId) : "";
+
+    let sourceInspectionReference = null;
+
+    let sourceInspectionSnapshot = null;
+
+    if (budgetOriginType === "vistoria") {
+      if (!sourceInspectionId) {
+        throw new Error("BUDGET_SOURCE_INSPECTION_INVALID");
+      }
+
+      sourceInspectionReference = doc(db, "vistorias", sourceInspectionId);
+
+      sourceInspectionSnapshot = await transaction.get(
+        sourceInspectionReference,
+      );
+
+      if (!sourceInspectionSnapshot.exists()) {
+        throw new Error("BUDGET_SOURCE_INSPECTION_NOT_FOUND");
+      }
+    }
+
     const currentNumber = Number(counterSnapshot.data().ultimoNumero || 0);
 
     if (!Number.isInteger(currentNumber) || currentNumber < 0) {
@@ -3263,6 +3345,22 @@ async function convertApprovedBudgetToOrder() {
     });
 
     transaction.set(orderReference, orderData);
+
+    if (sourceInspectionReference && sourceInspectionSnapshot) {
+      const inspectionData = sourceInspectionSnapshot.data();
+
+      const updatedChecklist = buildInspectionChecklistWithExecutionOrder(
+        inspectionData.checklist,
+        budget.id,
+        orderReference.id,
+      );
+
+      transaction.update(sourceInspectionReference, {
+        checklist: updatedChecklist,
+
+        atualizadoEm: serverTimestamp(),
+      });
+    }
 
     transaction.update(budgetReference, {
       ordemId: orderReference.id,
@@ -3391,6 +3489,20 @@ async function handleConvertBudgetToOrder(options = {}) {
 
     if (error?.message === "INVALID_ORDER_COUNTER") {
       message = "O contador de Ordens de Serviço está inválido.";
+    }
+
+    if (error?.message === "BUDGET_SOURCE_INSPECTION_INVALID") {
+      message =
+        "Este orçamento informa origem em vistoria, mas o vínculo com a vistoria está inválido.";
+    }
+
+    if (error?.message === "BUDGET_SOURCE_INSPECTION_NOT_FOUND") {
+      message = "A vistoria que originou este orçamento não foi encontrada.";
+    }
+
+    if (error?.message === "BUDGET_SOURCE_PENDING_ITEMS_INVALID") {
+      message =
+        "As pendências vinculadas a este orçamento foram alteradas. Confira a vistoria antes de gerar a Ordem de Serviço.";
     }
 
     if (error?.code === "permission-denied") {

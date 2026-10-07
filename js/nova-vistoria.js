@@ -230,6 +230,10 @@ const exportInspectionPdfButton = document.getElementById(
   "btnExportarPdfVistoria",
 );
 
+const generatePendingBudgetButton = document.getElementById(
+  "btnGerarOrcamentoPendencias",
+);
+
 const inspectionAdminValidationActions = document.getElementById(
   "inspection-admin-validation-actions",
 );
@@ -588,6 +592,46 @@ function normalizeInspectionPendingState(item = {}) {
     resolvidaEm: pending.resolvidaEm || null,
   };
 }
+function getOpenInspectionPendingItems() {
+  return checklistItems.filter((item) => {
+    if (normalizeInspectionText(item.resultado) !== "precisa-ajuste") {
+      return false;
+    }
+
+    const pending = normalizeInspectionPendingState(item);
+
+    return pending?.status === "aberta";
+  });
+}
+
+function openPendingBudgetCreation() {
+  const pendingItems = getOpenInspectionPendingItems();
+
+  if (
+    currentSession?.role !== "admin" ||
+    !currentInspectionDocument?.id ||
+    pendingItems.length === 0
+  ) {
+    return;
+  }
+
+  const parameters = new URLSearchParams({
+    perfil: "admin",
+    origem: "vistoria",
+    vistoria: currentInspectionDocument.id,
+  });
+
+  if (selectedCondominium?.id) {
+    parameters.set("condominio", selectedCondominium.id);
+  }
+
+  if (selectedResponsible?.uid) {
+    parameters.set("cliente", selectedResponsible.uid);
+  }
+
+  window.location.href = `novo-orcamento.html?${parameters.toString()}`;
+}
+
 function getOrderLinkedInspectionId(order = {}) {
   return String(
     order.vistoria?.id || order.vistoria?.vistoriaId || order.vistoriaId || "",
@@ -1092,6 +1136,8 @@ async function loadExistingInspection(inspectionId) {
 
   updateProgress();
 
+  updatePendingBudgetAction();
+
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     field.disabled = true;
   });
@@ -1344,6 +1390,25 @@ function updateProgress() {
   );
 }
 
+function updatePendingBudgetAction() {
+  if (!generatePendingBudgetButton) {
+    return;
+  }
+
+  const inspectionStatus = normalizeInspectionText(
+    currentInspectionDocument?.status,
+  );
+
+  const canGeneratePendingBudget =
+    currentSession?.role === "admin" &&
+    inspectionPageMode === "consulta" &&
+    Boolean(currentInspectionDocument?.id) &&
+    ["aguardando-validacao", "concluida"].includes(inspectionStatus) &&
+    getOpenInspectionPendingItems().length > 0;
+
+  generatePendingBudgetButton.hidden = !canGeneratePendingBudget;
+}
+
 function updatePageState() {
   updateCondominiumSummary();
 
@@ -1352,6 +1417,8 @@ function updatePageState() {
   updateInspectionSummary();
 
   updateProgress();
+
+  updatePendingBudgetAction();
 }
 
 /* =========================================
@@ -5704,6 +5771,11 @@ confirmInspectionAdminActionButton?.addEventListener(
 );
 
 exportInspectionPdfButton?.addEventListener("click", openInspectionPdfModal);
+
+generatePendingBudgetButton?.addEventListener(
+  "click",
+  openPendingBudgetCreation,
+);
 
 closeInspectionPdfModalButtons.forEach((button) => {
   button.addEventListener("click", closeInspectionPdfModal);

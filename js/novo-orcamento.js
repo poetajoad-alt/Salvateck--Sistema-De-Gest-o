@@ -183,6 +183,12 @@ let editingPrivateData = null;
 
 let existingImageData = null;
 
+let sourceInspectionId = "";
+
+let sourceInspectionData = null;
+
+let sourcePendingItems = [];
+
 const maxOriginalImageSize = 10 * 1024 * 1024;
 
 const targetCompressedImageSize = 900 * 1024;
@@ -311,6 +317,278 @@ function getEditBudgetIdFromUrl() {
   editingBudgetId = editMode ? id : "";
 
   return editingBudgetId;
+}
+
+function getInspectionBudgetSourceFromUrl() {
+  const parameters = new URLSearchParams(window.location.search);
+
+  const origin = normalizeText(parameters.get("origem"));
+
+  const inspectionId = text(parameters.get("vistoria"));
+
+  if (editMode || origin !== "vistoria" || !inspectionId) {
+    sourceInspectionId = "";
+
+    return "";
+  }
+
+  sourceInspectionId = inspectionId;
+
+  return sourceInspectionId;
+}
+
+function getInspectionPendingStatus(item = {}) {
+  if (normalizeText(item.resultado) !== "precisa-ajuste") {
+    return "";
+  }
+
+  const pending =
+    item.pendencia && typeof item.pendencia === "object" ? item.pendencia : {};
+
+  const status = normalizeText(pending.status);
+
+  return ["aberta", "orcada", "aguardando-execucao", "resolvida"].includes(
+    status,
+  )
+    ? status
+    : "aberta";
+}
+
+function getOpenInspectionBudgetItems(checklist = []) {
+  return (Array.isArray(checklist) ? checklist : [])
+    .map((item, index) => ({
+      ...item,
+
+      checklistIndex: index,
+    }))
+    .filter((item) => getInspectionPendingStatus(item) === "aberta");
+}
+
+function formatInspectionPendingService(item) {
+  const quantity = Math.max(1, Number(item.quantidade) || 1);
+
+  const location = text(item.localizacao);
+
+  const observation = text(item.observacao);
+
+  return [
+    text(item.ambienteNome),
+    text(item.nome) || "Item da vistoria",
+    `Quantidade: ${quantity}`,
+    location ? `Local: ${location}` : "",
+    observation ? `Ajuste: ${observation}` : "",
+  ]
+    .filter(Boolean)
+    .join(" — ")
+    .slice(0, 220);
+}
+
+async function loadInspectionBudgetSource() {
+  if (!sourceInspectionId) {
+    return;
+  }
+
+  const inspectionSnapshot = await getDoc(
+    doc(db, "vistorias", sourceInspectionId),
+  );
+
+  if (!inspectionSnapshot.exists()) {
+    throw new Error("INSPECTION_NOT_FOUND");
+  }
+
+  const inspection = {
+    id: inspectionSnapshot.id,
+
+    ...inspectionSnapshot.data(),
+  };
+
+  const inspectionStatus = normalizeText(inspection.status);
+
+  if (!["aguardando-validacao", "concluida"].includes(inspectionStatus)) {
+    throw new Error("INSPECTION_NOT_READY_FOR_BUDGET");
+  }
+
+  sourceInspectionData = inspection;
+
+  sourcePendingItems = getOpenInspectionBudgetItems(inspection.checklist);
+
+  if (sourcePendingItems.length === 0) {
+    throw new Error("INSPECTION_WITHOUT_OPEN_PENDING_ITEMS");
+  }
+
+  const parameters = new URLSearchParams(window.location.search);
+
+  const condominiumId = text(
+    inspection.condominioId ||
+      inspection.condominio?.id ||
+      parameters.get("condominio"),
+  );
+
+  const clientId = text(
+    inspection.clienteUid ||
+      inspection.cliente?.id ||
+      parameters.get("cliente"),
+  );
+
+  selectedCondominium =
+    condominiums.find((condominium) => condominium.id === condominiumId) ||
+    null;
+
+  if (!selectedCondominium) {
+    throw new Error("INSPECTION_CONDOMINIUM_NOT_FOUND");
+  }
+
+  condominiumSelect.value = selectedCondominium.id;
+
+  applyCondominium(selectedCondominium);
+
+  await loadLinkedClients();
+
+  selectedClient =
+    linkedClients.find((client) => client.id === clientId) ||
+    (clientId
+      ? {
+          id: clientId,
+
+          nome: text(inspection.cliente?.nome),
+
+          telefone: text(inspection.cliente?.telefone),
+
+          email: text(inspection.cliente?.email),
+        }
+      : null);
+
+  if (!selectedClient?.id) {
+    throw new Error("INSPECTION_CLIENT_NOT_FOUND");
+  }
+
+  const hasClientOption = Array.from(clientSelect.options).some(
+    (option) => option.value === selectedClient.id,
+  );
+
+  if (!hasClientOption) {
+    const clientLabel = [
+      text(selectedClient.nome),
+      text(selectedClient.telefone),
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    clientSelect.appendChild(
+      createOption(selectedClient.id, clientLabel || "Responsável da vistoria"),
+    );
+  }
+
+  clientSelect.disabled = false;
+
+  clientSelect.value = selectedClient.id;
+
+  applyClient(selectedClient);
+
+  const inspectionCode = text(inspection.codigo) || "vistoria";
+
+  const pendingQuantity = sourcePendingItems.length;
+
+  budgetTitle.value = `Correções da ${inspectionCode}`;
+
+  budgetSubtitle.value = "Pendências técnicas identificadas em vistoria";
+
+  serviceDescription.value =
+    pendingQuantity === 1
+      ? "Execução da correção identificada durante a vistoria técnica."
+      : `Execução das ${pendingQuantity} correções identificadas durante a vistoria técnica.`;
+
+  budgetObjective.value =
+    "Corrigir as não conformidades identificadas durante a vistoria e restabelecer as condições adequadas dos itens avaliados.";
+
+  populateServicesForEdit(
+    sourcePendingItems.map(formatInspectionPendingService),
+  );
+
+  publicNote.value = `Orçamento elaborado com base nas pendências registradas na ${inspectionCode}.`;
+
+  const headerTitle = document.querySelector(".budget-header__copy strong");
+
+  if (headerTitle) {
+    headerTitle.textContent = "Orçamento da Vistoria";
+  }
+
+  const pageTitle = document.getElementById("budget-page-title");
+
+  if (pageTitle) {
+    pageTitle.textContent = "Orçamento das pendências";
+  }
+
+  document.title = `Orçamento da ${inspectionCode} | Salvateck`;
+
+  updateSummary();
+}
+
+function buildInspectionChecklistWithBudgetLink(checklist, budgetId) {
+  const sourceItemsByIndex = new Map(
+    sourcePendingItems.map((item) => [Number(item.checklistIndex), item]),
+  );
+
+  let linkedItems = 0;
+
+  const updatedChecklist = (Array.isArray(checklist) ? checklist : []).map(
+    (item, index) => {
+      const sourceItem = sourceItemsByIndex.get(index);
+
+      if (!sourceItem) {
+        return item;
+      }
+
+      const sameEnvironment =
+        text(item.ambienteId) === text(sourceItem.ambienteId);
+
+      const sameEquipment =
+        text(item.equipamentoId) === text(sourceItem.equipamentoId);
+
+      const sameName = text(item.nome) === text(sourceItem.nome);
+
+      if (!sameEnvironment || !sameEquipment || !sameName) {
+        throw new Error("INSPECTION_PENDING_ITEMS_CHANGED");
+      }
+
+      if (getInspectionPendingStatus(item) !== "aberta") {
+        throw new Error("INSPECTION_PENDING_ITEMS_CHANGED");
+      }
+
+      const pending =
+        item.pendencia && typeof item.pendencia === "object"
+          ? item.pendencia
+          : {};
+
+      linkedItems += 1;
+
+      return {
+        ...item,
+
+        pendencia: {
+          ...pending,
+
+          status: "orcada",
+
+          orcamentoId: budgetId,
+
+          osExecucaoId: "",
+
+          resolvidaEm: null,
+        },
+      };
+    },
+  );
+
+  if (
+    linkedItems === 0 ||
+    linkedItems !== sourcePendingItems.length ||
+    linkedItems !== sourceItemsByIndex.size
+  ) {
+    throw new Error("INSPECTION_PENDING_ITEMS_CHANGED");
+  }
+
+  return updatedChecklist;
 }
 
 function setEditModePresentation() {
@@ -1551,11 +1829,35 @@ function buildBudgetData({
       publica: text(publicNote.value),
     },
 
-    origem: {
-      tipo: "orcamento",
+    origem:
+      existingData?.origem ||
+      (sourceInspectionData
+        ? {
+            tipo: "vistoria",
 
-      criadoNoPainelAdmin: true,
-    },
+            vistoriaId: sourceInspectionId,
+
+            codigoVistoria: text(sourceInspectionData.codigo),
+
+            criadoNoPainelAdmin: true,
+
+            itensPendentes: sourcePendingItems.map((item) => ({
+              checklistIndex: Number(item.checklistIndex),
+
+              ambienteId: text(item.ambienteId),
+
+              ambienteNome: text(item.ambienteNome),
+
+              equipamentoId: text(item.equipamentoId),
+
+              nome: text(item.nome),
+            })),
+          }
+        : {
+            tipo: "orcamento",
+
+            criadoNoPainelAdmin: true,
+          }),
 
     enviadoEm:
       finalStatus === "enviado"
@@ -1702,6 +2004,10 @@ async function saveBudget(status) {
 
   const privateReference = doc(db, "orcamentosPrivados", budgetReference.id);
 
+  const inspectionReference = sourceInspectionId
+    ? doc(db, "vistorias", sourceInspectionId)
+    : null;
+
   let uploadedImage = null;
 
   try {
@@ -1709,6 +2015,28 @@ async function saveBudget(status) {
 
     const savedBudget = await runTransaction(db, async (transaction) => {
       const counterSnapshot = await transaction.get(counterReference);
+
+      let inspectionSnapshot = null;
+
+      if (inspectionReference) {
+        if (sourcePendingItems.length === 0) {
+          throw new Error("INSPECTION_WITHOUT_OPEN_PENDING_ITEMS");
+        }
+
+        inspectionSnapshot = await transaction.get(inspectionReference);
+
+        if (!inspectionSnapshot.exists()) {
+          throw new Error("INSPECTION_NOT_FOUND");
+        }
+
+        const inspectionStatus = normalizeText(
+          inspectionSnapshot.data().status,
+        );
+
+        if (!["aguardando-validacao", "concluida"].includes(inspectionStatus)) {
+          throw new Error("INSPECTION_NOT_READY_FOR_BUDGET");
+        }
+      }
 
       const currentNumber = counterSnapshot.exists()
         ? Number(counterSnapshot.data().ultimoNumero || 0)
@@ -1751,6 +2079,21 @@ async function saveBudget(status) {
       );
 
       transaction.set(budgetReference, budgetData);
+
+      if (inspectionReference && inspectionSnapshot) {
+        const inspectionData = inspectionSnapshot.data();
+
+        const updatedChecklist = buildInspectionChecklistWithBudgetLink(
+          inspectionData.checklist,
+          budgetReference.id,
+        );
+
+        transaction.update(inspectionReference, {
+          checklist: updatedChecklist,
+
+          atualizadoEm: serverTimestamp(),
+        });
+      }
 
       if (text(internalNote.value)) {
         transaction.set(
@@ -1804,6 +2147,30 @@ function getErrorMessage(error) {
 
   if (error?.message === "INVALID_BUDGET_COUNTER") {
     return "O contador dos orçamentos possui um valor inválido.";
+  }
+
+  if (error?.message === "INSPECTION_NOT_FOUND") {
+    return "A vistoria de origem não foi encontrada.";
+  }
+
+  if (error?.message === "INSPECTION_NOT_READY_FOR_BUDGET") {
+    return "A vistoria precisa estar aguardando validação ou concluída para gerar um orçamento.";
+  }
+
+  if (error?.message === "INSPECTION_WITHOUT_OPEN_PENDING_ITEMS") {
+    return "Esta vistoria não possui pendências abertas para orçamento.";
+  }
+
+  if (error?.message === "INSPECTION_PENDING_ITEMS_CHANGED") {
+    return "As pendências desta vistoria foram alteradas ou já foram vinculadas a outro orçamento. Reabra a vistoria e tente novamente.";
+  }
+
+  if (error?.message === "INSPECTION_CONDOMINIUM_NOT_FOUND") {
+    return "O condomínio vinculado à vistoria não foi encontrado.";
+  }
+
+  if (error?.message === "INSPECTION_CLIENT_NOT_FOUND") {
+    return "O responsável vinculado à vistoria não foi encontrado.";
   }
 
   if (error?.code === "permission-denied") {
@@ -2088,6 +2455,8 @@ async function initializePage() {
 
     getEditBudgetIdFromUrl();
 
+    getInspectionBudgetSourceFromUrl();
+
     budgetDate.value = getSaoPauloDate();
 
     budgetValidity.value = "15";
@@ -2102,6 +2471,8 @@ async function initializePage() {
 
     if (editMode) {
       await loadBudgetForEdit();
+    } else if (sourceInspectionId) {
+      await loadInspectionBudgetSource();
     }
   } catch (error) {
     console.error("[Orçamentos] Não foi possível iniciar a página:", error);

@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  runTransaction,
   updateDoc,
   writeBatch,
   serverTimestamp,
@@ -4778,6 +4779,30 @@ function handleSaveError(error) {
     return;
   }
 
+  if (error?.message === "SOURCE_INSPECTION_NOT_FOUND") {
+    showFeedback(
+      "A vistoria que originou esta Ordem de Serviço não foi encontrada.",
+    );
+
+    return;
+  }
+
+  if (error?.message === "SOURCE_INSPECTION_PENDING_NOT_FOUND") {
+    showFeedback(
+      "Não foi encontrada na vistoria nenhuma pendência vinculada a esta Ordem de Serviço.",
+    );
+
+    return;
+  }
+
+  if (error?.message === "SOURCE_INSPECTION_PENDING_INVALID") {
+    showFeedback(
+      "O vínculo entre esta Ordem de Serviço e as pendências da vistoria foi alterado. Confira a vistoria antes de concluir.",
+    );
+
+    return;
+  }
+
   showFeedback("Não foi possível salvar a alteração.");
 }
 
@@ -4821,6 +4846,131 @@ async function saveChanges(changes, successMessage, privateChanges = null) {
     }
 
     await batch.commit();
+
+    await loadRequest();
+
+    closeActionForms();
+
+    renderAll();
+
+    showFeedback(successMessage);
+  } catch (error) {
+    handleSaveError(error);
+
+    throw error;
+  } finally {
+    savingChanges = false;
+  }
+}
+
+async function saveCompletionAndResolveInspection(changes, successMessage) {
+  if (savingChanges || !currentRequestReference) {
+    return;
+  }
+
+  savingChanges = true;
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const orderSnapshot = await transaction.get(currentRequestReference);
+
+      if (!orderSnapshot.exists()) {
+        throw new Error("REQUEST_NOT_FOUND");
+      }
+
+      const orderData = orderSnapshot.data();
+
+      const sourceInspectionId = String(
+        orderData.origem?.vistoriaId || "",
+      ).trim();
+
+      const sourceBudgetId = String(orderData.origem?.orcamentoId || "").trim();
+
+      let sourceInspectionReference = null;
+
+      let updatedInspectionChecklist = null;
+
+      if (sourceInspectionId) {
+        sourceInspectionReference = doc(db, "vistorias", sourceInspectionId);
+
+        const inspectionSnapshot = await transaction.get(
+          sourceInspectionReference,
+        );
+
+        if (!inspectionSnapshot.exists()) {
+          throw new Error("SOURCE_INSPECTION_NOT_FOUND");
+        }
+
+        const inspectionData = inspectionSnapshot.data();
+
+        let resolvedItems = 0;
+
+        const resolutionDate = new Date();
+
+        updatedInspectionChecklist = (
+          Array.isArray(inspectionData.checklist)
+            ? inspectionData.checklist
+            : []
+        ).map((item) => {
+          const pending =
+            item.pendencia && typeof item.pendencia === "object"
+              ? item.pendencia
+              : {};
+
+          const executionOrderId = String(pending.osExecucaoId || "").trim();
+
+          if (executionOrderId !== orderSnapshot.id) {
+            return item;
+          }
+
+          const pendingBudgetId = String(pending.orcamentoId || "").trim();
+
+          if (sourceBudgetId && pendingBudgetId !== sourceBudgetId) {
+            throw new Error("SOURCE_INSPECTION_PENDING_INVALID");
+          }
+
+          const pendingStatus = String(pending.status || "").trim();
+
+          if (pendingStatus !== "aguardando-execucao") {
+            throw new Error("SOURCE_INSPECTION_PENDING_INVALID");
+          }
+
+          resolvedItems += 1;
+
+          return {
+            ...item,
+
+            pendencia: {
+              ...pending,
+
+              status: "resolvida",
+
+              resolvidaEm: resolutionDate,
+            },
+          };
+        });
+
+        if (resolvedItems === 0) {
+          throw new Error("SOURCE_INSPECTION_PENDING_NOT_FOUND");
+        }
+      }
+
+      transaction.update(currentRequestReference, {
+        ...changes,
+
+        atualizadoEm: serverTimestamp(),
+
+        statusAtualizadoEm: serverTimestamp(),
+      });
+
+      if (sourceInspectionReference && updatedInspectionChecklist) {
+        transaction.update(sourceInspectionReference, {
+          checklist: updatedInspectionChecklist,
+
+          atualizadoEm: serverTimestamp(),
+        });
+      }
+    });
 
     await loadRequest();
 
@@ -6028,7 +6178,10 @@ function completeRequest() {
         changes["vistoria.concluidaEm"] = serverTimestamp();
       }
 
-      await saveChanges(changes, "Ordem de serviço concluída com sucesso.");
+      await saveCompletionAndResolveInspection(
+        changes,
+        "Ordem de serviço concluída com sucesso.",
+      );
     },
   });
 }
