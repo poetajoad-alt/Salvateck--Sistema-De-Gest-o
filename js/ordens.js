@@ -549,6 +549,10 @@ function normalizarOrdemParaSolicitacao(documento) {
       ordem.tipoAtendimento ||
       (categorias.includes("vistoria") ? "vistoria" : "servico"),
 
+    origem: ordem.origem || null,
+
+    vistoria: ordem.vistoria || null,
+
     status: normalizarStatusDaOrdem(ordem.status),
 
     prioridade: normalizarPrioridadeDaOrdem(
@@ -1038,6 +1042,74 @@ function atualizarResumo() {
   }
 }
 
+function obterCodigoVistoriaDaOrdem(solicitacao) {
+  const codigoDireto = String(
+    solicitacao?.origem?.codigoVistoria || solicitacao?.vistoria?.codigo || "",
+  ).trim();
+
+  if (codigoDireto) {
+    return codigoDireto.toUpperCase();
+  }
+
+  const texto = [
+    solicitacao?.titulo || "",
+    ...(Array.isArray(solicitacao?.servicos) ? solicitacao.servicos : []),
+  ].join(" ");
+
+  const resultado = texto.match(/\bVST-\d+\b/i);
+
+  return resultado ? resultado[0].toUpperCase() : "";
+}
+
+function eOrdemCorretivaDeVistoria(solicitacao) {
+  const titulo = normalizarTexto(solicitacao?.titulo);
+
+  return (
+    titulo.includes("correcoes da vst") ||
+    titulo.includes("correcao da vst") ||
+    titulo.includes("ajustes da vst")
+  );
+}
+
+function contarAjustesDaVistoria(solicitacao) {
+  const checklist = Array.isArray(solicitacao?.vistoria?.checklist)
+    ? solicitacao.vistoria.checklist
+    : [];
+
+  return checklist.filter((item) => item?.resultado === "precisa-ajuste")
+    .length;
+}
+
+function obterResumoServicoDoCard(solicitacao) {
+  const servicos = Array.isArray(solicitacao?.servicos)
+    ? solicitacao.servicos.filter(Boolean)
+    : [];
+
+  const textoCompleto = servicos.join(" • ");
+
+  if (eOrdemCorretivaDeVistoria(solicitacao)) {
+    const codigoVistoria = obterCodigoVistoriaDaOrdem(solicitacao);
+
+    const ajustes = contarAjustesDaVistoria(solicitacao);
+
+    if (ajustes > 0) {
+      return `${ajustes} ${
+        ajustes === 1 ? "ajuste identificado" : "ajustes identificados"
+      }${codigoVistoria ? ` na ${codigoVistoria}` : ""}`;
+    }
+
+    return codigoVistoria
+      ? `Ajustes originados da ${codigoVistoria}`
+      : "Ajustes originados de vistoria técnica";
+  }
+
+  if (textoCompleto.length > 160) {
+    return solicitacao?.titulo || "Consulte os detalhes da Ordem de Serviço";
+  }
+
+  return textoCompleto || solicitacao?.titulo || "Serviço não informado";
+}
+
 /* =========================================
    CRIAÇÃO DOS CARDS
 ========================================= */
@@ -1127,7 +1199,7 @@ function preencherCard(solicitacao) {
 
   title.textContent = solicitacao.titulo;
 
-  service.textContent = solicitacao.servicos.join(" • ");
+  service.textContent = obterResumoServicoDoCard(solicitacao);
 
   address.textContent = solicitacao.endereco;
 
@@ -1165,10 +1237,7 @@ function preencherCard(solicitacao) {
 
   expandedStatus.textContent = statusData.nome;
 
-  expandedService.textContent =
-    solicitacao.servicos.join(" • ") ||
-    solicitacao.titulo ||
-    "Serviço não informado";
+  expandedService.textContent = obterResumoServicoDoCard(solicitacao);
 
   expandedSchedule.textContent = atendimentoTexto;
 

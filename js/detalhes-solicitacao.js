@@ -3417,35 +3417,217 @@ function getFinalPdfSchedule(documentData) {
 
   return `${date} - ${period} - ${time}`;
 }
-function getFinalPdfInspectionChecklist(inspection = {}) {
-  const checklist = Array.isArray(inspection.checklist)
+
+/* =========================================
+   CHECKLIST VISUAL DA VISTORIA NO PDF FINAL
+========================================= */
+
+function addFinalPdfInspectionChecklistItem(
+  pdf,
+  currentY,
+  item,
+  index,
+  documentData,
+) {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  const contentWidth = pageWidth - 32;
+
+  const textWidth = contentWidth - 24;
+
+  const needsAdjustment = item.resultado === "precisa-ajuste";
+
+  const statusText = needsAdjustment ? "PRECISA DE AJUSTE" : "OK";
+
+  const quantity = Math.max(1, Number(item.quantidade) || 1);
+
+  const name = sanitizePdfText(`${index + 1}. ${item.nome || "Equipamento"}`);
+
+  const equipmentMeta = sanitizePdfText(
+    `${item.categoria || "Outros equipamentos"} | Quantidade: ${quantity}`,
+  );
+
+  const environmentName = sanitizePdfText(
+    item.ambienteNome || item.ambiente?.nome || "",
+  );
+
+  const location = sanitizePdfText(item.localizacao || environmentName || "");
+
+  const observation = sanitizePdfText(item.observacao || "");
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  const metaLines = pdf.splitTextToSize(equipmentMeta, contentWidth - 54);
+
+  pdf.setFontSize(9);
+
+  const nameLines = pdf.splitTextToSize(name, contentWidth - 54);
+
+  pdf.setFont("helvetica", "normal");
+
+  pdf.setFontSize(8.5);
+
+  const locationLines = location
+    ? location
+        .split("\n")
+        .flatMap((paragraph) =>
+          pdf.splitTextToSize(paragraph.trim(), textWidth),
+        )
+        .filter((line) => String(line || "").trim())
+    : [];
+
+  const observationLines = observation
+    ? observation
+        .split("\n")
+        .flatMap((paragraph) =>
+          pdf.splitTextToSize(paragraph.trim(), textWidth),
+        )
+        .filter((line) => String(line || "").trim())
+    : [];
+
+  const metaHeight = Math.max(1, metaLines.length) * 3.5;
+
+  const nameHeight = Math.max(1, nameLines.length) * 4.4;
+
+  const locationHeight =
+    locationLines.length > 0 ? 8 + locationLines.length * 4.2 : 0;
+
+  const observationHeight =
+    observationLines.length > 0 ? 8 + observationLines.length * 4.2 : 0;
+
+  const blockHeight =
+    14 + metaHeight + nameHeight + locationHeight + observationHeight;
+
+  const y = ensurePdfSpace(pdf, currentY, blockHeight + 5, documentData);
+
+  if (needsAdjustment) {
+    pdf.setFillColor(255, 248, 231);
+    pdf.setDrawColor(...PDF_COLORS.gold);
+  } else {
+    pdf.setFillColor(239, 248, 243);
+    pdf.setDrawColor(36, 139, 88);
+  }
+
+  pdf.setLineWidth(0.35);
+
+  pdf.roundedRect(16, y, contentWidth, blockHeight, 3, 3, "FD");
+
+  pdf.setTextColor(...PDF_COLORS.gray);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(7);
+
+  pdf.text(metaLines, 22, y + 6);
+
+  const nameY = y + 8 + metaHeight;
+
+  pdf.setTextColor(...PDF_COLORS.navy);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(9);
+
+  pdf.text(nameLines, 22, nameY);
+
+  if (needsAdjustment) {
+    pdf.setFillColor(...PDF_COLORS.gold);
+  } else {
+    pdf.setFillColor(36, 139, 88);
+  }
+
+  pdf.roundedRect(pageWidth - 57, y + 5, 35, 8, 2, 2, "F");
+
+  pdf.setTextColor(...PDF_COLORS.white);
+
+  pdf.setFont("helvetica", "bold");
+
+  pdf.setFontSize(needsAdjustment ? 6.2 : 7);
+
+  pdf.text(statusText, pageWidth - 39.5, y + 10.3, {
+    align: "center",
+  });
+
+  let contentY = nameY + nameHeight + 1;
+
+  if (locationLines.length > 0) {
+    pdf.setTextColor(...PDF_COLORS.gray);
+
+    pdf.setFont("helvetica", "bold");
+
+    pdf.setFontSize(7);
+
+    pdf.text("LOCALIZAÇÃO", 22, contentY + 3);
+
+    pdf.setTextColor(...PDF_COLORS.dark);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(8.5);
+
+    pdf.text(locationLines, 22, contentY + 8, {
+      maxWidth: textWidth,
+      lineHeightFactor: 1.15,
+    });
+
+    contentY += locationHeight;
+  }
+
+  if (observationLines.length > 0) {
+    pdf.setTextColor(...PDF_COLORS.gray);
+
+    pdf.setFont("helvetica", "bold");
+
+    pdf.setFontSize(7);
+
+    pdf.text("OBSERVAÇÃO DO AJUSTE", 22, contentY + 3);
+
+    pdf.setTextColor(...PDF_COLORS.dark);
+
+    pdf.setFont("helvetica", "normal");
+
+    pdf.setFontSize(8.5);
+
+    pdf.text(observationLines, 22, contentY + 8, {
+      maxWidth: textWidth,
+      lineHeightFactor: 1.15,
+    });
+  }
+
+  return y + blockHeight + 5;
+}
+
+function addFinalPdfInspectionChecklist(
+  pdf,
+  currentY,
+  inspection,
+  documentData,
+) {
+  const checklist = Array.isArray(inspection?.checklist)
     ? inspection.checklist
     : [];
 
   if (checklist.length === 0) {
-    return "Nenhum item de checklist registrado.";
+    return addPdfTextBlock(
+      pdf,
+      currentY,
+      "Checklist",
+      "Nenhum item de checklist registrado.",
+      documentData,
+    );
   }
 
-  return checklist
-    .map((item, index) => {
-      const category = sanitizePdfText(item.categoria) || "Equipamento";
+  let y = currentY;
 
-      const name = sanitizePdfText(item.nome) || `Item ${index + 1}`;
+  checklist.forEach((item, index) => {
+    y = addFinalPdfInspectionChecklistItem(pdf, y, item, index, documentData);
+  });
 
-      const result =
-        item.resultado === "precisa-ajuste" ? "Precisa de ajuste" : "OK";
-
-      const observation = sanitizePdfText(item.observacao);
-
-      return [
-        `${index + 1}. ${category} - ${name}: ${result}.`,
-        observation ? `Observação: ${observation}` : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-    })
-    .join("\n");
+  return y;
 }
+
 function getFinalPdfType(documentData) {
   return documentData.tipoAtendimento === "vistoria"
     ? "Vistoria técnica"
@@ -4283,13 +4465,7 @@ async function createFinalDocumentPdf() {
       documentData,
     );
 
-    y = addPdfTextBlock(
-      pdf,
-      y,
-      "Checklist completo",
-      getFinalPdfInspectionChecklist(inspection),
-      documentData,
-    );
+    y = addFinalPdfInspectionChecklist(pdf, y, inspection, documentData);
   }
 
   y = await addPdfPhotoGallery(pdf, y, documentData);

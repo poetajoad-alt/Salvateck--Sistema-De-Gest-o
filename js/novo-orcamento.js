@@ -872,6 +872,8 @@ function mapCondominium(documentSnapshot) {
 
     status: text(data.status) || "ativo",
 
+    imagemPrincipal: data.imagemPrincipal || null,
+
     endereco: data.endereco || {},
 
     clientesIds: Array.isArray(data.clientesIds) ? data.clientesIds : [],
@@ -994,6 +996,68 @@ function applyCondominium(condominium) {
   addressInput.value = address.resumo;
 
   condominiumCnpj.value = condominium.cnpj;
+}
+
+async function carregarImagemDoCondominioNoOrcamento(condominium) {
+  if (editMode) {
+    return;
+  }
+
+  clearImagePreview();
+
+  const imagem = condominium?.imagemPrincipal || null;
+
+  const storagePath = text(imagem?.storagePath);
+
+  if (!storagePath) {
+    return;
+  }
+
+  processingImage = true;
+
+  imageInput.disabled = true;
+
+  imageCounter.textContent = "...";
+
+  try {
+    const url = await getDownloadURL(ref(storage, storagePath));
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("CONDOMINIUM_IMAGE_DOWNLOAD_FAILED");
+    }
+
+    const blob = await response.blob();
+
+    const file = new File([blob], text(imagem.nome) || "imagem-condominio", {
+      type: blob.type || text(imagem.contentType) || "image/jpeg",
+
+      lastModified: Date.now(),
+    });
+
+    selectedImageOriginalName = text(imagem.nome) || "Imagem do condomínio";
+
+    selectedImage = await compressImage(file);
+
+    renderImagePreview();
+  } catch (error) {
+    console.error(
+      "[Orçamentos] Não foi possível carregar a imagem do condomínio:",
+      error,
+    );
+
+    clearImagePreview();
+
+    showFeedback(
+      "O condomínio foi carregado, mas a imagem não pôde ser preparada.",
+      "error",
+    );
+  } finally {
+    processingImage = false;
+
+    imageInput.disabled = false;
+  }
 }
 
 async function loadLinkedClients() {
@@ -2374,7 +2438,11 @@ condominiumSelect.addEventListener("change", async () => {
   applyCondominium(selectedCondominium);
 
   if (selectedCondominium) {
+    await carregarImagemDoCondominioNoOrcamento(selectedCondominium);
+
     await loadLinkedClients();
+  } else if (!editMode) {
+    clearImagePreview();
   }
 
   updateSummary();

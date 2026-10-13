@@ -1859,6 +1859,117 @@ body.modal-open {
 }
 
 /* =========================================
+   IMAGEM DO CONDOMÍNIO
+========================================= */
+
+.condominium-image-field {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.condominium-image-upload {
+  min-height: 92px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 18px;
+
+  cursor: pointer;
+  text-align: center;
+
+  background-color: rgba(13, 56, 97, 0.035);
+
+  border: 1px dashed rgba(13, 56, 97, 0.28);
+  border-radius: 16px;
+}
+
+.condominium-image-upload input {
+  display: none;
+}
+
+.condominium-image-upload strong {
+  font-size: 0.78rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.condominium-image-upload span {
+  margin-top: 5px;
+
+  font-size: 0.66rem;
+  font-weight: 600;
+
+  color: #70787f;
+}
+
+.condominium-image-preview {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+
+  padding: 12px;
+
+  background-color: #eef1f3;
+
+  border: 1px solid rgba(13, 56, 97, 0.1);
+  border-radius: 16px;
+}
+
+.condominium-image-preview[hidden] {
+  display: none !important;
+}
+
+.condominium-image-preview img {
+  width: 110px;
+  height: 78px;
+
+  display: block;
+
+  object-fit: cover;
+
+  border-radius: 11px;
+}
+
+.condominium-image-preview strong,
+.condominium-image-preview span {
+  display: block;
+}
+
+.condominium-image-preview strong {
+  font-size: 0.75rem;
+  font-weight: 800;
+
+  color: #0d3861;
+}
+
+.condominium-image-preview span {
+  margin-top: 5px;
+
+  font-size: 0.64rem;
+  font-weight: 600;
+  line-height: 1.5;
+
+  color: #70787f;
+}
+
+@media (max-width: 520px) {
+  .condominium-image-preview {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+
+  .condominium-image-preview img {
+    width: 90px;
+    height: 70px;
+  }
+}
+
+/* =========================================
    DOCUMENTOS
 ========================================= */
 

@@ -491,6 +491,18 @@ const condominiumState = document.getElementById("condominium-state");
 
 const condominiumNotes = document.getElementById("condominium-notes");
 
+const condominiumImageInput = document.getElementById("condominium-image");
+
+const condominiumImagePreview = document.getElementById(
+  "condominium-image-preview",
+);
+
+const condominiumImagePreviewImage = document.getElementById(
+  "condominium-image-preview-image",
+);
+
+const condominiumImageName = document.getElementById("condominium-image-name");
+
 /* =========================================
    ABAS DO MODAL
 ========================================= */
@@ -730,6 +742,18 @@ let condominioEmEdicaoId = null;
 let condominioRascunho = null;
 
 let sessaoAtual = null;
+
+let imagemCondominioSelecionada = null;
+
+let imagemCondominioPreviewUrl = "";
+
+const tamanhoMaximoImagemCondominio = 10 * 1024 * 1024;
+
+const tiposImagemCondominioPermitidos = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 let arquivoDocumentoSelecionado = null;
 
@@ -1272,6 +1296,27 @@ function mapearCondominioDoFirestore(condominioSnapshot) {
     blocos: Math.max(0, Number(dados.blocos) || 0),
 
     unidades: Math.max(0, Number(dados.unidades) || 0),
+
+    imagemPrincipal:
+      dados.imagemPrincipal && typeof dados.imagemPrincipal === "object"
+        ? {
+            storagePath: String(dados.imagemPrincipal.storagePath || "").trim(),
+
+            nome: String(
+              dados.imagemPrincipal.nome || "Imagem do condomínio",
+            ).trim(),
+
+            contentType: String(
+              dados.imagemPrincipal.contentType || "image/jpeg",
+            ).trim(),
+
+            tamanho: Math.max(0, Number(dados.imagemPrincipal.tamanho) || 0),
+
+            atualizadoEm: String(
+              dados.imagemPrincipal.atualizadoEm || "",
+            ).trim(),
+          }
+        : null,
 
     endereco: {
       cep: endereco.cep || dados.cep || "",
@@ -1889,6 +1934,8 @@ function montarDadosDoCondominio(condominio, novoCadastro) {
     blocos: condominio.blocos,
 
     unidades: condominio.unidades,
+
+    imagemPrincipal: condominio.imagemPrincipal || null,
 
     endereco: {
       ...condominio.endereco,
@@ -2977,6 +3024,126 @@ function alterarAbaDoModal(novaAba) {
 }
 
 /* =========================================
+   IMAGEM DO CONDOMÍNIO
+========================================= */
+
+function limparPreviewImagemCondominio() {
+  if (imagemCondominioPreviewUrl) {
+    URL.revokeObjectURL(imagemCondominioPreviewUrl);
+
+    imagemCondominioPreviewUrl = "";
+  }
+
+  condominiumImagePreviewImage.src = "";
+
+  condominiumImageName.textContent = "Imagem do condomínio";
+
+  condominiumImagePreview.hidden = true;
+}
+
+async function carregarPreviewImagemCondominio(condominio) {
+  limparPreviewImagemCondominio();
+
+  const imagem = condominio?.imagemPrincipal || null;
+
+  const storagePath = String(imagem?.storagePath || "").trim();
+
+  if (!storagePath) {
+    return;
+  }
+
+  try {
+    const url = await getDownloadURL(storageRef(storage, storagePath));
+
+    condominiumImagePreviewImage.src = url;
+
+    condominiumImageName.textContent = imagem.nome || "Imagem do condomínio";
+
+    condominiumImagePreview.hidden = false;
+  } catch (error) {
+    console.warn("[Condomínios] Não foi possível carregar a imagem:", error);
+  }
+}
+
+function selecionarImagemCondominio() {
+  const file = condominiumImageInput.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  if (!tiposImagemCondominioPermitidos.has(file.type)) {
+    condominiumImageInput.value = "";
+
+    mostrarFeedback("Use uma imagem JPG, PNG ou WebP.");
+
+    return;
+  }
+
+  if (file.size <= 0 || file.size > tamanhoMaximoImagemCondominio) {
+    condominiumImageInput.value = "";
+
+    mostrarFeedback("A imagem deve possuir no máximo 10 MB.");
+
+    return;
+  }
+
+  if (imagemCondominioPreviewUrl) {
+    URL.revokeObjectURL(imagemCondominioPreviewUrl);
+  }
+
+  imagemCondominioSelecionada = file;
+
+  imagemCondominioPreviewUrl = URL.createObjectURL(file);
+
+  condominiumImagePreviewImage.src = imagemCondominioPreviewUrl;
+
+  condominiumImageName.textContent = file.name;
+
+  condominiumImagePreview.hidden = false;
+}
+
+async function enviarImagemCondominio() {
+  if (!imagemCondominioSelecionada || !condominioRascunho?.id) {
+    return condominioRascunho?.imagemPrincipal || null;
+  }
+
+  const file = imagemCondominioSelecionada;
+
+  const storagePath = `condominios/${condominioRascunho.id}/imagem-principal`;
+
+  const referencia = storageRef(storage, storagePath);
+
+  const tarefa = uploadBytesResumable(referencia, file, {
+    contentType: file.type,
+
+    customMetadata: {
+      condominioId: condominioRascunho.id,
+
+      enviadoPorUid: String(sessaoAtual?.uid || "").trim(),
+
+      origem: "cadastro-condominio",
+    },
+  });
+
+  await new Promise((resolve, reject) => {
+    tarefa.on("state_changed", () => {}, reject, resolve);
+  });
+
+  return {
+    storagePath,
+
+    nome: file.name,
+
+    contentType: file.type,
+
+    tamanho: Number(file.size || 0),
+
+    atualizadoEm: new Date().toISOString(),
+  };
+}
+
+/* =========================================
    FORMULÁRIO DO CONDOMÍNIO
 ========================================= */
 
@@ -2997,6 +3164,8 @@ function criarCondominioVazio() {
     blocos: 1,
 
     unidades: 0,
+
+    imagemPrincipal: null,
 
     endereco: {
       cep: "",
@@ -3060,6 +3229,12 @@ function preencherFormulario(condominio) {
   condominiumState.value = condominio.endereco.estado || "SP";
 
   condominiumNotes.value = condominio.observacoes || "";
+
+  imagemCondominioSelecionada = null;
+
+  condominiumImageInput.value = "";
+
+  void carregarPreviewImagemCondominio(condominio);
 
   equipmentInputs.forEach((input) => {
     input.checked = condominio.equipamentos.includes(input.value);
@@ -3186,6 +3361,10 @@ function fecharModalDeCondominio() {
 
   condominiumForm.reset();
 
+  imagemCondominioSelecionada = null;
+
+  limparPreviewImagemCondominio();
+
   condominioRascunho = null;
 
   condominioEmEdicaoId = null;
@@ -3266,6 +3445,10 @@ async function salvarCondominio(event) {
   try {
     /* Primeiro salva. Se esta etapa falhar,
        nada foi gravado no Firestore. */
+
+    if (imagemCondominioSelecionada) {
+      condominioRascunho.imagemPrincipal = await enviarImagemCondominio();
+    }
 
     await salvarCondominioNoFirestore(condominioRascunho, !estavaEditando);
   } catch (error) {
@@ -5211,6 +5394,8 @@ condominiumModal.addEventListener("click", (event) => {
     fecharModalDeCondominio();
   }
 });
+
+condominiumImageInput.addEventListener("change", selecionarImagemCondominio);
 
 condominiumForm.addEventListener("submit", salvarCondominio);
 

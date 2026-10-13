@@ -328,7 +328,42 @@ function imagemValida(ordemId, arquivo) {
        DOCUMENTOS PRIVADOS DOS FUNCIONÁRIOS
     ===================================== */
 
-    function funcionarioExiste(funcionarioId) {
+    /* =====================================
+   IMAGEM PRINCIPAL DO CONDOMÍNIO
+===================================== */
+
+function imagemCondominioValida(condominioId) {
+  return request.resource.size > 0
+
+    && request.resource.size <= 10 * 1024 * 1024
+
+    && request.resource.contentType in [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ]
+
+    && request.resource.metadata.condominioId
+      == condominioId
+
+    && request.resource.metadata.enviadoPorUid
+      == request.auth.uid
+
+    && request.resource.metadata.origem
+      == "cadastro-condominio";
+}
+
+match /condominios/{condominioId}/imagem-principal {
+
+  allow read: if eAdministrador();
+
+  allow create, update: if eAdministrador()
+    && imagemCondominioValida(condominioId);
+
+  allow delete: if eAdministrador();
+}
+
+function funcionarioExiste(funcionarioId) {
       return firestore.exists(
         /databases/(default)/documents/funcionarios/$(funcionarioId)
       );
