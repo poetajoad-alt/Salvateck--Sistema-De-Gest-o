@@ -884,7 +884,7 @@ body.modal-open {
 
 .catalog-card__summary {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 42px;
+  grid-template-columns: 48px minmax(0, 1fr) 42px 42px;
   align-items: stretch;
 
   padding-left: 5px;
@@ -1763,7 +1763,7 @@ body.modal-open {
   }
 
   .catalog-card__summary {
-    grid-template-columns: 44px minmax(0, 1fr) 38px;
+    grid-template-columns: 44px minmax(0, 1fr) 38px 38px;
   }
 
   .catalog-card__toggle {
@@ -1870,7 +1870,7 @@ body.modal-open {
   }
 
   .catalog-card__summary {
-    grid-template-columns: 40px minmax(0, 1fr) 36px;
+    grid-template-columns: 40px minmax(0, 1fr) 36px 36px;
   }
 
   .catalog-card__icon svg {
@@ -1958,6 +1958,20 @@ body.modal-open {
   transform: translateY(-1px);
   border-color: rgba(162, 60, 60, 0.42);
   background: #f1d0d0;
+}
+
+.catalog-card__delete--summary {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+
+.catalog-card__delete--summary svg {
+  width: 17px;
+  height: 17px;
 }
 
 .catalog-card__delete svg,
@@ -2070,7 +2084,7 @@ body.modal-open {
     flex-wrap: wrap;
   }
 
-  .catalog-card__delete {
+  .catalog-card__delete:not(.catalog-card__delete--summary) {
     margin-left: auto;
   }
 
