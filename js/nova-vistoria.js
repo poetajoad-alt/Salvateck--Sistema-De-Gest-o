@@ -306,6 +306,8 @@ let preparedInspectionPdfFile = null;
 
 let preparedInspectionPdfFileName = "";
 
+let inspectionPdfPhotoAccessBlocked = false;
+
 let pendingInspectionAdminAction = null;
 
 let feedbackTimeout;
@@ -4262,7 +4264,33 @@ async function loadInspectionPhotoForPdf(photo) {
     throw new Error("INSPECTION_PHOTO_STORAGE_PATH_NOT_FOUND");
   }
 
-  const photoBytes = await getBytes(ref(storage, storagePath));
+  if (inspectionPdfPhotoAccessBlocked) {
+    throw new Error("INSPECTION_PHOTO_PDF_STORAGE_BLOCKED");
+  }
+
+  let timeoutId = null;
+
+  let photoBytes;
+
+  try {
+    photoBytes = await Promise.race([
+      getBytes(ref(storage, storagePath)),
+
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("INSPECTION_PHOTO_PDF_STORAGE_TIMEOUT"));
+        }, 4000);
+      }),
+    ]);
+  } catch (error) {
+    inspectionPdfPhotoAccessBlocked = true;
+
+    throw error;
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 
   const blob = new Blob([photoBytes], {
     type: String(photo?.contentType || "image/webp"),
@@ -4448,6 +4476,8 @@ async function addInspectionPdfPhotos(pdf, y, code) {
   return y;
 }
 async function createInspectionPdf() {
+  inspectionPdfPhotoAccessBlocked = false;
+
   const PdfConstructor = window.jspdf?.jsPDF;
 
   if (!PdfConstructor) {
