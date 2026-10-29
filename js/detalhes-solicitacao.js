@@ -20,6 +20,11 @@ import {
 
 import { db, storage } from "./firebase-config.js";
 
+import {
+  carregarAssinaturaResponsavelPdf,
+  desenharAssinaturaResponsavelPdf,
+} from "./pdf-assinatura.js";
+
 /* =========================================
    CONFIGURAÇÕES
 ========================================= */
@@ -554,6 +559,8 @@ const downloadFinalDocumentButton = document.getElementById(
 const urlParams = new URLSearchParams(window.location.search);
 
 const requestId = String(urlParams.get("id") || "").trim();
+
+const requestPdfRequested = urlParams.get("pdf") === "1";
 
 const origem = String(urlParams.get("origem") || "").trim();
 
@@ -4277,7 +4284,10 @@ async function createFinalDocumentPdf() {
 
   const documentData = getFinalPdfData();
 
-  const logoDataUrl = await loadFinalPdfLogo();
+  const [logoDataUrl, assinaturaDataUrl] = await Promise.all([
+    loadFinalPdfLogo(),
+    carregarAssinaturaResponsavelPdf(),
+  ]);
 
   const pdf = new JsPdfClass({
     orientation: "portrait",
@@ -4495,6 +4505,21 @@ async function createFinalDocumentPdf() {
     },
     documentData,
   );
+
+  y = addPdfSectionTitle(
+    pdf,
+    y,
+    "Assinatura do responsável",
+    documentData,
+  );
+
+  y = ensurePdfSpace(pdf, y, 34, documentData);
+
+  y = desenharAssinaturaResponsavelPdf(pdf, {
+    dataUrl: assinaturaDataUrl,
+    x: 22,
+    y: y + 1,
+  });
 
   addPdfConclusionNotice(pdf, y, documentData);
 
@@ -6725,6 +6750,16 @@ async function initializePage() {
     renderAll();
 
     detailsShell.hidden = false;
+
+    if (
+      requestPdfRequested &&
+      currentRequest.status === "concluida" &&
+      currentRequest.documentoFinal
+    ) {
+      const pdf = await createFinalDocumentPdf();
+
+      window.location.replace(pdf.output("bloburl"));
+    }
   } catch (error) {
     console.error("[Detalhes] Não foi possível carregar a solicitação:", error);
 
