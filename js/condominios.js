@@ -707,6 +707,22 @@ const generatedDocumentsCount = document.getElementById(
   "generated-documents-count",
 );
 
+const systemDocumentsSection = document.getElementById(
+  "system-documents-section",
+);
+
+const manualDocumentsSection = document.getElementById(
+  "manual-documents-section",
+);
+
+const documentTypeFilterButtons = document.querySelectorAll(
+  "[data-document-filter]",
+);
+
+const documentFilterCountElements = document.querySelectorAll(
+  "[data-document-filter-count]",
+);
+
 const documentTemplate = document.getElementById("document-template");
 
 const condominiumHistory = document.getElementById("condominium-history");
@@ -742,6 +758,8 @@ let abaAtual = "todos";
 let resumoSelecionado = null;
 
 let abaAtualModal = "general";
+
+let filtroDocumentosAtual = "";
 
 let filtrosAplicados = {
   status: "",
@@ -3354,6 +3372,8 @@ function coletarDadosDoFormulario() {
 function abrirModalDeCondominio(condominio = null) {
   condominioEmEdicaoId = condominio?.id || null;
 
+  filtroDocumentosAtual = "";
+
   condominioRascunho = condominio
     ? clonarDados(condominio)
     : criarCondominioVazio();
@@ -5424,63 +5444,58 @@ function criarItemDocumentoSistema(tipo, documento) {
   return item;
 }
 
-function renderizarDocumentosGerados() {
-  if (
-    !generatedDocumentsList ||
-    !generatedDocumentsEmpty ||
-    !generatedDocumentsCount
-  ) {
-    return;
-  }
-
-  generatedDocumentsList.innerHTML = "";
-
+function obterGruposDocumentosDoCondominio() {
   const condominioId = String(
     condominioRascunho?.id || condominioEmEdicaoId || "",
   ).trim();
 
-  if (!condominioId) {
-    generatedDocumentsCount.textContent = "0 documentos";
-    generatedDocumentsEmpty.hidden = false;
-
-    return;
-  }
-
-  const grupos = [
-    {
+  const grupos = {
+    vistoria: {
       tipo: "vistoria",
       titulo: "Vistorias técnicas",
-      itens: vistorias.filter((vistoria) => {
-        const status = String(vistoria.status || "").trim();
-
-        return (
-          obterCondominioIdDaVistoria(vistoria) === condominioId &&
-          (status === "concluida" || vistoria.validada === true)
-        );
-      }),
+      itens: [],
     },
-    {
+
+    ordem: {
       tipo: "ordem",
       titulo: "Ordens de Serviço",
-      itens: ordens.filter(
-        (ordem) =>
-          obterCondominioIdDaOrdem(ordem) === condominioId &&
-          String(ordem.status || "").trim() === "concluida" &&
-          Boolean(ordem.documentoFinal),
-      ),
+      itens: [],
     },
-    {
+
+    orcamento: {
       tipo: "orcamento",
       titulo: "Orçamentos",
-      itens: orcamentos.filter(
-        (orcamento) =>
-          obterCondominioIdDoOrcamento(orcamento) === condominioId &&
-          String(orcamento.status || "").trim() !== "rascunho",
-      ),
+      itens: [],
     },
-  ];
+  };
 
-  grupos.forEach((grupo) => {
+  if (!condominioId) {
+    return grupos;
+  }
+
+  grupos.vistoria.itens = vistorias.filter((vistoria) => {
+    const status = String(vistoria.status || "").trim();
+
+    return (
+      obterCondominioIdDaVistoria(vistoria) === condominioId &&
+      (status === "concluida" || vistoria.validada === true)
+    );
+  });
+
+  grupos.ordem.itens = ordens.filter(
+    (ordem) =>
+      obterCondominioIdDaOrdem(ordem) === condominioId &&
+      String(ordem.status || "").trim() === "concluida" &&
+      Boolean(ordem.documentoFinal),
+  );
+
+  grupos.orcamento.itens = orcamentos.filter(
+    (orcamento) =>
+      obterCondominioIdDoOrcamento(orcamento) === condominioId &&
+      String(orcamento.status || "").trim() !== "rascunho",
+  );
+
+  Object.values(grupos).forEach((grupo) => {
     grupo.itens.sort(
       (itemA, itemB) =>
         obterTimestampDocumentoSistema(itemB) -
@@ -5488,42 +5503,116 @@ function renderizarDocumentosGerados() {
     );
   });
 
-  const total = grupos.reduce((soma, grupo) => soma + grupo.itens.length, 0);
+  return grupos;
+}
+
+function obterDocumentosManuaisDoCondominio() {
+  return Array.isArray(condominioRascunho?.documentos)
+    ? condominioRascunho.documentos
+    : [];
+}
+
+function atualizarFiltrosDeDocumentos() {
+  const grupos = obterGruposDocumentosDoCondominio();
+
+  const contagens = {
+    vistoria: grupos.vistoria.itens.length,
+    ordem: grupos.ordem.itens.length,
+    orcamento: grupos.orcamento.itens.length,
+    manual: obterDocumentosManuaisDoCondominio().length,
+  };
+
+  if (!["vistoria", "ordem", "orcamento", "manual"].includes(filtroDocumentosAtual)) {
+    filtroDocumentosAtual =
+      ["vistoria", "ordem", "orcamento", "manual"].find(
+        (tipo) => contagens[tipo] > 0,
+      ) || "vistoria";
+  }
+
+  documentTypeFilterButtons.forEach((button) => {
+    const tipo = button.dataset.documentFilter;
+
+    const ativo = tipo === filtroDocumentosAtual;
+
+    button.classList.toggle("is-active", ativo);
+
+    button.setAttribute("aria-pressed", String(ativo));
+  });
+
+  documentFilterCountElements.forEach((element) => {
+    const tipo = element.dataset.documentFilterCount;
+
+    element.textContent = String(contagens[tipo] || 0);
+  });
+
+  return {
+    grupos,
+    contagens,
+  };
+}
+
+function selecionarFiltroDeDocumentos(tipo) {
+  if (!["vistoria", "ordem", "orcamento", "manual"].includes(tipo)) {
+    return;
+  }
+
+  filtroDocumentosAtual = tipo;
+
+  renderizarDocumentos();
+}
+
+function renderizarDocumentosGerados(grupos) {
+  if (
+    !generatedDocumentsList ||
+    !generatedDocumentsEmpty ||
+    !generatedDocumentsCount ||
+    !systemDocumentsSection
+  ) {
+    return;
+  }
+
+  const exibirDocumentosDoSistema =
+    filtroDocumentosAtual !== "manual";
+
+  systemDocumentsSection.hidden = !exibirDocumentosDoSistema;
+
+  if (!exibirDocumentosDoSistema) {
+    return;
+  }
+
+  generatedDocumentsList.innerHTML = "";
+
+  const grupo = grupos[filtroDocumentosAtual];
+
+  if (!grupo) {
+    generatedDocumentsCount.textContent = "0 documentos";
+    generatedDocumentsEmpty.hidden = false;
+
+    return;
+  }
+
+  const total = grupo.itens.length;
+
+  const title = document.getElementById("system-documents-title");
+
+  if (title) {
+    title.textContent = grupo.titulo;
+  }
 
   generatedDocumentsCount.textContent =
     total === 1 ? "1 documento" : `${total} documentos`;
 
+  generatedDocumentsEmpty.textContent =
+    total === 0
+      ? `Nenhum documento em ${grupo.titulo.toLowerCase()} para este condomínio.`
+      : "";
+
   generatedDocumentsEmpty.hidden = total > 0;
 
-  grupos.forEach((grupo) => {
-    if (grupo.itens.length === 0) {
-      return;
-    }
-
-    const details = document.createElement("details");
-    details.className = "system-document-group";
-    details.open = true;
-
-    const summary = document.createElement("summary");
-    summary.className = "system-document-group__summary";
-
-    const title = document.createElement("span");
-    title.textContent = grupo.titulo;
-
-    const count = document.createElement("span");
-    count.textContent = String(grupo.itens.length);
-
-    summary.append(title, count);
-
-    const items = document.createElement("div");
-    items.className = "system-document-group__items";
-
-    grupo.itens.forEach((documento) => {
-      items.appendChild(criarItemDocumentoSistema(grupo.tipo, documento));
-    });
-
-    details.append(summary, items);
-    generatedDocumentsList.appendChild(details);
+  grupo.itens.forEach((documento) => {
+    generatedDocumentsList.appendChild(
+      criarItemDocumentoSistema(grupo.tipo, documento),
+    );
   });
 }
 
@@ -5532,19 +5621,43 @@ function renderizarDocumentos() {
 
   documentsLoading.hidden = true;
 
-  renderizarDocumentosGerados();
-
   if (!condominioRascunho) {
     documentsList.hidden = true;
 
     documentsEmpty.hidden = false;
 
+    if (systemDocumentsSection) {
+      systemDocumentsSection.hidden = true;
+    }
+
+    if (manualDocumentsSection) {
+      manualDocumentsSection.hidden = true;
+    }
+
     return;
   }
 
-  const documentos = Array.isArray(condominioRascunho.documentos)
-    ? condominioRascunho.documentos
-    : [];
+  const { grupos } = atualizarFiltrosDeDocumentos();
+
+  renderizarDocumentosGerados(grupos);
+
+  const documentos = obterDocumentosManuaisDoCondominio();
+
+  const exibirDocumentosManuais = filtroDocumentosAtual === "manual";
+
+  if (manualDocumentsSection) {
+    manualDocumentsSection.hidden = !exibirDocumentosManuais;
+  }
+
+  if (!exibirDocumentosManuais) {
+    documentsList.hidden = true;
+
+    documentsEmpty.hidden = true;
+
+    atualizarControlesDoDocumento();
+
+    return;
+  }
 
   documentsEmpty.hidden = documentos.length > 0;
 
@@ -5771,7 +5884,19 @@ environmentEquipmentSearch.addEventListener(
   "input",
   renderizarOpcoesDeEquipamentosDoEditor,
 );
-addDocumentButton.addEventListener("click", abrirPainelUploadDocumento);
+documentTypeFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selecionarFiltroDeDocumentos(button.dataset.documentFilter);
+  });
+});
+
+addDocumentButton.addEventListener("click", () => {
+  filtroDocumentosAtual = "manual";
+
+  renderizarDocumentos();
+
+  abrirPainelUploadDocumento();
+});
 
 closeDocumentUploadButton.addEventListener("click", () => {
   fecharPainelUploadDocumento();
