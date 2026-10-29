@@ -1,5 +1,5 @@
 const ASSINATURA_RESPONSAVEL_URL = new URL(
-  "../assets/assinatura-responsavel.svg",
+  "../assets/assinatura-responsavel.png",
   import.meta.url,
 ).href;
 
