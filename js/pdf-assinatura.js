@@ -42,8 +42,8 @@ export async function carregarAssinaturaResponsavelPdf() {
         const image = await carregarImagem(objectUrl);
         const canvas = document.createElement("canvas");
 
-        canvas.width = Math.max(900, image.naturalWidth || 0);
-        canvas.height = Math.max(300, image.naturalHeight || 0);
+        canvas.width = Math.max(1, image.naturalWidth || image.width || 1);
+        canvas.height = Math.max(1, image.naturalHeight || image.height || 1);
 
         const context = canvas.getContext("2d");
 
@@ -52,7 +52,7 @@ export async function carregarAssinaturaResponsavelPdf() {
         }
 
         context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0);
 
         return canvas.toDataURL("image/png");
       } finally {
@@ -77,8 +77,8 @@ export function desenharAssinaturaResponsavelPdf(
     dataUrl,
     x = 22,
     y = 0,
-    width = 52,
-    height = 17,
+    width = 58,
+    height = 16,
     nome = RESPONSAVEL_ASSINATURA.nome,
     cargo = RESPONSAVEL_ASSINATURA.cargo,
     textColor = [43, 47, 51],
@@ -90,7 +90,31 @@ export function desenharAssinaturaResponsavelPdf(
   }
 
   try {
-    pdf.addImage(dataUrl, "PNG", x, y, width, height);
+    const imageProperties = pdf.getImageProperties(dataUrl);
+
+    const imageRatio =
+      Number(imageProperties?.width || 0) /
+      Number(imageProperties?.height || 1);
+
+    let finalWidth = width;
+    let finalHeight = imageRatio > 0 ? finalWidth / imageRatio : height;
+
+    if (finalHeight > height) {
+      finalHeight = height;
+      finalWidth = finalHeight * imageRatio;
+    }
+
+    const finalX = x + (width - finalWidth) / 2;
+    const finalY = y + (height - finalHeight) / 2;
+
+    pdf.addImage(
+      dataUrl,
+      "PNG",
+      finalX,
+      finalY,
+      finalWidth,
+      finalHeight,
+    );
   } catch (error) {
     console.warn("[PDF] Não foi possível inserir a assinatura.", error);
 
