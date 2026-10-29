@@ -22,7 +22,7 @@ import { db, storage } from "./firebase-config.js";
 import {
   carregarAssinaturaResponsavelPdf,
   desenharAssinaturaResponsavelPdf,
-} from "./pdf-assinatura.js?v=1.0.2";
+} from "./pdf-assinatura.js?v=1.0.3";
 
 const inspectionUrlParameters = new URLSearchParams(window.location.search);
 

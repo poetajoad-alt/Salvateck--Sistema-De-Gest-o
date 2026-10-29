@@ -1,108 +1,91 @@
-const ASSINATURA_RESPONSAVEL_URL = new URL(
-  "../assets/assinatura-responsavel.png",
-  import.meta.url,
-).href;
+const SIGNATURE_VIEWBOX = Object.freeze({
+  width: 495,
+  height: 113,
+});
 
-let assinaturaResponsavelPromise = null;
+const SIGNATURE_CONTOURS = [[[160,38],[156,38],[149,41],[142,54],[139,56],[140,61],[137,68],[136,78],[140,83],[149,82],[160,71],[160,68],[159,68],[148,80],[145,81],[141,77],[142,68],[146,59],[157,59],[162,57],[165,54],[166,51],[165,50],[165,44],[163,40]],[[158,42],[161,47],[161,53],[158,56],[155,57],[148,57],[147,54],[149,50],[156,42]],[[282,37],[277,39],[267,37],[261,40],[256,45],[246,66],[244,74],[244,81],[247,83],[253,80],[268,63],[269,65],[266,75],[266,80],[268,82],[274,80],[283,73],[284,70],[275,78],[272,77],[272,70],[276,54],[283,42]],[[275,41],[276,42],[275,47],[268,60],[254,76],[250,77],[249,72],[251,65],[262,44],[267,40]],[[135,37],[130,37],[119,42],[112,47],[107,54],[108,58],[113,63],[120,67],[124,71],[124,74],[117,79],[110,81],[105,81],[106,84],[114,83],[122,79],[128,73],[129,70],[128,67],[124,63],[119,61],[113,55],[113,51],[120,44],[124,42],[131,41],[132,42],[132,46],[130,49],[130,52],[131,52],[134,49],[137,43],[137,39]],[[494,36],[489,37],[483,42],[469,62],[468,59],[477,36],[472,36],[469,39],[466,48],[466,56],[462,72],[459,76],[459,81],[458,82],[459,83],[464,80],[471,63],[480,49],[487,42],[490,43],[487,50],[488,51],[493,47],[495,43],[495,37]],[[346,35],[343,35],[338,41],[339,48],[334,59],[330,65],[318,77],[317,76],[317,70],[318,69],[321,40],[320,39],[315,40],[313,48],[315,54],[315,67],[314,68],[313,79],[310,83],[314,83],[321,78],[334,64],[343,49],[346,39]],[[454,33],[452,33],[449,37],[443,39],[438,45],[434,53],[429,68],[429,80],[432,84],[439,84],[443,82],[450,75],[455,66],[457,58],[457,51],[462,49],[462,48],[458,46]],[[449,42],[454,50],[453,61],[447,74],[440,81],[436,81],[434,79],[434,69],[438,57],[443,47],[446,43]],[[100,33],[98,33],[95,37],[90,38],[82,48],[75,68],[75,80],[78,84],[85,84],[89,82],[95,76],[100,68],[103,57],[103,51],[108,48],[104,46]],[[95,42],[100,50],[99,61],[92,75],[86,81],[82,81],[80,79],[80,68],[87,50],[90,45],[93,42]],[[175,16],[172,14],[158,27],[155,32],[164,27],[174,19]],[[314,7],[308,8],[304,15],[302,21],[303,24],[300,31],[294,54],[287,75],[285,78],[286,83],[291,82],[301,75],[301,74],[299,74],[292,77],[291,73],[302,37],[309,19],[313,12]],[[437,5],[433,4],[429,9],[428,12],[429,17],[420,39],[410,38],[404,40],[397,49],[391,61],[389,68],[378,78],[375,77],[375,70],[380,51],[386,42],[386,38],[383,37],[379,39],[374,37],[370,37],[364,40],[359,45],[352,58],[347,74],[347,81],[350,83],[356,80],[371,63],[372,65],[369,75],[369,80],[371,82],[377,80],[386,73],[387,74],[386,81],[388,83],[390,83],[394,81],[405,70],[411,62],[412,64],[410,68],[409,78],[408,79],[409,82],[412,82],[422,76],[426,72],[426,70],[417,78],[414,77],[414,72],[421,48],[423,44],[426,43],[425,38],[435,14]],[[419,41],[420,42],[410,61],[393,78],[391,75],[393,67],[404,46],[410,40]],[[378,41],[379,42],[378,47],[371,60],[357,76],[353,77],[352,72],[354,65],[365,44],[370,40]],[[93,7],[89,10],[81,10],[54,4],[41,4],[32,8],[30,11],[30,20],[32,24],[39,31],[50,36],[52,36],[42,29],[32,18],[31,13],[35,9],[59,10],[66,12],[72,12],[74,15],[63,49],[51,79],[42,96],[31,108],[23,110],[14,106],[10,102],[4,91],[2,79],[1,79],[0,82],[1,94],[4,101],[11,109],[19,113],[26,113],[34,109],[43,100],[53,84],[60,69],[67,51],[78,15],[79,14],[91,13],[94,9]],[[263,3],[253,0],[243,0],[242,1],[230,2],[218,6],[206,12],[195,21],[190,28],[187,37],[187,46],[190,52],[193,55],[202,60],[214,63],[229,69],[234,74],[234,79],[229,84],[223,87],[215,89],[201,89],[197,87],[194,80],[192,80],[190,83],[192,90],[199,93],[214,92],[231,85],[239,76],[239,70],[233,64],[206,56],[196,49],[193,42],[193,35],[194,31],[200,21],[209,13],[221,7],[236,3],[253,3],[258,5],[263,10],[264,17],[262,23],[257,28],[252,31],[245,32],[245,33],[252,33],[261,28],[267,20],[268,10],[267,7]]];
 
 export const RESPONSAVEL_ASSINATURA = Object.freeze({
   nome: "José Salvador Oliveira Costa",
   cargo: "Responsável Salvateck",
 });
 
-function carregarImagem(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("SIGNATURE_IMAGE_LOAD_FAILED"));
-    image.src = url;
-  });
+export async function carregarAssinaturaResponsavelPdf() {
+  return "assinatura-vetorial";
 }
 
-export async function carregarAssinaturaResponsavelPdf() {
-  if (assinaturaResponsavelPromise) {
-    return assinaturaResponsavelPromise;
+function buildSignaturePath(x, y, width, height) {
+  const scale = Math.min(
+    width / SIGNATURE_VIEWBOX.width,
+    height / SIGNATURE_VIEWBOX.height,
+  );
+
+  const drawWidth = SIGNATURE_VIEWBOX.width * scale;
+  const drawHeight = SIGNATURE_VIEWBOX.height * scale;
+
+  const offsetX = x + (width - drawWidth) / 2;
+  const offsetY = y + (height - drawHeight) / 2;
+
+  const operations = [];
+
+  SIGNATURE_CONTOURS.forEach((contour) => {
+    if (!Array.isArray(contour) || contour.length < 3) {
+      return;
+    }
+
+    const [firstX, firstY] = contour[0];
+
+    operations.push({
+      op: "m",
+      c: [
+        offsetX + firstX * scale,
+        offsetY + firstY * scale,
+      ],
+    });
+
+    contour.slice(1).forEach(([pointX, pointY]) => {
+      operations.push({
+        op: "l",
+        c: [
+          offsetX + pointX * scale,
+          offsetY + pointY * scale,
+        ],
+      });
+    });
+
+    operations.push({
+      op: "h",
+      c: [],
+    });
+  });
+
+  return operations;
+}
+
+function drawVectorSignature(pdf, x, y, width, height) {
+  const operations = buildSignaturePath(x, y, width, height);
+
+  if (operations.length === 0 || typeof pdf.path !== "function") {
+    throw new Error("SIGNATURE_VECTOR_PATH_UNAVAILABLE");
   }
 
-  assinaturaResponsavelPromise = (async () => {
-    try {
-      const response = await fetch(ASSINATURA_RESPONSAVEL_URL, {
-        cache: "no-store",
-      });
+  pdf.setFillColor(16, 16, 16);
 
-      if (!response.ok) {
-        return "";
-      }
+  pdf.path(operations);
 
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
+  if (typeof pdf.fillEvenOdd === "function") {
+    pdf.fillEvenOdd();
 
-      try {
-        const image = await carregarImagem(objectUrl);
-        const canvas = document.createElement("canvas");
+    return;
+  }
 
-        const sourceWidth = Math.max(
-          1,
-          image.naturalWidth || image.width || 1,
-        );
+  if (typeof pdf.fill === "function") {
+    pdf.fill();
 
-        const sourceHeight = Math.max(
-          1,
-          image.naturalHeight || image.height || 1,
-        );
+    return;
+  }
 
-        const padding = 8;
-
-        canvas.width = sourceWidth + padding * 2;
-        canvas.height = sourceHeight + padding * 2;
-
-        const context = canvas.getContext("2d");
-
-        if (!context) {
-          return "";
-        }
-
-        context.fillStyle = "#ffffff";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        const offsets = [
-          [0, 0],
-          [-1, 0],
-          [1, 0],
-          [0, -1],
-          [0, 1],
-          [-1, -1],
-          [1, -1],
-          [-1, 1],
-          [1, 1],
-        ];
-
-        offsets.forEach(([offsetX, offsetY]) => {
-          context.drawImage(
-            image,
-            padding + offsetX,
-            padding + offsetY,
-            sourceWidth,
-            sourceHeight,
-          );
-        });
-
-        return canvas.toDataURL("image/png");
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    } catch (error) {
-      console.warn(
-        "[PDF] Não foi possível carregar a assinatura do responsável.",
-        error,
-      );
-
-      return "";
-    }
-  })();
-
-  return assinaturaResponsavelPromise;
+  throw new Error("SIGNATURE_VECTOR_FILL_UNAVAILABLE");
 }
 
 export function desenharAssinaturaResponsavelPdf(
@@ -124,33 +107,12 @@ export function desenharAssinaturaResponsavelPdf(
   }
 
   try {
-    const imageProperties = pdf.getImageProperties(dataUrl);
-
-    const imageRatio =
-      Number(imageProperties?.width || 0) /
-      Number(imageProperties?.height || 1);
-
-    let finalWidth = width;
-    let finalHeight = imageRatio > 0 ? finalWidth / imageRatio : height;
-
-    if (finalHeight > height) {
-      finalHeight = height;
-      finalWidth = finalHeight * imageRatio;
-    }
-
-    const finalX = x + (width - finalWidth) / 2;
-    const finalY = y + (height - finalHeight) / 2;
-
-    pdf.addImage(
-      dataUrl,
-      "PNG",
-      finalX,
-      finalY,
-      finalWidth,
-      finalHeight,
-    );
+    drawVectorSignature(pdf, x, y, width, height);
   } catch (error) {
-    console.warn("[PDF] Não foi possível inserir a assinatura.", error);
+    console.warn(
+      "[PDF] Não foi possível desenhar a assinatura vetorial.",
+      error,
+    );
 
     return y;
   }
