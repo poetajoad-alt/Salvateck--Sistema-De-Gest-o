@@ -4667,20 +4667,26 @@ async function createInspectionPdf() {
   }
   y = await addInspectionPdfPhotos(pdf, y, code);
 
-  y = addInspectionPdfSectionTitle(
-    pdf,
-    y,
-    "Assinatura do responsável",
-    code,
-  );
+  const vistoriaFinalizada =
+    String(inspection.status || "").trim() === "concluida" ||
+    inspection.validada === true;
 
-  y = ensureInspectionPdfSpace(pdf, y, 34, code);
+  if (vistoriaFinalizada && assinaturaDataUrl) {
+    y = addInspectionPdfSectionTitle(
+      pdf,
+      y,
+      "Assinatura do responsável",
+      code,
+    );
 
-  y = desenharAssinaturaResponsavelPdf(pdf, {
-    dataUrl: assinaturaDataUrl,
-    x: 22,
-    y: y + 1,
-  });
+    y = ensureInspectionPdfSpace(pdf, y, 34, code);
+
+    y = desenharAssinaturaResponsavelPdf(pdf, {
+      dataUrl: assinaturaDataUrl,
+      x: 22,
+      y: y + 1,
+    });
+  }
 
   y = ensureInspectionPdfSpace(pdf, y, 28, code);
 
