@@ -20,7 +20,7 @@
 
   <link rel="stylesheet" href="css/base.css" />
 
-  <link rel="stylesheet" href="css/ambientes-e-equipamentos.css?v=1.0.1" />
+  <link rel="stylesheet" href="css/ambientes-e-equipamentos.css?v=1.0.2" />
 </head>
 
 <body data-page="ambientes-e-equipamentos" data-profile="admin" data-allowed-roles="admin">
@@ -459,6 +459,15 @@
 
         </div>
 
+        <button type="button" class="catalog-card__delete catalog-card__delete--summary" data-catalog-action="delete" aria-label="Excluir ambiente" title="Excluir ambiente">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18"></path>
+            <path d="M8 6V4h8v2"></path>
+            <path d="M19 6l-1 14H6L5 6"></path>
+            <path d="M10 10v6M14 10v6"></path>
+          </svg>
+        </button>
+
         <button type="button" class="catalog-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do ambiente">
 
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -516,15 +525,6 @@
             Editar ambiente
           </button>
 
-          <button type="button" class="catalog-card__delete" data-catalog-action="delete" aria-label="Excluir ambiente" title="Excluir ambiente">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 6h18"></path>
-              <path d="M8 6V4h8v2"></path>
-              <path d="M19 6l-1 14H6L5 6"></path>
-              <path d="M10 10v6M14 10v6"></path>
-            </svg>
-          </button>
-
         </div>
 
       </div>
@@ -574,6 +574,15 @@
           </div>
 
         </div>
+
+        <button type="button" class="catalog-card__delete catalog-card__delete--summary" data-catalog-action="delete" aria-label="Excluir equipamento" title="Excluir equipamento">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18"></path>
+            <path d="M8 6V4h8v2"></path>
+            <path d="M19 6l-1 14H6L5 6"></path>
+            <path d="M10 10v6M14 10v6"></path>
+          </svg>
+        </button>
 
         <button type="button" class="catalog-card__toggle" aria-expanded="false" aria-label="Mostrar detalhes do equipamento">
 
@@ -630,15 +639,6 @@
 
           <button type="button" class="catalog-card__button catalog-card__button--primary" data-catalog-action="edit">
             Editar equipamento
-          </button>
-
-          <button type="button" class="catalog-card__delete" data-catalog-action="delete" aria-label="Excluir equipamento" title="Excluir equipamento">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 6h18"></path>
-              <path d="M8 6V4h8v2"></path>
-              <path d="M19 6l-1 14H6L5 6"></path>
-              <path d="M10 10v6M14 10v6"></path>
-            </svg>
           </button>
 
         </div>
@@ -1005,7 +1005,7 @@
 
   <script type="module" src="js/auth-guard.js"></script>
 
-  <script type="module" src="js/ambientes-e-equipamentos.js?v=1.0.1"></script>
+  <script type="module" src="js/ambientes-e-equipamentos.js?v=1.0.2"></script>
 
 </body>
 
