@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/condominios.css?v=1.0.3" />
+  <link rel="stylesheet" href="css/condominios.css?v=1.0.4" />
 </head>
 
 <body data-page="condominios" data-profile="admin" data-allowed-roles="admin">
@@ -1393,9 +1393,9 @@
           </div>
 
           <p class="documents-section-description">
-            Armazene contratos, laudos, certificados, notas e outros
-            documentos importantes. São aceitos somente arquivos PDF
-            de até 10 MB.
+            Consulte os documentos gerados pela Salvateck e armazene
+            contratos, laudos, certificados, notas e outros arquivos
+            importantes. Os uploads manuais aceitam PDF de até 10 MB.
           </p>
 
           <!-- Upload do PDF -->
@@ -1538,7 +1538,41 @@
 
           </div>
 
-          <!-- Lista dos documentos -->
+          <!-- Documentos gerados pelo sistema -->
+
+          <section class="system-documents" aria-labelledby="system-documents-title">
+
+            <div class="documents-subsection-heading">
+
+              <div>
+                <span>Gerados pelo sistema</span>
+                <strong id="system-documents-title">Documentos automáticos</strong>
+              </div>
+
+              <span class="documents-subsection-count" id="generated-documents-count">
+                0 documentos
+              </span>
+
+            </div>
+
+            <div class="generated-documents-list" id="generated-documents-list" aria-live="polite"></div>
+
+            <div class="generated-documents-empty" id="generated-documents-empty">
+              Nenhum documento final foi gerado pelo sistema para este condomínio.
+            </div>
+
+          </section>
+
+          <!-- Documentos adicionados manualmente -->
+
+          <div class="documents-subsection-heading documents-subsection-heading--manual">
+
+            <div>
+              <span>Arquivos adicionados</span>
+              <strong>Documentos manuais</strong>
+            </div>
+
+          </div>
 
           <div class="documents-loading" id="documents-loading" hidden>
             Carregando documentos...
@@ -1549,12 +1583,12 @@
           <div class="modal-empty-state" id="documents-empty">
 
             <strong>
-              Nenhum documento cadastrado
+              Nenhum arquivo adicionado manualmente
             </strong>
 
             <p>
-              Utilize o botão “Adicionar documento” para armazenar
-              o primeiro PDF deste condomínio.
+              Use “Adicionar documento” para guardar contratos, laudos,
+              certificados, notas e outros PDFs externos.
             </p>
 
           </div>
@@ -1885,7 +1919,7 @@
   </div>
 
   <script type="module" src="js/auth-guard.js"></script>
-  <script src="js/condominios.js?v=1.0.3"></script>
+  <script src="js/condominios.js?v=1.0.4"></script>
 
 </body>
 
