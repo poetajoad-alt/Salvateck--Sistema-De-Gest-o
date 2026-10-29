@@ -19,6 +19,11 @@ import {
 
 import { db, storage } from "./firebase-config.js";
 
+import {
+  carregarAssinaturaResponsavelPdf,
+  desenharAssinaturaResponsavelPdf,
+} from "./pdf-assinatura.js";
+
 const inspectionUrlParameters = new URLSearchParams(window.location.search);
 
 const inspectionIdFromURL = String(
@@ -4453,6 +4458,8 @@ async function createInspectionPdf() {
     throw new Error("INSPECTION_DOCUMENT_NOT_FOUND");
   }
 
+  const assinaturaDataUrl = await carregarAssinaturaResponsavelPdf();
+
   const pdf = new PdfConstructor({
     orientation: "portrait",
 
@@ -4659,6 +4666,22 @@ async function createInspectionPdf() {
     });
   }
   y = await addInspectionPdfPhotos(pdf, y, code);
+
+  y = addInspectionPdfSectionTitle(
+    pdf,
+    y,
+    "Assinatura do responsável",
+    code,
+  );
+
+  y = ensureInspectionPdfSpace(pdf, y, 34, code);
+
+  y = desenharAssinaturaResponsavelPdf(pdf, {
+    dataUrl: assinaturaDataUrl,
+    x: 22,
+    y: y + 1,
+  });
+
   y = ensureInspectionPdfSpace(pdf, y, 28, code);
 
   pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
@@ -5590,6 +5613,12 @@ async function initializePage() {
 
         role: currentSession.role,
       });
+
+      if (inspectionUrlParameters.get("pdf") === "1") {
+        const pdf = await createInspectionPdf();
+
+        window.location.replace(pdf.output("bloburl"));
+      }
 
       return;
     }
