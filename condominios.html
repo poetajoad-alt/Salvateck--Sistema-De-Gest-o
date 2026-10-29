@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/condominios.css?v=1.0.4" />
+  <link rel="stylesheet" href="css/condominios.css?v=1.0.5" />
 </head>
 
 <body data-page="condominios" data-profile="admin" data-allowed-roles="admin">
@@ -1538,9 +1538,35 @@
 
           </div>
 
+          <!-- Filtros dos documentos -->
+
+          <div class="document-type-filters" id="document-type-filters" aria-label="Filtrar documentos por tipo">
+
+            <button type="button" class="document-type-filter" data-document-filter="vistoria" aria-pressed="false">
+              <span>Vistorias</span>
+              <strong data-document-filter-count="vistoria">0</strong>
+            </button>
+
+            <button type="button" class="document-type-filter" data-document-filter="ordem" aria-pressed="false">
+              <span>Ordens de Serviço</span>
+              <strong data-document-filter-count="ordem">0</strong>
+            </button>
+
+            <button type="button" class="document-type-filter" data-document-filter="orcamento" aria-pressed="false">
+              <span>Orçamentos</span>
+              <strong data-document-filter-count="orcamento">0</strong>
+            </button>
+
+            <button type="button" class="document-type-filter" data-document-filter="manual" aria-pressed="false">
+              <span>Arquivos enviados</span>
+              <strong data-document-filter-count="manual">0</strong>
+            </button>
+
+          </div>
+
           <!-- Documentos gerados pelo sistema -->
 
-          <section class="system-documents" aria-labelledby="system-documents-title">
+          <section class="system-documents" id="system-documents-section" aria-labelledby="system-documents-title">
 
             <div class="documents-subsection-heading">
 
@@ -1564,6 +1590,8 @@
           </section>
 
           <!-- Documentos adicionados manualmente -->
+
+          <div class="manual-documents-section" id="manual-documents-section">
 
           <div class="documents-subsection-heading documents-subsection-heading--manual">
 
@@ -1590,6 +1618,8 @@
               Use “Adicionar documento” para guardar contratos, laudos,
               certificados, notas e outros PDFs externos.
             </p>
+
+          </div>
 
           </div>
 
@@ -1919,7 +1949,7 @@
   </div>
 
   <script type="module" src="js/auth-guard.js"></script>
-  <script src="js/condominios.js?v=1.0.4"></script>
+  <script src="js/condominios.js?v=1.0.5"></script>
 
 </body>
 
