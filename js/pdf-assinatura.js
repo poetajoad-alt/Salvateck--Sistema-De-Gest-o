@@ -42,8 +42,20 @@ export async function carregarAssinaturaResponsavelPdf() {
         const image = await carregarImagem(objectUrl);
         const canvas = document.createElement("canvas");
 
-        canvas.width = Math.max(1, image.naturalWidth || image.width || 1);
-        canvas.height = Math.max(1, image.naturalHeight || image.height || 1);
+        const sourceWidth = Math.max(
+          1,
+          image.naturalWidth || image.width || 1,
+        );
+
+        const sourceHeight = Math.max(
+          1,
+          image.naturalHeight || image.height || 1,
+        );
+
+        const padding = 8;
+
+        canvas.width = sourceWidth + padding * 2;
+        canvas.height = sourceHeight + padding * 2;
 
         const context = canvas.getContext("2d");
 
@@ -51,8 +63,30 @@ export async function carregarAssinaturaResponsavelPdf() {
           return "";
         }
 
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0);
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        const offsets = [
+          [0, 0],
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1],
+          [-1, -1],
+          [1, -1],
+          [-1, 1],
+          [1, 1],
+        ];
+
+        offsets.forEach(([offsetX, offsetY]) => {
+          context.drawImage(
+            image,
+            padding + offsetX,
+            padding + offsetY,
+            sourceWidth,
+            sourceHeight,
+          );
+        });
 
         return canvas.toDataURL("image/png");
       } finally {
@@ -60,7 +94,7 @@ export async function carregarAssinaturaResponsavelPdf() {
       }
     } catch (error) {
       console.warn(
-        "[PDF] Não foi possível carregar a assinatura provisória.",
+        "[PDF] Não foi possível carregar a assinatura do responsável.",
         error,
       );
 
@@ -77,8 +111,8 @@ export function desenharAssinaturaResponsavelPdf(
     dataUrl,
     x = 22,
     y = 0,
-    width = 58,
-    height = 16,
+    width = 72,
+    height = 20,
     nome = RESPONSAVEL_ASSINATURA.nome,
     cargo = RESPONSAVEL_ASSINATURA.cargo,
     textColor = [43, 47, 51],
