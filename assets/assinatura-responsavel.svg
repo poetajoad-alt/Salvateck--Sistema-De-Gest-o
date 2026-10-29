@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Rubrica provisória">
+  <g fill="none" stroke="#0D3861" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M92 187c48-64 88-105 119-105 25 0 13 39-15 76-18 24-22 42-4 47 28 8 76-57 109-88 20-18 34-22 41-12 11 16-13 54-6 72 7 19 35 9 67-22 34-33 53-55 69-48 19 9-2 50 10 65 17 20 61-30 91-51 25-18 43-21 49-8 9 20-23 58-8 73 18 18 68-33 107-44 31-9 52 4 63 20" stroke-width="15"/>
+    <path d="M133 221c131 10 261 8 389-8 83-11 164-13 246-2" stroke-width="8" opacity=".72"/>
+    <path d="M186 123c31 7 61 24 78 46" stroke-width="7" opacity=".58"/>
+  </g>
+</svg>
