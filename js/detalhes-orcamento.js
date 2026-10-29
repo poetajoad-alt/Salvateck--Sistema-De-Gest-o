@@ -20,6 +20,11 @@ import {
 
 import { db, storage } from "./firebase-config.js";
 
+import {
+  carregarAssinaturaResponsavelPdf,
+  desenharAssinaturaResponsavelPdf,
+} from "./pdf-assinatura.js";
+
 /* =========================================================
 SALVATECK
 DETALHES DO ORÇAMENTO
@@ -1642,9 +1647,10 @@ async function createBudgetPdf() {
 
   const documentData = currentBudget;
 
-  const [logoDataUrl, coverDataUrl] = await Promise.all([
+  const [logoDataUrl, coverDataUrl, assinaturaDataUrl] = await Promise.all([
     loadBudgetPdfLogo(),
     loadBudgetPdfImage(),
+    carregarAssinaturaResponsavelPdf(),
   ]);
 
   const pdf = new JsPdfClass({
@@ -2481,6 +2487,21 @@ async function createBudgetPdf() {
       },
     );
   }
+
+  y += 68;
+
+  y = ensureContentSpace(y, 38, "Assinatura Salvateck");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(...PDF_COLORS.blue);
+  pdf.text("ASSINATURA SALVATECK", 21, y + 4);
+
+  desenharAssinaturaResponsavelPdf(pdf, {
+    dataUrl: assinaturaDataUrl,
+    x: 21,
+    y: y + 7,
+  });
 
   drawDocumentFooters();
 
@@ -3610,6 +3631,15 @@ async function initializePage() {
     currentBudgetId = getBudgetIdFromUrl();
 
     await loadBudget();
+
+    if (
+      new URLSearchParams(window.location.search).get("pdf") === "1" &&
+      currentBudget
+    ) {
+      const pdf = await createBudgetPdf();
+
+      window.location.replace(pdf.output("bloburl"));
+    }
   } catch (error) {
     console.error("[Detalhes Orçamento] Não foi possível iniciar:", error);
 
