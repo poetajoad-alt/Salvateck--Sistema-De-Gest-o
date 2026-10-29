@@ -20,7 +20,7 @@
 
   <link rel="stylesheet" href="css/base.css" />
 
-  <link rel="stylesheet" href="css/ambientes-e-equipamentos.css?v=1.0.0" />
+  <link rel="stylesheet" href="css/ambientes-e-equipamentos.css?v=1.0.1" />
 </head>
 
 <body data-page="ambientes-e-equipamentos" data-profile="admin" data-allowed-roles="admin">
@@ -516,6 +516,15 @@
             Editar ambiente
           </button>
 
+          <button type="button" class="catalog-card__delete" data-catalog-action="delete" aria-label="Excluir ambiente" title="Excluir ambiente">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+              <path d="M10 10v6M14 10v6"></path>
+            </svg>
+          </button>
+
         </div>
 
       </div>
@@ -621,6 +630,15 @@
 
           <button type="button" class="catalog-card__button catalog-card__button--primary" data-catalog-action="edit">
             Editar equipamento
+          </button>
+
+          <button type="button" class="catalog-card__delete" data-catalog-action="delete" aria-label="Excluir equipamento" title="Excluir equipamento">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+              <path d="M10 10v6M14 10v6"></path>
+            </svg>
           </button>
 
         </div>
@@ -893,6 +911,69 @@
   </div>
 
   <!-- =====================================
+       CONFIRMAÇÃO DE EXCLUSÃO
+  ====================================== -->
+
+  <div class="modal-backdrop" id="catalog-delete-modal" hidden>
+
+    <section class="catalog-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="catalog-delete-title">
+
+      <div class="catalog-delete-dialog__icon" aria-hidden="true">
+
+        <svg viewBox="0 0 24 24">
+          <path d="M3 6h18"></path>
+          <path d="M8 6V4h8v2"></path>
+          <path d="M19 6l-1 14H6L5 6"></path>
+          <path d="M10 10v6M14 10v6"></path>
+        </svg>
+
+      </div>
+
+      <div class="catalog-delete-dialog__copy">
+
+        <p>
+          Exclusão definitiva
+        </p>
+
+        <h2 id="catalog-delete-title">
+          Excluir cadastro?
+        </h2>
+
+        <p id="catalog-delete-message">
+          Confirme a exclusão deste cadastro.
+        </p>
+
+      </div>
+
+      <div class="catalog-delete-dialog__notice">
+
+        <strong>
+          Histórico preservado
+        </strong>
+
+        <span>
+          Vistorias, Ordens de Serviço, Orçamentos e demais registros já emitidos não serão alterados.
+        </span>
+
+      </div>
+
+      <div class="catalog-delete-dialog__actions">
+
+        <button type="button" class="modal-button modal-button--secondary" id="cancel-catalog-delete-button">
+          Cancelar
+        </button>
+
+        <button type="button" class="catalog-delete-dialog__confirm" id="confirm-catalog-delete-button">
+          Excluir
+        </button>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =====================================
        TEMPLATE DE AMBIENTE RECOMENDADO
   ====================================== -->
 
@@ -924,7 +1005,7 @@
 
   <script type="module" src="js/auth-guard.js"></script>
 
-  <script type="module" src="js/ambientes-e-equipamentos.js?v=1.0.0"></script>
+  <script type="module" src="js/ambientes-e-equipamentos.js?v=1.0.1"></script>
 
 </body>
 
