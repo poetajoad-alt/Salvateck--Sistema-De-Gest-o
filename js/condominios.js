@@ -695,6 +695,34 @@ const documentsList = document.getElementById("documents-list");
 
 const documentsEmpty = document.getElementById("documents-empty");
 
+const generatedDocumentsList = document.getElementById(
+  "generated-documents-list",
+);
+
+const generatedDocumentsEmpty = document.getElementById(
+  "generated-documents-empty",
+);
+
+const generatedDocumentsCount = document.getElementById(
+  "generated-documents-count",
+);
+
+const systemDocumentsSection = document.getElementById(
+  "system-documents-section",
+);
+
+const manualDocumentsSection = document.getElementById(
+  "manual-documents-section",
+);
+
+const documentTypeFilterButtons = document.querySelectorAll(
+  "[data-document-filter]",
+);
+
+const documentFilterCountElements = document.querySelectorAll(
+  "[data-document-filter-count]",
+);
+
 const documentTemplate = document.getElementById("document-template");
 
 const condominiumHistory = document.getElementById("condominium-history");
@@ -715,6 +743,8 @@ let ordens = [];
 
 let vistorias = [];
 
+let orcamentos = [];
+
 let ambientesCatalogo = [];
 
 let equipamentosCatalogo = [];
@@ -728,6 +758,8 @@ let abaAtual = "todos";
 let resumoSelecionado = null;
 
 let abaAtualModal = "general";
+
+let filtroDocumentosAtual = "";
 
 let filtrosAplicados = {
   status: "",
@@ -1522,6 +1554,8 @@ async function carregarDadosDeCondominiosDoFirestore() {
 
     getDocs(collection(db, "vistorias")),
 
+    getDocs(collection(db, "orcamentos")),
+
     getDocs(collection(db, "ambientes")),
 
     getDocs(collection(db, "equipamentos")),
@@ -1532,6 +1566,7 @@ async function carregarDadosDeCondominiosDoFirestore() {
     resultadoClientes,
     resultadoOrdens,
     resultadoVistorias,
+    resultadoOrcamentos,
     resultadoAmbientes,
     resultadoEquipamentos,
   ] = resultados;
@@ -1684,6 +1719,33 @@ async function carregarDadosDeCondominiosDoFirestore() {
     );
   }
 
+  /* =========================================
+     ORÇAMENTOS
+  ========================================= */
+
+  orcamentos = [];
+
+  if (resultadoOrcamentos.status === "fulfilled") {
+    resultadoOrcamentos.value.docs.forEach((orcamentoSnapshot) => {
+      try {
+        orcamentos.push({
+          id: orcamentoSnapshot.id,
+          ...orcamentoSnapshot.data(),
+        });
+      } catch (error) {
+        console.error(
+          `[Condomínios] Erro ao interpretar o orçamento ${orcamentoSnapshot.id}:`,
+          error,
+        );
+      }
+    });
+  } else {
+    console.error(
+      "[Condomínios] Não foi possível carregar os orçamentos:",
+      resultadoOrcamentos.reason,
+    );
+  }
+
   atualizarStatusDosDocumentos();
   aplicarOrdensAosCondominios();
 
@@ -1692,6 +1754,7 @@ async function carregarDadosDeCondominiosDoFirestore() {
       `${clientes.length} cliente(s), ` +
       `${ordens.length} ordem(ns), ` +
       `${vistorias.length} vistoria(s), ` +
+      `${orcamentos.length} orçamento(s), ` +
       `${ambientesCatalogo.length} ambiente(s) e ` +
       `${equipamentosCatalogo.length} equipamento(s) carregados.`,
   );
@@ -3308,6 +3371,8 @@ function coletarDadosDoFormulario() {
 
 function abrirModalDeCondominio(condominio = null) {
   condominioEmEdicaoId = condominio?.id || null;
+
+  filtroDocumentosAtual = "";
 
   condominioRascunho = condominio
     ? clonarDados(condominio)
@@ -5193,6 +5258,364 @@ async function removerDocumentoDoCondominio(documento, card) {
   }
 }
 
+function obterCondominioIdDoOrcamento(orcamento = {}) {
+  return String(
+    orcamento.condominioId || orcamento.condominio?.id || "",
+  ).trim();
+}
+
+function obterDataDocumentoSistema(documento = {}) {
+  return (
+    documento.concluidaEm ||
+    documento.validadaEm ||
+    documento.aprovadoEm ||
+    documento.enviadoEm ||
+    documento.atualizadoEm ||
+    documento.criadoEm ||
+    null
+  );
+}
+
+function obterTimestampDocumentoSistema(documento = {}) {
+  const valor = obterDataDocumentoSistema(documento);
+
+  if (!valor) {
+    return 0;
+  }
+
+  if (typeof valor.toMillis === "function") {
+    return valor.toMillis();
+  }
+
+  if (typeof valor.toDate === "function") {
+    return valor.toDate().getTime();
+  }
+
+  const data = new Date(valor);
+
+  return Number.isNaN(data.getTime()) ? 0 : data.getTime();
+}
+
+function formatarDataDocumentoSistema(documento = {}) {
+  const valor = obterDataDocumentoSistema(documento);
+
+  if (!valor) {
+    return "Data não informada";
+  }
+
+  const data =
+    typeof valor.toDate === "function" ? valor.toDate() : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "Data não informada";
+  }
+
+  return data.toLocaleDateString("pt-BR");
+}
+
+function obterRotuloStatusDocumentoSistema(status) {
+  const chave = String(status || "").trim().toLowerCase();
+
+  const rotulos = {
+    enviado: "Enviado",
+    aprovado: "Aprovado",
+    recusado: "Recusado",
+    expirado: "Expirado",
+    concluida: "Concluída",
+    concluido: "Concluído",
+    "aguardando-validacao": "Aguardando validação",
+  };
+
+  return (
+    rotulos[chave] ||
+    chave
+      .replace(/-/g, " ")
+      .replace(/^./, (letra) => letra.toUpperCase()) ||
+    "Registrado"
+  );
+}
+
+function criarUrlDocumentoSistema(tipo, documentoId, abrirPdf = false) {
+  const id = encodeURIComponent(String(documentoId || "").trim());
+
+  if (!id) {
+    return "#";
+  }
+
+  if (tipo === "vistoria") {
+    const parametros = new URLSearchParams({
+      perfil: "admin",
+      vistoria: String(documentoId),
+      modo: "consulta",
+    });
+
+    if (abrirPdf) {
+      parametros.set("pdf", "1");
+    }
+
+    return `nova-vistoria.html?${parametros.toString()}`;
+  }
+
+  if (tipo === "orcamento") {
+    const parametros = new URLSearchParams({
+      id: String(documentoId),
+    });
+
+    if (abrirPdf) {
+      parametros.set("pdf", "1");
+    }
+
+    return `detalhes-orcamento.html?${parametros.toString()}`;
+  }
+
+  const parametros = new URLSearchParams({
+    id: String(documentoId),
+  });
+
+  if (abrirPdf) {
+    parametros.set("pdf", "1");
+  }
+
+  return `detalhes-solicitacao.html?${parametros.toString()}`;
+}
+
+function criarItemDocumentoSistema(tipo, documento) {
+  const item = document.createElement("article");
+  item.className = "system-document-item";
+
+  const copy = document.createElement("div");
+  copy.className = "system-document-item__copy";
+
+  const code = document.createElement("strong");
+  code.className = "system-document-item__code";
+  code.textContent =
+    String(documento.codigo || "").trim() ||
+    (tipo === "vistoria"
+      ? "Vistoria técnica"
+      : tipo === "orcamento"
+        ? "Orçamento"
+        : "Ordem de Serviço");
+
+  const title = document.createElement("span");
+  title.className = "system-document-item__title";
+  title.textContent =
+    String(
+      documento.titulo ||
+        documento.subtitulo ||
+        documento.servicoPrincipal ||
+        "",
+    ).trim() ||
+    (tipo === "vistoria"
+      ? "Vistoria técnica"
+      : tipo === "orcamento"
+        ? "Proposta comercial"
+        : "Ordem de Serviço");
+
+  const meta = document.createElement("span");
+  meta.className = "system-document-item__meta";
+  meta.textContent = [
+    obterRotuloStatusDocumentoSistema(documento.status),
+    formatarDataDocumentoSistema(documento),
+  ].join(" • ");
+
+  copy.append(code, title, meta);
+
+  const actions = document.createElement("div");
+  actions.className = "system-document-item__actions";
+
+  const openAction = document.createElement("a");
+  openAction.className = "system-document-item__action";
+  openAction.href = criarUrlDocumentoSistema(tipo, documento.id, false);
+  openAction.target = "_blank";
+  openAction.rel = "noopener noreferrer";
+  openAction.textContent = "Abrir";
+
+  const pdfAction = document.createElement("a");
+  pdfAction.className =
+    "system-document-item__action system-document-item__action--pdf";
+  pdfAction.href = criarUrlDocumentoSistema(tipo, documento.id, true);
+  pdfAction.target = "_blank";
+  pdfAction.rel = "noopener noreferrer";
+  pdfAction.textContent = "PDF";
+
+  actions.append(openAction, pdfAction);
+  item.append(copy, actions);
+
+  return item;
+}
+
+function obterGruposDocumentosDoCondominio() {
+  const condominioId = String(
+    condominioRascunho?.id || condominioEmEdicaoId || "",
+  ).trim();
+
+  const grupos = {
+    vistoria: {
+      tipo: "vistoria",
+      titulo: "Vistorias técnicas",
+      itens: [],
+    },
+
+    ordem: {
+      tipo: "ordem",
+      titulo: "Ordens de Serviço",
+      itens: [],
+    },
+
+    orcamento: {
+      tipo: "orcamento",
+      titulo: "Orçamentos",
+      itens: [],
+    },
+  };
+
+  if (!condominioId) {
+    return grupos;
+  }
+
+  grupos.vistoria.itens = vistorias.filter((vistoria) => {
+    const status = String(vistoria.status || "").trim();
+
+    return (
+      obterCondominioIdDaVistoria(vistoria) === condominioId &&
+      (status === "concluida" || vistoria.validada === true)
+    );
+  });
+
+  grupos.ordem.itens = ordens.filter(
+    (ordem) =>
+      obterCondominioIdDaOrdem(ordem) === condominioId &&
+      String(ordem.status || "").trim() === "concluida" &&
+      Boolean(ordem.documentoFinal),
+  );
+
+  grupos.orcamento.itens = orcamentos.filter(
+    (orcamento) =>
+      obterCondominioIdDoOrcamento(orcamento) === condominioId &&
+      String(orcamento.status || "").trim() !== "rascunho",
+  );
+
+  Object.values(grupos).forEach((grupo) => {
+    grupo.itens.sort(
+      (itemA, itemB) =>
+        obterTimestampDocumentoSistema(itemB) -
+        obterTimestampDocumentoSistema(itemA),
+    );
+  });
+
+  return grupos;
+}
+
+function obterDocumentosManuaisDoCondominio() {
+  return Array.isArray(condominioRascunho?.documentos)
+    ? condominioRascunho.documentos
+    : [];
+}
+
+function atualizarFiltrosDeDocumentos() {
+  const grupos = obterGruposDocumentosDoCondominio();
+
+  const contagens = {
+    vistoria: grupos.vistoria.itens.length,
+    ordem: grupos.ordem.itens.length,
+    orcamento: grupos.orcamento.itens.length,
+    manual: obterDocumentosManuaisDoCondominio().length,
+  };
+
+  if (!["vistoria", "ordem", "orcamento", "manual"].includes(filtroDocumentosAtual)) {
+    filtroDocumentosAtual =
+      ["vistoria", "ordem", "orcamento", "manual"].find(
+        (tipo) => contagens[tipo] > 0,
+      ) || "vistoria";
+  }
+
+  documentTypeFilterButtons.forEach((button) => {
+    const tipo = button.dataset.documentFilter;
+
+    const ativo = tipo === filtroDocumentosAtual;
+
+    button.classList.toggle("is-active", ativo);
+
+    button.setAttribute("aria-pressed", String(ativo));
+  });
+
+  documentFilterCountElements.forEach((element) => {
+    const tipo = element.dataset.documentFilterCount;
+
+    element.textContent = String(contagens[tipo] || 0);
+  });
+
+  return {
+    grupos,
+    contagens,
+  };
+}
+
+function selecionarFiltroDeDocumentos(tipo) {
+  if (!["vistoria", "ordem", "orcamento", "manual"].includes(tipo)) {
+    return;
+  }
+
+  filtroDocumentosAtual = tipo;
+
+  renderizarDocumentos();
+}
+
+function renderizarDocumentosGerados(grupos) {
+  if (
+    !generatedDocumentsList ||
+    !generatedDocumentsEmpty ||
+    !generatedDocumentsCount ||
+    !systemDocumentsSection
+  ) {
+    return;
+  }
+
+  const exibirDocumentosDoSistema =
+    filtroDocumentosAtual !== "manual";
+
+  systemDocumentsSection.hidden = !exibirDocumentosDoSistema;
+
+  if (!exibirDocumentosDoSistema) {
+    return;
+  }
+
+  generatedDocumentsList.innerHTML = "";
+
+  const grupo = grupos[filtroDocumentosAtual];
+
+  if (!grupo) {
+    generatedDocumentsCount.textContent = "0 documentos";
+    generatedDocumentsEmpty.hidden = false;
+
+    return;
+  }
+
+  const total = grupo.itens.length;
+
+  const title = document.getElementById("system-documents-title");
+
+  if (title) {
+    title.textContent = grupo.titulo;
+  }
+
+  generatedDocumentsCount.textContent =
+    total === 1 ? "1 documento" : `${total} documentos`;
+
+  generatedDocumentsEmpty.textContent =
+    total === 0
+      ? `Nenhum documento em ${grupo.titulo.toLowerCase()} para este condomínio.`
+      : "";
+
+  generatedDocumentsEmpty.hidden = total > 0;
+
+  grupo.itens.forEach((documento) => {
+    generatedDocumentsList.appendChild(
+      criarItemDocumentoSistema(grupo.tipo, documento),
+    );
+  });
+}
+
 function renderizarDocumentos() {
   documentsList.innerHTML = "";
 
@@ -5203,12 +5626,38 @@ function renderizarDocumentos() {
 
     documentsEmpty.hidden = false;
 
+    if (systemDocumentsSection) {
+      systemDocumentsSection.hidden = true;
+    }
+
+    if (manualDocumentsSection) {
+      manualDocumentsSection.hidden = true;
+    }
+
     return;
   }
 
-  const documentos = Array.isArray(condominioRascunho.documentos)
-    ? condominioRascunho.documentos
-    : [];
+  const { grupos } = atualizarFiltrosDeDocumentos();
+
+  renderizarDocumentosGerados(grupos);
+
+  const documentos = obterDocumentosManuaisDoCondominio();
+
+  const exibirDocumentosManuais = filtroDocumentosAtual === "manual";
+
+  if (manualDocumentsSection) {
+    manualDocumentsSection.hidden = !exibirDocumentosManuais;
+  }
+
+  if (!exibirDocumentosManuais) {
+    documentsList.hidden = true;
+
+    documentsEmpty.hidden = true;
+
+    atualizarControlesDoDocumento();
+
+    return;
+  }
 
   documentsEmpty.hidden = documentos.length > 0;
 
@@ -5435,7 +5884,19 @@ environmentEquipmentSearch.addEventListener(
   "input",
   renderizarOpcoesDeEquipamentosDoEditor,
 );
-addDocumentButton.addEventListener("click", abrirPainelUploadDocumento);
+documentTypeFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selecionarFiltroDeDocumentos(button.dataset.documentFilter);
+  });
+});
+
+addDocumentButton.addEventListener("click", () => {
+  filtroDocumentosAtual = "manual";
+
+  renderizarDocumentos();
+
+  abrirPainelUploadDocumento();
+});
 
 closeDocumentUploadButton.addEventListener("click", () => {
   fecharPainelUploadDocumento();

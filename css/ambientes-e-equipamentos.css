@@ -884,7 +884,7 @@ body.modal-open {
 
 .catalog-card__summary {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 42px;
+  grid-template-columns: 48px minmax(0, 1fr) 42px 42px;
   align-items: stretch;
 
   padding-left: 5px;
@@ -1763,7 +1763,7 @@ body.modal-open {
   }
 
   .catalog-card__summary {
-    grid-template-columns: 44px minmax(0, 1fr) 38px;
+    grid-template-columns: 44px minmax(0, 1fr) 38px 38px;
   }
 
   .catalog-card__toggle {
@@ -1870,7 +1870,7 @@ body.modal-open {
   }
 
   .catalog-card__summary {
-    grid-template-columns: 40px minmax(0, 1fr) 36px;
+    grid-template-columns: 40px minmax(0, 1fr) 36px 36px;
   }
 
   .catalog-card__icon svg {
@@ -1932,5 +1932,167 @@ body.modal-open {
     bottom: 12px;
 
     max-width: calc(100vw - 24px);
+  }
+}
+
+
+/* =========================================
+   EXCLUSÃO DO CATÁLOGO
+========================================= */
+
+.catalog-card__delete {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 1px solid rgba(162, 60, 60, 0.2);
+  border-radius: 999px;
+  background: var(--catalog-red-soft);
+  color: var(--catalog-red);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.catalog-card__delete:hover {
+  transform: translateY(-1px);
+  border-color: rgba(162, 60, 60, 0.42);
+  background: #f1d0d0;
+}
+
+.catalog-card__delete--summary {
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+
+.catalog-card__delete--summary svg {
+  width: 17px;
+  height: 17px;
+}
+
+.catalog-card__delete svg,
+.catalog-delete-dialog__icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.catalog-delete-dialog {
+  width: min(92vw, 470px);
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid rgba(162, 60, 60, 0.2);
+  border-radius: var(--catalog-radius-large);
+  background: #ffffff;
+  box-shadow: var(--catalog-shadow);
+}
+
+.catalog-delete-dialog__icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--catalog-red-soft);
+  color: var(--catalog-red);
+}
+
+.catalog-delete-dialog__copy {
+  display: grid;
+  gap: 7px;
+}
+
+.catalog-delete-dialog__copy > p:first-child {
+  margin: 0;
+  color: var(--catalog-red);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.catalog-delete-dialog__copy h2 {
+  margin: 0;
+  color: var(--catalog-blue);
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.catalog-delete-dialog__copy > p:last-child {
+  margin: 0;
+  color: var(--catalog-gray);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.catalog-delete-dialog__notice {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(13, 56, 97, 0.1);
+  border-radius: var(--catalog-radius-small);
+  background: var(--catalog-soft);
+}
+
+.catalog-delete-dialog__notice strong {
+  color: var(--catalog-blue);
+  font-size: 0.75rem;
+}
+
+.catalog-delete-dialog__notice span {
+  color: var(--catalog-gray);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.catalog-delete-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.catalog-delete-dialog__confirm {
+  min-height: 48px;
+  padding: 0 16px;
+  cursor: pointer;
+  border-radius: var(--catalog-pill);
+  background: var(--catalog-red);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.catalog-delete-dialog__confirm:disabled,
+.catalog-card__delete:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 620px) {
+  .catalog-card__actions {
+    flex-wrap: wrap;
+  }
+
+  .catalog-card__delete:not(.catalog-card__delete--summary) {
+    margin-left: auto;
+  }
+
+  .catalog-delete-dialog {
+    padding: 22px;
+  }
+
+  .catalog-delete-dialog__actions {
+    grid-template-columns: 1fr;
   }
 }

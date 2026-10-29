@@ -19,6 +19,11 @@ import {
 
 import { db, storage } from "./firebase-config.js";
 
+import {
+  carregarAssinaturaResponsavelPdf,
+  desenharAssinaturaResponsavelPdf,
+} from "./pdf-assinatura.js?v=1.0.1";
+
 const inspectionUrlParameters = new URLSearchParams(window.location.search);
 
 const inspectionIdFromURL = String(
@@ -300,6 +305,8 @@ let preparedInspectionPdf = null;
 let preparedInspectionPdfFile = null;
 
 let preparedInspectionPdfFileName = "";
+
+let inspectionPdfPhotoAccessBlocked = false;
 
 let pendingInspectionAdminAction = null;
 
@@ -4257,7 +4264,33 @@ async function loadInspectionPhotoForPdf(photo) {
     throw new Error("INSPECTION_PHOTO_STORAGE_PATH_NOT_FOUND");
   }
 
-  const photoBytes = await getBytes(ref(storage, storagePath));
+  if (inspectionPdfPhotoAccessBlocked) {
+    throw new Error("INSPECTION_PHOTO_PDF_STORAGE_BLOCKED");
+  }
+
+  let timeoutId = null;
+
+  let photoBytes;
+
+  try {
+    photoBytes = await Promise.race([
+      getBytes(ref(storage, storagePath)),
+
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("INSPECTION_PHOTO_PDF_STORAGE_TIMEOUT"));
+        }, 4000);
+      }),
+    ]);
+  } catch (error) {
+    inspectionPdfPhotoAccessBlocked = true;
+
+    throw error;
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 
   const blob = new Blob([photoBytes], {
     type: String(photo?.contentType || "image/webp"),
@@ -4443,6 +4476,8 @@ async function addInspectionPdfPhotos(pdf, y, code) {
   return y;
 }
 async function createInspectionPdf() {
+  inspectionPdfPhotoAccessBlocked = false;
+
   const PdfConstructor = window.jspdf?.jsPDF;
 
   if (!PdfConstructor) {
@@ -4452,6 +4487,8 @@ async function createInspectionPdf() {
   if (!currentInspectionDocument) {
     throw new Error("INSPECTION_DOCUMENT_NOT_FOUND");
   }
+
+  const assinaturaDataUrl = await carregarAssinaturaResponsavelPdf();
 
   const pdf = new PdfConstructor({
     orientation: "portrait",
@@ -4659,6 +4696,28 @@ async function createInspectionPdf() {
     });
   }
   y = await addInspectionPdfPhotos(pdf, y, code);
+
+  const vistoriaFinalizada =
+    String(inspection.status || "").trim() === "concluida" ||
+    inspection.validada === true;
+
+  if (vistoriaFinalizada && assinaturaDataUrl) {
+    y = addInspectionPdfSectionTitle(
+      pdf,
+      y,
+      "Assinatura do responsável",
+      code,
+    );
+
+    y = ensureInspectionPdfSpace(pdf, y, 34, code);
+
+    y = desenharAssinaturaResponsavelPdf(pdf, {
+      dataUrl: assinaturaDataUrl,
+      x: 22,
+      y: y + 1,
+    });
+  }
+
   y = ensureInspectionPdfSpace(pdf, y, 28, code);
 
   pdf.setFillColor(...INSPECTION_PDF_COLORS.navy);
@@ -5590,6 +5649,12 @@ async function initializePage() {
 
         role: currentSession.role,
       });
+
+      if (inspectionUrlParameters.get("pdf") === "1") {
+        const pdf = await createInspectionPdf();
+
+        window.location.replace(pdf.output("bloburl"));
+      }
 
       return;
     }

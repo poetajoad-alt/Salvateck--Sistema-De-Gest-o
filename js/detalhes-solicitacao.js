@@ -20,6 +20,11 @@ import {
 
 import { db, storage } from "./firebase-config.js";
 
+import {
+  carregarAssinaturaResponsavelPdf,
+  desenharAssinaturaResponsavelPdf,
+} from "./pdf-assinatura.js?v=1.0.1";
+
 /* =========================================
    CONFIGURAÇÕES
 ========================================= */
@@ -554,6 +559,8 @@ const downloadFinalDocumentButton = document.getElementById(
 const urlParams = new URLSearchParams(window.location.search);
 
 const requestId = String(urlParams.get("id") || "").trim();
+
+const requestPdfRequested = urlParams.get("pdf") === "1";
 
 const origem = String(urlParams.get("origem") || "").trim();
 
@@ -3967,9 +3974,22 @@ function getPdfContainedImageSize(
 async function convertOrderPhotoToPdfImage(photo) {
   const photoUrl = await getPhotoViewUrl(photo);
 
-  const response = await fetch(photoUrl, {
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+
+  const timeoutId = window.setTimeout(() => {
+    controller.abort();
+  }, 4000);
+
+  let response;
+
+  try {
+    response = await fetch(photoUrl, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     throw new Error("PDF_PHOTO_DOWNLOAD_FAILED");
@@ -4069,18 +4089,22 @@ async function loadFinalPdfPhotos() {
     return [];
   }
 
-  try {
-    return await Promise.all(
-      photos.map((photo) => convertOrderPhotoToPdfImage(photo)),
-    );
-  } catch (error) {
-    console.error(
-      "[PDF] Não foi possível preparar o registro fotográfico:",
-      error,
-    );
+  const preparedPhotos = await Promise.all(
+    photos.map(async (photo) => {
+      try {
+        return await convertOrderPhotoToPdfImage(photo);
+      } catch (error) {
+        console.warn(
+          "[PDF] Uma foto da OS não pôde ser carregada e será omitida:",
+          error,
+        );
 
-    throw new Error("PDF_PHOTO_LOAD_FAILED");
-  }
+        return null;
+      }
+    }),
+  );
+
+  return preparedPhotos.filter(Boolean);
 }
 
 function drawPdfPhotoCard(pdf, photo, { x, y, width, height, index, total }) {
@@ -4277,7 +4301,10 @@ async function createFinalDocumentPdf() {
 
   const documentData = getFinalPdfData();
 
-  const logoDataUrl = await loadFinalPdfLogo();
+  const [logoDataUrl, assinaturaDataUrl] = await Promise.all([
+    loadFinalPdfLogo(),
+    carregarAssinaturaResponsavelPdf(),
+  ]);
 
   const pdf = new JsPdfClass({
     orientation: "portrait",
@@ -4495,6 +4522,21 @@ async function createFinalDocumentPdf() {
     },
     documentData,
   );
+
+  y = addPdfSectionTitle(
+    pdf,
+    y,
+    "Assinatura do responsável",
+    documentData,
+  );
+
+  y = ensurePdfSpace(pdf, y, 34, documentData);
+
+  y = desenharAssinaturaResponsavelPdf(pdf, {
+    dataUrl: assinaturaDataUrl,
+    x: 22,
+    y: y + 1,
+  });
 
   addPdfConclusionNotice(pdf, y, documentData);
 
@@ -6725,6 +6767,16 @@ async function initializePage() {
     renderAll();
 
     detailsShell.hidden = false;
+
+    if (
+      requestPdfRequested &&
+      currentRequest.status === "concluida" &&
+      currentRequest.documentoFinal
+    ) {
+      const pdf = await createFinalDocumentPdf();
+
+      window.location.replace(pdf.output("bloburl"));
+    }
   } catch (error) {
     console.error("[Detalhes] Não foi possível carregar a solicitação:", error);
 
