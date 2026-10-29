@@ -7,6 +7,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 import { db } from "./firebase-config.js";
@@ -164,6 +165,20 @@ const recommendedEnvironmentTemplate = document.getElementById(
   "recommended-environment-template",
 );
 
+const catalogDeleteModal = document.getElementById("catalog-delete-modal");
+
+const catalogDeleteTitle = document.getElementById("catalog-delete-title");
+
+const catalogDeleteMessage = document.getElementById("catalog-delete-message");
+
+const cancelCatalogDeleteButton = document.getElementById(
+  "cancel-catalog-delete-button",
+);
+
+const confirmCatalogDeleteButton = document.getElementById(
+  "confirm-catalog-delete-button",
+);
+
 const feedbackMessage = document.getElementById("feedback-message");
 
 /* =========================================
@@ -183,6 +198,10 @@ let condominiums = [];
 let feedbackTimeout = null;
 
 let savingRecord = false;
+
+let deletingRecord = false;
+
+let pendingCatalogDeletion = null;
 
 let appliedFilters = {
   status: "",
@@ -850,6 +869,389 @@ function clearFilters({ clearSearch = false } = {}) {
 }
 
 /* =========================================
+   EXCLUSÃO DO CATÁLOGO
+========================================= */
+
+function getCatalogReferenceId(value, type) {
+  if (type === "equipamento") {
+    return extractId(value, [
+      "equipamentoId",
+      "equipmentId",
+      "id",
+      "codigo",
+      "value",
+    ]);
+  }
+
+  return extractId(value, [
+    "ambienteId",
+    "environmentId",
+    "id",
+    "codigo",
+    "value",
+  ]);
+}
+
+function removeCatalogReferenceFromArray(values, type, recordId) {
+  if (!Array.isArray(values)) {
+    return values;
+  }
+
+  return values.filter(
+    (value) => getCatalogReferenceId(value, type) !== recordId,
+  );
+}
+
+function collectEquipmentIdsFromEnvironmentEntries(values) {
+  const ids = new Set();
+
+  if (!Array.isArray(values)) {
+    return ids;
+  }
+
+  values.forEach((environmentEntry) => {
+    if (!environmentEntry || typeof environmentEntry !== "object") {
+      return;
+    }
+
+    [
+      environmentEntry.equipamentos,
+      environmentEntry.equipamentosIds,
+      environmentEntry.equipmentIds,
+    ].forEach((equipmentValues) => {
+      if (!Array.isArray(equipmentValues)) {
+        return;
+      }
+
+      equipmentValues.forEach((equipmentValue) => {
+        const equipmentId = getCatalogReferenceId(
+          equipmentValue,
+          "equipamento",
+        );
+
+        if (equipmentId) {
+          ids.add(equipmentId);
+        }
+      });
+    });
+  });
+
+  return ids;
+}
+
+function removeEquipmentFromEnvironmentEntries(values, equipmentId) {
+  if (!Array.isArray(values)) {
+    return values;
+  }
+
+  return values.map((environmentEntry) => {
+    if (!environmentEntry || typeof environmentEntry !== "object") {
+      return environmentEntry;
+    }
+
+    const updatedEntry = {
+      ...environmentEntry,
+    };
+
+    ["equipamentos", "equipamentosIds", "equipmentIds"].forEach((key) => {
+      if (!Array.isArray(environmentEntry[key])) {
+        return;
+      }
+
+      updatedEntry[key] = removeCatalogReferenceFromArray(
+        environmentEntry[key],
+        "equipamento",
+        equipmentId,
+      );
+    });
+
+    return updatedEntry;
+  });
+}
+
+function buildCondominiumCleanupForCatalogDeletion(
+  condominium,
+  type,
+  recordId,
+) {
+  const updates = {};
+
+  if (type === "equipamento") {
+    if (Array.isArray(condominium.equipamentos)) {
+      const nextEquipment = removeCatalogReferenceFromArray(
+        condominium.equipamentos,
+        "equipamento",
+        recordId,
+      );
+
+      if (nextEquipment.length !== condominium.equipamentos.length) {
+        updates.equipamentos = nextEquipment;
+      }
+    }
+
+    ["ambientes", "estruturaAmbientes", "ambientesEquipamentos"].forEach(
+      (field) => {
+        if (!Array.isArray(condominium[field])) {
+          return;
+        }
+
+        const nextStructure = removeEquipmentFromEnvironmentEntries(
+          condominium[field],
+          recordId,
+        );
+
+        if (
+          JSON.stringify(nextStructure) !==
+          JSON.stringify(condominium[field])
+        ) {
+          updates[field] = nextStructure;
+        }
+      },
+    );
+
+    return updates;
+  }
+
+  const removedEquipmentIds = new Set();
+  const remainingEquipmentIds = new Set();
+
+  ["ambientes", "estruturaAmbientes", "ambientesEquipamentos"].forEach(
+    (field) => {
+      if (!Array.isArray(condominium[field])) {
+        return;
+      }
+
+      condominium[field].forEach((environmentEntry) => {
+        const environmentId = getCatalogReferenceId(
+          environmentEntry,
+          "ambiente",
+        );
+
+        const targetSet =
+          environmentId === recordId
+            ? removedEquipmentIds
+            : remainingEquipmentIds;
+
+        collectEquipmentIdsFromEnvironmentEntries([environmentEntry]).forEach(
+          (equipmentId) => targetSet.add(equipmentId),
+        );
+      });
+
+      const nextStructure = removeCatalogReferenceFromArray(
+        condominium[field],
+        "ambiente",
+        recordId,
+      );
+
+      if (nextStructure.length !== condominium[field].length) {
+        updates[field] = nextStructure;
+      }
+    },
+  );
+
+  if (Array.isArray(condominium.equipamentos)) {
+    const equipmentIdsToRemove = new Set(
+      Array.from(removedEquipmentIds).filter(
+        (equipmentId) => !remainingEquipmentIds.has(equipmentId),
+      ),
+    );
+
+    if (equipmentIdsToRemove.size > 0) {
+      const nextEquipment = condominium.equipamentos.filter((value) => {
+        const equipmentId = getCatalogReferenceId(value, "equipamento");
+
+        return !equipmentIdsToRemove.has(equipmentId);
+      });
+
+      if (nextEquipment.length !== condominium.equipamentos.length) {
+        updates.equipamentos = nextEquipment;
+      }
+    }
+  }
+
+  return updates;
+}
+
+function openCatalogDeleteModal(type, record) {
+  if (!catalogDeleteModal || !record?.id || currentSession?.role !== "admin") {
+    return;
+  }
+
+  pendingCatalogDeletion = {
+    type,
+    record,
+  };
+
+  const typeLabel = getTypeLabel(type);
+
+  catalogDeleteTitle.textContent = `Excluir ${typeLabel}?`;
+
+  catalogDeleteMessage.textContent = [
+    `“${record.nome}” será removido do catálogo e das estruturas atuais dos condomínios.`,
+    record.usoCondominios > 0
+      ? `Hoje este cadastro aparece em ${formatQuantity(
+          record.usoCondominios,
+          "condomínio",
+          "condomínios",
+        )}.`
+      : "Este cadastro não está vinculado a nenhum condomínio atual.",
+  ].join(" ");
+
+  confirmCatalogDeleteButton.textContent = `Excluir ${typeLabel}`;
+
+  catalogDeleteModal.hidden = false;
+
+  document.body.classList.add("modal-open");
+
+  confirmCatalogDeleteButton.focus();
+}
+
+function closeCatalogDeleteModal({ force = false } = {}) {
+  if (deletingRecord && !force) {
+    return;
+  }
+
+  catalogDeleteModal.hidden = true;
+
+  pendingCatalogDeletion = null;
+
+  confirmCatalogDeleteButton.disabled = false;
+
+  cancelCatalogDeleteButton.disabled = false;
+
+  document.body.classList.remove("modal-open");
+}
+
+async function deleteCatalogRecord(type, record) {
+  if (!record?.id || currentSession?.role !== "admin") {
+    throw new Error("CATALOG_DELETE_NOT_ALLOWED");
+  }
+
+  const batch = writeBatch(db);
+
+  let operationCount = 1;
+
+  condominiums.forEach((condominium) => {
+    const updates = buildCondominiumCleanupForCatalogDeletion(
+      condominium,
+      type,
+      record.id,
+    );
+
+    if (Object.keys(updates).length === 0) {
+      return;
+    }
+
+    operationCount += 1;
+
+    batch.update(doc(db, COLLECTIONS.condominios, condominium.id), {
+      ...updates,
+
+      atualizadoEm: serverTimestamp(),
+
+      atualizadoPorUid: currentSession.uid,
+    });
+  });
+
+  if (type === "ambiente") {
+    equipment.forEach((equipmentRecord) => {
+      if (
+        !Array.isArray(equipmentRecord.ambientesRecomendados) ||
+        !equipmentRecord.ambientesRecomendados.includes(record.id)
+      ) {
+        return;
+      }
+
+      operationCount += 1;
+
+      batch.update(
+        doc(db, COLLECTIONS.equipamento, equipmentRecord.id),
+        {
+          ambientesRecomendados:
+            equipmentRecord.ambientesRecomendados.filter(
+              (environmentId) => environmentId !== record.id,
+            ),
+
+          atualizadoEm: serverTimestamp(),
+
+          atualizadoPorUid: currentSession.uid,
+        },
+      );
+    });
+  }
+
+  if (operationCount > 450) {
+    throw new Error("CATALOG_DELETE_TOO_MANY_LINKS");
+  }
+
+  batch.delete(doc(db, getCollectionName(type), record.id));
+
+  await batch.commit();
+}
+
+async function confirmCatalogDeletion() {
+  if (deletingRecord || !pendingCatalogDeletion) {
+    return;
+  }
+
+  const { type, record } = pendingCatalogDeletion;
+
+  deletingRecord = true;
+
+  confirmCatalogDeleteButton.disabled = true;
+
+  cancelCatalogDeleteButton.disabled = true;
+
+  confirmCatalogDeleteButton.textContent = "Excluindo...";
+
+  try {
+    await deleteCatalogRecord(type, record);
+
+    await loadCatalogData();
+
+    renderAllCatalogData();
+
+    closeCatalogDeleteModal({
+      force: true,
+    });
+
+    showFeedback(
+      `${getTypeLabel(type).replace(/^./, (letter) =>
+        letter.toUpperCase(),
+      )} excluído com sucesso. O histórico já registrado foi preservado.`,
+    );
+  } catch (error) {
+    console.error(
+      "[Ambientes e Equipamentos] Não foi possível excluir o cadastro:",
+      error,
+    );
+
+    if (error?.message === "CATALOG_DELETE_TOO_MANY_LINKS") {
+      showFeedback(
+        "Este cadastro possui vínculos demais para uma exclusão segura em uma única operação.",
+        "error",
+      );
+    } else {
+      showFeedback(
+        getErrorMessage(error, "Não foi possível excluir o cadastro."),
+        "error",
+      );
+    }
+  } finally {
+    deletingRecord = false;
+
+    confirmCatalogDeleteButton.disabled = false;
+
+    cancelCatalogDeleteButton.disabled = false;
+
+    if (!catalogDeleteModal.hidden && pendingCatalogDeletion) {
+      confirmCatalogDeleteButton.textContent =
+        `Excluir ${getTypeLabel(pendingCatalogDeletion.type)}`;
+    }
+  }
+}
+
+/* =========================================
    CARDS
 ========================================= */
 
@@ -908,6 +1310,8 @@ function createCatalogCard(record, type) {
   const statusAction = fragment.querySelector('[data-catalog-action="status"]');
 
   const editAction = fragment.querySelector('[data-catalog-action="edit"]');
+
+  const deleteAction = fragment.querySelector('[data-catalog-action="delete"]');
 
   card.dataset.recordId = record.id;
 
@@ -982,6 +1386,17 @@ function createCatalogCard(record, type) {
   statusAction.addEventListener("click", () => {
     toggleRecordStatus(type, record);
   });
+
+  if (deleteAction) {
+    deleteAction.setAttribute(
+      "aria-label",
+      `Excluir ${getTypeLabel(type)} ${record.nome}`,
+    );
+
+    deleteAction.addEventListener("click", () => {
+      openCatalogDeleteModal(type, record);
+    });
+  }
 
   return fragment;
 }
@@ -1526,8 +1941,30 @@ catalogModal.addEventListener("click", (event) => {
   }
 });
 
+cancelCatalogDeleteButton.addEventListener(
+  "click",
+  closeCatalogDeleteModal,
+);
+
+confirmCatalogDeleteButton.addEventListener(
+  "click",
+  confirmCatalogDeletion,
+);
+
+catalogDeleteModal.addEventListener("click", (event) => {
+  if (event.target === catalogDeleteModal) {
+    closeCatalogDeleteModal();
+  }
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!catalogDeleteModal.hidden) {
+    closeCatalogDeleteModal();
+
     return;
   }
 
