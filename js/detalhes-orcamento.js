@@ -452,6 +452,12 @@ async function ensureBudgetClientRelationship() {
       null;
 
     if (!preferredRelationship) {
+      currentBudget.clienteVinculo = {
+        ...(currentBudget.clienteVinculo || {}),
+
+        clienteParticular: false,
+      };
+
       return;
     }
 
