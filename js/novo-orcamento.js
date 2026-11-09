@@ -628,6 +628,21 @@ function setEditModePresentation() {
 
   saveDraftButton.hidden = true;
 
+  condominiumSelect.required = false;
+
+  const condominiumLabel = condominiumSelect
+    .closest(".field")
+    ?.querySelector(":scope > span");
+
+  if (condominiumLabel) {
+    condominiumLabel.textContent = "Condomínio";
+  }
+
+  if (!selectedCondominium) {
+    condominiumHelp.textContent =
+      "Opcional neste orçamento. Você pode salvar as alterações sem vincular um condomínio.";
+  }
+
   saveButton.querySelector("span").textContent = "Salvar alterações";
 }
 
@@ -2136,9 +2151,13 @@ function validateBudget() {
       ),
     );
 
-  if (!selectedCondominium && !hasExistingCondominium) {
+  if (
+    !editMode &&
+    !selectedCondominium &&
+    !hasExistingCondominium
+  ) {
     showFeedback(
-      "Este orçamento está sem condomínio vinculado. Selecione o condomínio para salvar as alterações.",
+      "Selecione o condomínio do orçamento.",
       "error",
     );
 
