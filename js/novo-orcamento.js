@@ -223,6 +223,10 @@ const statusLabels = {
   expirado: "Expirado",
 };
 
+const DEFAULT_WARRANTY_TEXT = `Garantia de 90 dias para vícios aparentes ou de fácil constatação em serviços duráveis. Para vícios ocultos, a contagem começa quando o defeito fica evidente.
+Conforme o ART.26, inciso II
+Código de defesa do consumidor-Lei n. 8.078/1990`;
+
 /* =========================================================
 AUXILIARES
 ========================================================= */
@@ -236,6 +240,24 @@ function normalizeText(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+}
+
+function getWarrantyValue(savedWarranty = "") {
+  const savedValue = text(savedWarranty);
+
+  if (!savedValue) {
+    return DEFAULT_WARRANTY_TEXT;
+  }
+
+  const normalizedSaved = normalizeText(savedValue);
+  const normalizedDefault = normalizeText(DEFAULT_WARRANTY_TEXT);
+
+  const isLegacyTruncatedDefault =
+    savedValue.length <= 120 &&
+    normalizedSaved.length >= 90 &&
+    normalizedDefault.startsWith(normalizedSaved);
+
+  return isLegacyTruncatedDefault ? DEFAULT_WARRANTY_TEXT : savedValue;
 }
 
 function createOption(value, label) {
@@ -873,7 +895,7 @@ async function populateBudgetForEdit() {
     ? conditions.gerais.map(text).filter(Boolean).join("\n\n")
     : "";
 
-  warranty.value = text(conditions.garantia);
+  warranty.value = getWarrantyValue(conditions.garantia);
 
   executionTime.value = text(conditions.prazoExecucao);
 
@@ -2884,6 +2906,8 @@ function resetBudgetForm() {
 
   budgetStatus.value = "rascunho";
 
+  warranty.value = DEFAULT_WARRANTY_TEXT;
+
   budgetCode.value = "";
 
   condominiumSelect.value = "";
@@ -3032,6 +3056,8 @@ async function initializePage() {
     budgetValidity.value = "15";
 
     budgetStatus.value = "rascunho";
+
+    warranty.value = DEFAULT_WARRANTY_TEXT;
 
     bindInitialServiceItem();
 
