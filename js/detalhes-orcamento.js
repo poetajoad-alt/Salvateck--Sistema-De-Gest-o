@@ -407,7 +407,7 @@ function isPrivateClientBudget(budget) {
 }
 
 async function ensureBudgetClientRelationship() {
-  if (!currentBudget || text(currentBudget?.clienteVinculo?.papel)) {
+  if (!currentBudget) {
     return;
   }
 
