@@ -20,7 +20,7 @@
 
   <link rel="stylesheet" href="css/base.css?v=1.0.1" />
 
-  <link rel="stylesheet" href="css/novo-orcamento.css?v=1.0.0" />
+  <link rel="stylesheet" href="css/novo-orcamento.css?v=1.0.1" />
 </head>
 
 <body data-page="novo-orcamento" data-allowed-roles="admin">
@@ -96,6 +96,31 @@
         </div>
 
         <div class="field-grid">
+          <label class="field field--wide condominium-search-field" for="budget-condominium-search">
+            <span>
+              Buscar condomínio ou pessoa
+            </span>
+
+            <input
+              id="budget-condominium-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Digite o condomínio, código ou nome da pessoa"
+              disabled
+            />
+
+            <small id="budget-condominium-search-help">
+              A busca será liberada assim que os condomínios forem carregados.
+            </small>
+          </label>
+
+          <div
+            id="budget-condominium-search-results"
+            class="condominium-search-results field--wide"
+            aria-live="polite"
+            hidden
+          ></div>
+
           <label class="field field--wide" for="budget-condominium">
             <span>
               Condomínio *
@@ -849,7 +874,7 @@ Os materiais utilizados seguirão as especificações técnicas adequadas ao ser
 
   <div id="budget-feedback" class="feedback" role="status" aria-live="polite" hidden></div>
 
-  <script type="module" src="js/novo-orcamento.js?v=1.0.2"></script>
+  <script type="module" src="js/novo-orcamento.js?v=1.0.3"></script>
 </body>
 
 </html>
