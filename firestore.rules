@@ -1167,6 +1167,10 @@ match /orcamentos/{orcamentoId} {
 
       && request.resource.data.clienteUid == request.auth.uid
 
+      && !("ordemId" in resource.data)
+
+      && !("osId" in resource.data)
+
       && resource.data.status == "enviado"
 
       && request.resource.data.status in [
