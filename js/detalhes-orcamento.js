@@ -121,6 +121,10 @@ const rejectButton = document.getElementById("reject-budget-button");
 const expireButton = document.getElementById("expire-budget-button");
 
 const conversionCard = document.getElementById("budget-conversion-card");
+const conversionTitle = document.getElementById("budget-conversion-title");
+const conversionDescription = document.getElementById(
+  "budget-conversion-description",
+);
 const convertBudgetOrderButton = document.getElementById(
   "convert-budget-order-button",
 );
@@ -359,6 +363,117 @@ function getBudgetIdFromUrl() {
   return text(parameters.get("id"));
 }
 
+function getBudgetClientRelationships(condominiumData, clientUid) {
+  const directedClientUid = text(clientUid);
+
+  if (!directedClientUid) {
+    return [];
+  }
+
+  return (Array.isArray(condominiumData?.clientesVinculados)
+    ? condominiumData.clientesVinculados
+    : []
+  ).filter(
+    (relationship) => text(relationship?.clienteId) === directedClientUid,
+  );
+}
+
+function getPrivateClientRelationship(condominiumData, clientUid) {
+  const relationships = getBudgetClientRelationships(
+    condominiumData,
+    clientUid,
+  );
+
+  const residentRelationship = relationships.find(
+    (relationship) => normalizeText(relationship?.papel) === "morador",
+  );
+
+  const hasResponsibleRelationship = relationships.some(
+    (relationship) => normalizeText(relationship?.papel) !== "morador",
+  );
+
+  return residentRelationship && !hasResponsibleRelationship
+    ? residentRelationship
+    : null;
+}
+
+function isPrivateClientBudget(budget) {
+  const relationship = budget?.clienteVinculo || {};
+
+  return (
+    normalizeText(relationship.papel) === "morador" &&
+    relationship.clienteParticular !== false
+  );
+}
+
+async function ensureBudgetClientRelationship() {
+  if (!currentBudget || text(currentBudget?.clienteVinculo?.papel)) {
+    return;
+  }
+
+  const condominiumId = text(
+    currentBudget?.condominioId || currentBudget?.condominio?.id,
+  );
+
+  const clientUid = text(currentBudget?.clienteUid);
+
+  if (!condominiumId || !clientUid) {
+    return;
+  }
+
+  try {
+    const condominiumSnapshot = await getDoc(
+      doc(db, "condominios", condominiumId),
+    );
+
+    if (!condominiumSnapshot.exists()) {
+      return;
+    }
+
+    const condominiumData = condominiumSnapshot.data() || {};
+
+    const relationships = getBudgetClientRelationships(
+      condominiumData,
+      clientUid,
+    );
+
+    const privateRelationship = getPrivateClientRelationship(
+      condominiumData,
+      clientUid,
+    );
+
+    const preferredRelationship =
+      privateRelationship ||
+      relationships.find(
+        (relationship) => normalizeText(relationship?.papel) === "sindico",
+      ) ||
+      relationships.find((relationship) => relationship?.contatoPrincipal) ||
+      relationships[0] ||
+      null;
+
+    if (!preferredRelationship) {
+      return;
+    }
+
+    currentBudget.clienteVinculo = {
+      papel: text(preferredRelationship.papel),
+
+      unidade: text(preferredRelationship.unidade),
+
+      bloco: text(preferredRelationship.bloco),
+
+      observacao: text(preferredRelationship.observacao),
+
+      clienteParticular: Boolean(privateRelationship),
+    };
+  } catch (error) {
+    console.warn(
+      "[Detalhes Orçamento] Não foi possível identificar o vínculo do cliente:",
+      error,
+    );
+  }
+}
+
 /* =========================================================
 STATUS VISUAL
 ========================================================= */
@@ -426,12 +541,39 @@ function renderStatus(status) {
   // Conversão em Ordem de Serviço
   const linkedOrderId = text(currentBudget?.ordemId || currentBudget?.osId);
 
-  conversionCard.hidden = !acceptedByCustomer;
+  const privateClient = isPrivateClientBudget(currentBudget);
 
-  if (acceptedByCustomer) {
+  const privateAdministrativeConversionAvailable =
+    status === "enviado" && privateClient && !linkedOrderId;
+
+  const canConvert =
+    Boolean(linkedOrderId) ||
+    acceptedByCustomer ||
+    privateAdministrativeConversionAvailable;
+
+  conversionCard.hidden = !canConvert;
+
+  if (canConvert) {
     if (linkedOrderId) {
+      conversionTitle.textContent = "Ordem de Serviço vinculada";
+
+      conversionDescription.textContent =
+        "Este orçamento já foi convertido em uma Ordem de Serviço.";
+
       convertBudgetOrderButton.textContent = "Abrir OS";
+    } else if (acceptedByCustomer) {
+      conversionTitle.textContent = "Orçamento aprovado";
+
+      conversionDescription.textContent =
+        "Esta proposta foi aprovada digitalmente pelo cliente e está pronta para virar Ordem de Serviço.";
+
+      convertBudgetOrderButton.textContent = "Converter em OS";
     } else {
+      conversionTitle.textContent = "Cliente particular";
+
+      conversionDescription.textContent =
+        "Este cliente está vinculado como morador. A conversão pode ser feita administrativamente, sem registrar aprovação digital.";
+
       convertBudgetOrderButton.textContent = "Converter em OS";
     }
   }
@@ -724,6 +866,8 @@ async function renderBudget() {
     "Proposta comercial Salvateck",
   );
 
+  await ensureBudgetClientRelationship();
+
   renderStatus(text(currentBudget.status) || "rascunho");
 
   renderIdentification();
@@ -846,8 +990,9 @@ function openConversionModal() {
 
   modalTitle.textContent = "Converter orçamento em OS?";
 
-  modalMessage.textContent =
-    "Será criada uma nova Ordem de Serviço vinculada a este orçamento aprovado. Esta conversão poderá ser realizada apenas uma vez.";
+  modalMessage.textContent = isPrivateClientBudget(currentBudget)
+    ? "Este cliente está vinculado como morador. A OS será criada por conversão administrativa, sem registrar aprovação digital em nome do cliente."
+    : "Será criada uma nova Ordem de Serviço vinculada a este orçamento aprovado digitalmente. Esta conversão poderá ser realizada apenas uma vez.";
 
   confirmModalButton.textContent = "Converter em OS";
 
@@ -3280,15 +3425,6 @@ async function convertApprovedBudgetToOrder() {
       throw new Error("BUDGET_ALREADY_CONVERTED");
     }
 
-    if (
-      text(budget.status) !== "aprovado" ||
-      text(budget.respostaCliente?.status) !== "aprovado" ||
-      !text(budget.respostaCliente?.uid) ||
-      text(budget.respostaCliente?.uid) !== text(budget.clienteUid)
-    ) {
-      throw new Error("BUDGET_NOT_APPROVED_BY_CLIENT");
-    }
-
     const condominiumId = text(budget.condominioId || budget.condominio?.id);
 
     if (!condominiumId) {
@@ -3308,6 +3444,30 @@ async function convertApprovedBudgetToOrder() {
     const condominiumData = condominiumSnapshot.exists()
       ? condominiumSnapshot.data()
       : {};
+
+    const approvedDigitally =
+      text(budget.status) === "aprovado" &&
+      text(budget.respostaCliente?.status) === "aprovado" &&
+      Boolean(text(budget.respostaCliente?.uid)) &&
+      text(budget.respostaCliente?.uid) === text(budget.clienteUid);
+
+    const privateClientRelationship = getPrivateClientRelationship(
+      condominiumData,
+      budget.clienteUid,
+    );
+
+    const administrativePrivateConversion =
+      !approvedDigitally &&
+      text(budget.status) === "enviado" &&
+      Boolean(privateClientRelationship);
+
+    if (!approvedDigitally && !administrativePrivateConversion) {
+      throw new Error("BUDGET_NOT_APPROVED_BY_CLIENT");
+    }
+
+    const conversionType = approvedDigitally
+      ? "aprovacao-digital"
+      : "administrativa-cliente-particular";
 
     const budgetOriginType = text(budget.origem?.tipo);
 
@@ -3352,6 +3512,28 @@ async function convertApprovedBudgetToOrder() {
       condominiumData,
     });
 
+    orderData.origem = {
+      ...orderData.origem,
+
+      conversao: {
+        tipo: conversionType,
+
+        aprovadoDigitalmente: approvedDigitally,
+
+        clienteUid: text(budget.clienteUid),
+
+        registradoEm: serverTimestamp(),
+
+        registradoPorUid: currentSession?.uid || "",
+
+        registradoPorNome: text(
+          currentSession?.profile?.nome ||
+            currentSession?.email ||
+            "Administrador",
+        ),
+      },
+    };
+
     transaction.update(counterReference, {
       ultimoNumero: nextNumber,
 
@@ -3382,6 +3564,24 @@ async function convertApprovedBudgetToOrder() {
       ordemId: orderReference.id,
 
       codigoOS: orderCode,
+
+      conversaoOS: {
+        tipo: conversionType,
+
+        aprovadoDigitalmente: approvedDigitally,
+
+        clienteUid: text(budget.clienteUid),
+
+        convertidoEm: serverTimestamp(),
+
+        convertidoPorUid: currentSession?.uid || "",
+
+        convertidoPorNome: text(
+          currentSession?.profile?.nome ||
+            currentSession?.email ||
+            "Administrador",
+        ),
+      },
 
       convertidoEm: serverTimestamp(),
 
@@ -3492,7 +3692,7 @@ async function handleConvertBudgetToOrder(options = {}) {
 
     if (error?.message === "BUDGET_NOT_APPROVED_BY_CLIENT") {
       message =
-        "A conversão só pode ser realizada após a aprovação digital do cliente.";
+        "A conversão exige aprovação digital, exceto quando o cliente está vinculado exclusivamente como morador.";
     }
 
     if (error?.message === "BUDGET_WITHOUT_CONDOMINIUM") {
