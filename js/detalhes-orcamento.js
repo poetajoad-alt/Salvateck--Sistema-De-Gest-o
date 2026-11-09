@@ -382,7 +382,8 @@ function renderStatus(status) {
   const respondedByCustomer =
     ["aprovado", "recusado"].includes(status) &&
     currentBudget?.respostaCliente?.status === status &&
-    Boolean(currentBudget?.respostaCliente?.uid);
+    Boolean(currentBudget?.respostaCliente?.uid) &&
+    text(currentBudget?.respostaCliente?.uid) === text(currentBudget?.clienteUid);
 
   const acceptedByCustomer = status === "aprovado" && respondedByCustomer;
 
