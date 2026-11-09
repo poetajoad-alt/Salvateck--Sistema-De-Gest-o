@@ -110,6 +110,17 @@ service cloud.firestore {
 
     }
 
+    function eDocumentoDeOrcamento(dados) {
+
+      return dados.keys().hasAll([
+        "clienteUid",
+        "condominioId",
+        "proposta",
+        "investimento"
+      ]);
+
+    }
+
     function tokenPertenceAoUsuario(dadosToken) {
 
       return estaAutenticado()
@@ -1128,7 +1139,27 @@ match /orcamentos/{orcamentoId} {
       ]
     );
 
-  allow update: if eAdministrador()
+  allow create: if eAdministrador()
+
+    && request.resource.data.status in [
+      "rascunho",
+      "enviado"
+    ]
+
+    && !("respostaCliente" in request.resource.data);
+
+  allow update: if (
+      eAdministrador()
+
+      && !(
+        resource.data.status != request.resource.data.status
+
+        && request.resource.data.status in [
+          "aprovado",
+          "recusado"
+        ]
+      )
+    )
     || (
       estaAutenticado()
 
@@ -1235,9 +1266,19 @@ match /{document=**} {
 
   allow read: if eAdministrador();
 
-  allow create: if eAdministrador();
+  allow create: if eAdministrador()
 
-  allow update, delete: if eAdministrador()
+    && !eDocumentoDeOrcamento(request.resource.data);
+
+  allow update: if eAdministrador()
+
+    && !("documentoFinal" in resource.data)
+
+    && !eDocumentoDeOrcamento(resource.data)
+
+    && !eDocumentoDeOrcamento(request.resource.data);
+
+  allow delete: if eAdministrador()
 
     && !("documentoFinal" in resource.data);
 
