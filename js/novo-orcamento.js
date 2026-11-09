@@ -816,6 +816,8 @@ async function populateBudgetForEdit() {
 
   existingImageData = data.imagemPrincipal || null;
 
+  await renderExistingImagePreview(existingImageData);
+
   setEditModePresentation();
 
   updateSummary();
@@ -999,11 +1001,11 @@ function applyCondominium(condominium) {
 }
 
 async function carregarImagemDoCondominioNoOrcamento(condominium) {
-  if (editMode) {
-    return;
-  }
-
   clearImagePreview();
+
+  if (editMode) {
+    existingImageData = null;
+  }
 
   const imagem = condominium?.imagemPrincipal || null;
 
@@ -1346,6 +1348,50 @@ function clearImagePreview() {
   imageCounter.textContent = "0 / 1";
 
   imageError.hidden = true;
+}
+
+async function renderExistingImagePreview(imageData) {
+  clearImagePreview();
+
+  if (!imageData) {
+    return;
+  }
+
+  const storagePath = text(imageData.storagePath);
+
+  let imageUrl = text(imageData.url);
+
+  if (storagePath) {
+    try {
+      imageUrl = await getDownloadURL(ref(storage, storagePath));
+    } catch (error) {
+      console.warn(
+        "[Orçamentos] Não foi possível atualizar a URL da imagem existente:",
+        error,
+      );
+    }
+  }
+
+  if (!imageUrl) {
+    return;
+  }
+
+  imagePreviewElement.src = imageUrl;
+
+  imageName.textContent =
+    text(imageData.nome) || "Imagem atual do orçamento";
+
+  imagePreview.hidden = false;
+
+  imageCounter.textContent = "1 / 1";
+}
+
+function handleRemoveBudgetImage() {
+  clearImagePreview();
+
+  if (editMode) {
+    existingImageData = null;
+  }
 }
 
 function renderImagePreview() {
@@ -2445,8 +2491,12 @@ condominiumSelect.addEventListener("change", async () => {
     await carregarImagemDoCondominioNoOrcamento(selectedCondominium);
 
     await loadLinkedClients();
-  } else if (!editMode) {
+  } else {
     clearImagePreview();
+
+    if (editMode) {
+      existingImageData = null;
+    }
   }
 
   updateSummary();
@@ -2484,7 +2534,7 @@ budgetStatus.addEventListener("change", updateSummary);
 
 imageInput.addEventListener("change", handleImageSelection);
 
-removeImageButton.addEventListener("click", clearImagePreview);
+removeImageButton.addEventListener("click", handleRemoveBudgetImage);
 
 addServiceButton.addEventListener("click", addServiceItem);
 
