@@ -175,6 +175,8 @@ const papelCondominioConfig = {
 
   financeiro: "Responsável financeiro",
 
+  morador: "Morador",
+
   outro: "Outro",
 };
 
@@ -899,6 +901,12 @@ function obterVinculosDoCliente(clienteId) {
         contatoPrincipal: Boolean(vinculo.contatoPrincipal),
 
         responsavelFinanceiro: Boolean(vinculo.responsavelFinanceiro),
+
+        unidade: String(vinculo.unidade || "").trim(),
+
+        bloco: String(vinculo.bloco || "").trim(),
+
+        observacao: String(vinculo.observacao || "").trim(),
       });
     });
   });
@@ -947,6 +955,12 @@ async function sincronizarVinculosDoCliente(clienteId) {
         contatoPrincipal: Boolean(vinculoRascunho.contatoPrincipal),
 
         responsavelFinanceiro: Boolean(vinculoRascunho.responsavelFinanceiro),
+
+        unidade: String(vinculoRascunho.unidade || "").trim(),
+
+        bloco: String(vinculoRascunho.bloco || "").trim(),
+
+        observacao: String(vinculoRascunho.observacao || "").trim(),
       });
     });
 
