@@ -3004,21 +3004,11 @@ function formatOrderCode(number) {
 }
 
 function getAuthorizedClientIds(condominiumData, clientUid) {
-  const directIds = Array.isArray(condominiumData?.clientesIds)
-    ? condominiumData.clientesIds
-    : [];
+  void condominiumData;
 
-  const relationshipIds = Array.isArray(condominiumData?.clientesVinculados)
-    ? condominiumData.clientesVinculados.map((relationship) =>
-        text(relationship?.clienteId),
-      )
-    : [];
+  const directedClientUid = text(clientUid);
 
-  return Array.from(
-    new Set(
-      [...directIds, ...relationshipIds, clientUid].map(text).filter(Boolean),
-    ),
-  );
+  return directedClientUid ? [directedClientUid] : [];
 }
 
 function buildOrderFromBudget({
@@ -3108,6 +3098,10 @@ function buildOrderFromBudget({
       nome: text(condominium.nome || budget.condominioNome),
 
       cnpj: text(condominium.cnpj),
+
+      unidade: text(condominium.unidade),
+
+      bloco: text(condominium.bloco),
 
       endereco: address,
     },
