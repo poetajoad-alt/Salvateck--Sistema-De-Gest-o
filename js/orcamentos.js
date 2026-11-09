@@ -319,6 +319,14 @@ function updateSummary() {
   budgets.forEach((budget) => {
     const status = getBudgetStatus(budget);
 
+    const linkedOrderId = text(budget?.ordemId || budget?.osId);
+
+    if (linkedOrderId) {
+      counters.encerrado += 1;
+
+      return;
+    }
+
     if (status === "rascunho") {
       counters.rascunho += 1;
     }
@@ -354,8 +362,18 @@ function matchesQuickStatus(budget) {
 
   const status = getBudgetStatus(budget);
 
+  const linkedOrderId = text(budget?.ordemId || budget?.osId);
+
   if (currentQuickStatus === "encerrado") {
-    return status === "recusado" || status === "expirado";
+    return (
+      Boolean(linkedOrderId) ||
+      status === "recusado" ||
+      status === "expirado"
+    );
+  }
+
+  if (linkedOrderId) {
+    return false;
   }
 
   return status === currentQuickStatus;
@@ -371,8 +389,19 @@ function getFilteredBudgets() {
 
     const status = getBudgetStatus(budget);
 
-    if (currentStatusFilter && status !== currentStatusFilter) {
-      return false;
+    if (currentStatusFilter) {
+      const linkedOrderId = text(budget?.ordemId || budget?.osId);
+
+      if (
+        linkedOrderId &&
+        !["recusado", "expirado"].includes(currentStatusFilter)
+      ) {
+        return false;
+      }
+
+      if (status !== currentStatusFilter) {
+        return false;
+      }
     }
 
     if (currentPeriodFilter && !isBudgetInPeriod(budget, currentPeriodFilter)) {
@@ -519,11 +548,10 @@ function createBudgetCard(budget) {
   const linkedOrderId = text(budget?.ordemId || budget?.osId);
   const linkedOrderCode = text(budget?.codigoOS);
 
-  const linkedOrderText =
-    status === "aprovado"
-      ? linkedOrderId
-        ? `OS vinculada: ${linkedOrderCode || "Sim"}`
-        : "OS vinculada: Não"
+  const linkedOrderText = linkedOrderId
+    ? `OS vinculada: ${linkedOrderCode || "Sim"}`
+    : status === "aprovado"
+      ? "OS vinculada: Não"
       : "";
 
   return `
