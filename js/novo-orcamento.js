@@ -2198,6 +2198,11 @@ function buildBudgetData({
 }) {
   const existingCondominium = existingData?.condominio || {};
 
+  const existingClientRelationship = existingData?.clienteVinculo || {};
+
+  const selectedClientRelationship =
+    selectedClient?.condominioVinculo || existingClientRelationship;
+
   const budgetCondominium = selectedCondominium || {
     id: text(existingData?.condominioId || existingCondominium.id),
 
@@ -2260,6 +2265,19 @@ function buildBudgetData({
       telefone: text(clientPhone.value),
 
       email: text(clientEmail.value),
+    },
+
+    clienteVinculo: {
+      papel: text(selectedClientRelationship?.papel),
+
+      unidade: text(selectedClientRelationship?.unidade),
+
+      bloco: text(selectedClientRelationship?.bloco),
+
+      observacao: text(selectedClientRelationship?.observacao),
+
+      clienteParticular:
+        normalizeText(selectedClientRelationship?.papel) === "morador",
     },
 
     condominioId: budgetCondominium.id || "",
