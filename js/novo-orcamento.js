@@ -2271,7 +2271,9 @@ function setSavingState(isSaving, mode = "budget") {
   sendBudgetButton.disabled = isSaving;
 
   if (!isSaving) {
-    saveButton.querySelector("span").textContent = "Salvar orçamento";
+    saveButton.querySelector("span").textContent = editMode
+      ? "Salvar alterações"
+      : "Salvar orçamento";
 
     saveDraftButton.querySelector("span").textContent = "Salvar rascunho";
 
@@ -2281,7 +2283,9 @@ function setSavingState(isSaving, mode = "budget") {
     return;
   }
 
-  if (mode === "draft") {
+  if (editMode && mode === "budget") {
+    saveButton.querySelector("span").textContent = "Salvando alterações...";
+  } else if (mode === "draft") {
     saveDraftButton.querySelector("span").textContent = "Salvando rascunho...";
   } else if (mode === "send") {
     sendBudgetButton.querySelector("span").textContent =
@@ -2489,7 +2493,9 @@ form.addEventListener("submit", (event) => {
 
   handleBudgetSave({
     mode: "budget",
-    status: "rascunho",
+    status: editMode
+      ? budgetStatus.value || text(editingBudgetData?.status) || "rascunho"
+      : "rascunho",
   });
 });
 
