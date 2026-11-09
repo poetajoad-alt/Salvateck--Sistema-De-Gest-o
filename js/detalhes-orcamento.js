@@ -228,6 +228,13 @@ function text(value) {
   return String(value || "").trim();
 }
 
+function normalizeText(value) {
+  return text(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function setText(element, value, fallback = "—") {
   if (!element) {
     return;
