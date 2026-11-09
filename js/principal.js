@@ -576,9 +576,15 @@ function openClientBudgetDetail(budget) {
     .trim()
     .toLowerCase();
 
+  const linkedOrderId = String(
+    budget.ordemId || budget.osId || "",
+  ).trim();
+
   clientBudgetDetailStatus.dataset.status = status;
 
-  clientBudgetDetailStatus.textContent = getClientBudgetStatusLabel(status);
+  clientBudgetDetailStatus.textContent = linkedOrderId
+    ? "Convertido em OS"
+    : getClientBudgetStatusLabel(status);
 
   clientBudgetDetailCode.textContent = budget.codigo || "ORC-0000";
 
@@ -610,10 +616,6 @@ function openClientBudgetDetail(budget) {
     budget.respostaCliente &&
     budget.respostaCliente.uid === auth.currentUser?.uid &&
     budget.respostaCliente.status === status;
-
-  const linkedOrderId = String(
-    budget.ordemId || budget.osId || "",
-  ).trim();
 
   clientBudgetDetailResponse.hidden = true;
 
