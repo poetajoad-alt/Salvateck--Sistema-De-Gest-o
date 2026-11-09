@@ -455,6 +455,90 @@ CAMPOS
   color: #767e85;
 }
 
+.condominium-search-field input[type="search"] {
+  padding-right: 18px;
+}
+
+.condominium-search-results {
+  display: grid;
+  gap: 8px;
+
+  margin-top: -6px;
+}
+
+.condominium-search-results[hidden] {
+  display: none;
+}
+
+.condominium-search-result,
+.condominium-search-empty {
+  width: 100%;
+  min-height: 58px;
+
+  box-sizing: border-box;
+
+  padding: 12px 14px;
+}
+
+.condominium-search-result {
+  display: grid;
+  gap: 4px;
+
+  cursor: pointer;
+  text-align: left;
+
+  font-family: "Montserrat", Arial, sans-serif;
+
+  color: #2b2f33;
+  background-color: #ffffff;
+
+  border: 1px solid rgba(13, 56, 97, 0.14);
+  border-radius: 14px;
+
+  box-shadow: 0 4px 12px rgba(13, 56, 97, 0.05);
+}
+
+.condominium-search-result:active {
+  transform: scale(0.99);
+}
+
+.condominium-search-result:focus-visible {
+  outline: none;
+  border-color: #dd9a17;
+
+  box-shadow:
+    0 0 0 3px rgba(221, 154, 23, 0.17),
+    0 5px 14px rgba(13, 56, 97, 0.07);
+}
+
+.condominium-search-result strong {
+  font-size: 0.8rem;
+  line-height: 1.35;
+
+  color: #0d3861;
+}
+
+.condominium-search-result span {
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+
+  color: #687077;
+}
+
+.condominium-search-empty {
+  margin: 0;
+
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.45;
+
+  color: #687077;
+  background-color: rgba(13, 56, 97, 0.04);
+
+  border-radius: 14px;
+}
+
 .field--value input {
   font-size: 1rem;
   font-weight: 800;
