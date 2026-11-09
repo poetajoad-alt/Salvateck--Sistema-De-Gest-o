@@ -692,7 +692,10 @@ function createClientBudgetCard(budget) {
 
   status.dataset.status = normalizedStatus;
 
-  status.textContent = getClientBudgetStatusLabel(normalizedStatus);
+  status.textContent =
+    budget.ordemId || budget.osId
+      ? "Convertido em OS"
+      : getClientBudgetStatusLabel(normalizedStatus);
 
   top.append(code, status);
 
