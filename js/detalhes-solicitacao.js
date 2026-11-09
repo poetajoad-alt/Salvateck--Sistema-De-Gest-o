@@ -965,6 +965,10 @@ function normalizeOrder(snapshot) {
       nome: String(order.condominio?.nome || "").trim(),
 
       cnpj: String(order.condominio?.cnpj || order.condominioCnpj || "").trim(),
+
+      unidade: String(order.condominio?.unidade || "").trim(),
+
+      bloco: String(order.condominio?.bloco || "").trim(),
     },
 
     perfilCriador: order.perfilCriador || "cliente",
@@ -1687,8 +1691,15 @@ function renderCondominium() {
     ? `CNPJ: ${condominium.cnpj}`
     : "CNPJ não informado";
 
+  const unitDetails = [
+    condominium.unidade,
+    condominium.bloco,
+  ].filter(Boolean);
+
   condominiumDescription.textContent =
-    "Ativo principal vinculado a esta ordem de serviço.";
+    unitDetails.length > 0
+      ? `Unidade: ${unitDetails.join(" • ")}`
+      : "Ativo principal vinculado a esta ordem de serviço.";
 }
 
 /* =========================================
