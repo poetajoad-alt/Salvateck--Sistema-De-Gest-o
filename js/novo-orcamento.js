@@ -29,6 +29,18 @@ const condominiumSelect = document.getElementById("budget-condominium");
 
 const condominiumHelp = document.getElementById("budget-condominium-help");
 
+const condominiumSearchInput = document.getElementById(
+  "budget-condominium-search",
+);
+
+const condominiumSearchHelp = document.getElementById(
+  "budget-condominium-search-help",
+);
+
+const condominiumSearchResults = document.getElementById(
+  "budget-condominium-search-results",
+);
+
 const clientSelect = document.getElementById("budget-client");
 
 const clientName = document.getElementById("budget-client-name");
@@ -156,6 +168,10 @@ let currentSession = null;
 let condominiums = [];
 
 let linkedClients = [];
+
+let condominiumSearchPeople = new Map();
+
+let condominiumSearchPeopleReady = false;
 
 let selectedCondominium = null;
 
@@ -938,6 +954,174 @@ function getLinkedClientIds(condominium) {
   );
 }
 
+function getCondominiumSearchPeople(condominium) {
+  return getLinkedClientIds(condominium)
+    .map((clientId) => condominiumSearchPeople.get(clientId))
+    .filter(Boolean);
+}
+
+function getCondominiumSearchText(condominium) {
+  const people = getCondominiumSearchPeople(condominium);
+
+  return normalizeText(
+    [
+      condominium.codigo,
+      condominium.nome,
+      condominium.cnpj,
+      ...people.flatMap((person) => [
+        person.nome,
+        person.telefone,
+        person.email,
+      ]),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function hideCondominiumSearchResults() {
+  condominiumSearchResults.innerHTML = "";
+  condominiumSearchResults.hidden = true;
+}
+
+function renderCondominiumSearchResults() {
+  const query = normalizeText(condominiumSearchInput.value);
+
+  if (!query) {
+    hideCondominiumSearchResults();
+
+    condominiumSearchHelp.textContent = condominiumSearchPeopleReady
+      ? "Busque pelo condomínio, código ou nome de uma pessoa vinculada."
+      : "Busque pelo condomínio ou código. Pessoas vinculadas ainda estão sendo carregadas.";
+
+    return;
+  }
+
+  const matches = condominiums.filter((condominium) =>
+    getCondominiumSearchText(condominium).includes(query),
+  );
+
+  condominiumSearchResults.innerHTML = "";
+
+  if (matches.length === 0) {
+    const emptyState = document.createElement("p");
+
+    emptyState.className = "condominium-search-empty";
+    emptyState.textContent = condominiumSearchPeopleReady
+      ? "Nenhum condomínio relacionado foi encontrado."
+      : "Nenhum condomínio encontrado até agora. As pessoas vinculadas ainda estão sendo carregadas.";
+
+    condominiumSearchResults.appendChild(emptyState);
+    condominiumSearchResults.hidden = false;
+
+    condominiumSearchHelp.textContent = condominiumSearchPeopleReady
+      ? "Tente outro nome, código ou pessoa vinculada."
+      : "A busca por pessoas será atualizada automaticamente quando o carregamento terminar.";
+
+    return;
+  }
+
+  matches.forEach((condominium) => {
+    const resultButton = document.createElement("button");
+
+    resultButton.type = "button";
+    resultButton.className = "condominium-search-result";
+
+    const title = document.createElement("strong");
+
+    title.textContent = [condominium.codigo, condominium.nome]
+      .filter(Boolean)
+      .join(" — ");
+
+    const details = document.createElement("span");
+
+    const matchedPeople = getCondominiumSearchPeople(condominium)
+      .filter((person) =>
+        normalizeText(
+          [person.nome, person.telefone, person.email]
+            .filter(Boolean)
+            .join(" "),
+        ).includes(query),
+      )
+      .map((person) => text(person.nome))
+      .filter(Boolean);
+
+    details.textContent =
+      matchedPeople.length > 0
+        ? `Pessoa vinculada: ${matchedPeople.join(", ")}`
+        : text(condominium.cnpj)
+          ? `CNPJ: ${text(condominium.cnpj)}`
+          : "Condomínio encontrado";
+
+    resultButton.append(title, details);
+
+    resultButton.addEventListener("click", () => {
+      condominiumSelect.value = condominium.id;
+
+      condominiumSearchInput.value = "";
+
+      hideCondominiumSearchResults();
+
+      condominiumSearchHelp.textContent = `Selecionado: ${title.textContent}`;
+
+      condominiumSelect.dispatchEvent(
+        new Event("change", {
+          bubbles: true,
+        }),
+      );
+    });
+
+    condominiumSearchResults.appendChild(resultButton);
+  });
+
+  condominiumSearchResults.hidden = false;
+
+  condominiumSearchHelp.textContent = `${matches.length} condomínio(s) relacionado(s) encontrado(s).`;
+}
+
+async function loadCondominiumSearchPeople() {
+  const linkedIds = new Set(
+    condominiums.flatMap((condominium) => getLinkedClientIds(condominium)),
+  );
+
+  if (linkedIds.size === 0) {
+    condominiumSearchPeopleReady = true;
+    renderCondominiumSearchResults();
+
+    return;
+  }
+
+  try {
+    const snapshot = await getDocs(collection(db, "usuarios"));
+
+    condominiumSearchPeople = new Map(
+      snapshot.docs
+        .filter((userSnapshot) => linkedIds.has(userSnapshot.id))
+        .map((userSnapshot) => {
+          const data = userSnapshot.data() || {};
+
+          return [
+            userSnapshot.id,
+            {
+              id: userSnapshot.id,
+              nome: text(data.nome),
+              telefone: text(data.telefone),
+              email: text(data.email),
+            },
+          ];
+        }),
+    );
+  } catch (error) {
+    console.warn(
+      "[Orçamentos] Não foi possível carregar as pessoas para a busca de condomínios:",
+      error,
+    );
+  } finally {
+    condominiumSearchPeopleReady = true;
+    renderCondominiumSearchResults();
+  }
+}
+
 function getCondominiumAddress(condominium) {
   const address = condominium?.endereco || {};
 
@@ -1210,9 +1394,19 @@ async function loadCondominiums() {
 
     condominiumSelect.disabled = condominiums.length === 0;
 
+    condominiumSearchInput.disabled = condominiums.length === 0;
+
     condominiumHelp.textContent = condominiums.length
       ? `${condominiums.length} locais disponíveis.`
       : "Nenhum condomínio ativo foi encontrado.";
+
+    condominiumSearchHelp.textContent = condominiums.length
+      ? "Busque pelo condomínio ou código. As pessoas vinculadas serão carregadas em seguida."
+      : "Nenhum condomínio disponível para busca.";
+
+    if (condominiums.length > 0) {
+      void loadCondominiumSearchPeople();
+    }
   } catch (error) {
     console.error("[Orçamentos] Falha ao carregar condomínios:", error);
 
@@ -1224,6 +1418,13 @@ async function loadCondominiums() {
 
     condominiumHelp.textContent =
       "Confira a conexão e as permissões do Firebase.";
+
+    condominiumSearchInput.disabled = true;
+
+    condominiumSearchHelp.textContent =
+      "A busca está indisponível porque os condomínios não foram carregados.";
+
+    hideCondominiumSearchResults();
 
     showFeedback("Não foi possível carregar os condomínios.", "error");
   }
@@ -2613,6 +2814,21 @@ discountValue.addEventListener("input", () => {
 budgetValidity.addEventListener("change", updateSummary);
 
 budgetStatus.addEventListener("change", updateSummary);
+
+condominiumSearchInput.addEventListener(
+  "input",
+  renderCondominiumSearchResults,
+);
+
+condominiumSearchInput.addEventListener("search", () => {
+  if (!condominiumSearchInput.value) {
+    hideCondominiumSearchResults();
+
+    condominiumSearchHelp.textContent = condominiumSearchPeopleReady
+      ? "Busque pelo condomínio, código ou nome de uma pessoa vinculada."
+      : "Busque pelo condomínio ou código. Pessoas vinculadas ainda estão sendo carregadas.";
+  }
+});
 
 imageInput.addEventListener("change", handleImageSelection);
 
