@@ -611,9 +611,19 @@ function openClientBudgetDetail(budget) {
     budget.respostaCliente.uid === auth.currentUser?.uid &&
     budget.respostaCliente.status === status;
 
+  const linkedOrderId = String(
+    budget.ordemId || budget.osId || "",
+  ).trim();
+
   clientBudgetDetailResponse.hidden = true;
 
-  if (status === "aprovado") {
+  if (linkedOrderId) {
+    clientBudgetDetailResponse.hidden = false;
+    clientBudgetDetailResponse.dataset.response = "aprovado";
+    clientBudgetDetailResponse.textContent =
+      "Este orçamento já foi convertido em Ordem de Serviço pela Salvateck.";
+    clientBudgetDetailActions.hidden = true;
+  } else if (status === "aprovado") {
     clientBudgetDetailResponse.hidden = false;
     clientBudgetDetailResponse.dataset.response = "aprovado";
 
@@ -893,6 +903,14 @@ async function respondClientBudget(status) {
   if (currentClientBudget.clienteUid !== user.uid) {
     console.warn(
       "[Principal] Resposta bloqueada: orçamento direcionado a outro cliente.",
+    );
+
+    return;
+  }
+
+  if (currentClientBudget.ordemId || currentClientBudget.osId) {
+    console.warn(
+      "[Principal] Resposta bloqueada: orçamento já convertido em OS.",
     );
 
     return;
