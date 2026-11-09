@@ -664,6 +664,44 @@ async function populateBudgetForEdit() {
     condominiums.find((condominium) => condominium.id === condominiumId) ||
     null;
 
+  if (!selectedCondominium) {
+    const condominiumCode = normalizeText(condominiumData.codigo);
+
+    const condominiumName = normalizeText(
+      condominiumData.nome || data.condominioNome,
+    );
+
+    const condominiumCnpj = text(condominiumData.cnpj).replace(/\D/g, "");
+
+    const identityMatches = condominiums.filter((condominium) => {
+      const currentCode = normalizeText(condominium.codigo);
+
+      const currentName = normalizeText(condominium.nome);
+
+      const currentCnpj = text(condominium.cnpj).replace(/\D/g, "");
+
+      return Boolean(
+        (condominiumCode && currentCode === condominiumCode) ||
+          (condominiumCnpj && currentCnpj === condominiumCnpj) ||
+          (condominiumName && currentName === condominiumName),
+      );
+    });
+
+    if (identityMatches.length === 1) {
+      selectedCondominium = identityMatches[0];
+    }
+  }
+
+  if (!selectedCondominium && clientId) {
+    const clientMatches = condominiums.filter((condominium) =>
+      getLinkedClientIds(condominium).includes(clientId),
+    );
+
+    if (clientMatches.length === 1) {
+      selectedCondominium = clientMatches[0];
+    }
+  }
+
   if (!selectedCondominium && condominiumId) {
     selectedCondominium = {
       id: condominiumId,
@@ -1723,11 +1761,20 @@ RESUMO
 ========================================================= */
 
 function updateSummary() {
+  const existingCondominium = editingBudgetData?.condominio || {};
+
   const condominiumLabel = selectedCondominium
     ? [selectedCondominium.codigo, selectedCondominium.nome]
         .filter(Boolean)
         .join(" — ")
-    : "Não selecionado";
+    : editMode
+      ? [
+          text(existingCondominium.codigo),
+          text(existingCondominium.nome || editingBudgetData?.condominioNome),
+        ]
+          .filter(Boolean)
+          .join(" — ") || "Não selecionado"
+      : "Não selecionado";
 
   summaryStatus.textContent =
     statusLabels[budgetStatus.value] || statusLabels.rascunho;
@@ -1769,8 +1816,29 @@ function validateBudget() {
     return false;
   }
 
-  if (!selectedCondominium) {
-    showFeedback("Selecione o condomínio do orçamento.", "error");
+  const existingCondominium = editingBudgetData?.condominio || {};
+
+  const hasExistingCondominium =
+    editMode &&
+    Boolean(
+      text(
+        editingBudgetData?.condominioId ||
+          existingCondominium.id ||
+          existingCondominium.nome ||
+          editingBudgetData?.condominioNome,
+      ),
+    );
+
+  if (!selectedCondominium && !hasExistingCondominium) {
+    showFeedback(
+      "Este orçamento está sem condomínio vinculado. Selecione o condomínio para salvar as alterações.",
+      "error",
+    );
+
+    condominiumSelect.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
 
     condominiumSelect.focus();
 
@@ -1821,9 +1889,23 @@ function buildBudgetData({
   imageData,
   existingData = null,
 }) {
+  const existingCondominium = existingData?.condominio || {};
+
+  const budgetCondominium = selectedCondominium || {
+    id: text(existingData?.condominioId || existingCondominium.id),
+
+    codigo: text(existingCondominium.codigo),
+
+    nome: text(existingCondominium.nome || existingData?.condominioNome),
+
+    cnpj: text(existingCondominium.cnpj),
+
+    endereco: existingCondominium.endereco || {},
+  };
+
   const address = selectedCondominium
     ? getCondominiumAddress(selectedCondominium)
-    : existingData?.condominio?.endereco || {};
+    : budgetCondominium.endereco || {};
 
   const values = getInvestmentValues();
 
@@ -1873,16 +1955,16 @@ function buildBudgetData({
       email: text(clientEmail.value),
     },
 
-    condominioId: selectedCondominium?.id || "",
+    condominioId: budgetCondominium.id || "",
 
-    condominioNome: selectedCondominium?.nome || "",
+    condominioNome: budgetCondominium.nome || "",
 
     condominio: {
-      id: selectedCondominium?.id || "",
+      id: budgetCondominium.id || "",
 
-      codigo: selectedCondominium?.codigo || "",
+      codigo: budgetCondominium.codigo || "",
 
-      nome: selectedCondominium?.nome || "",
+      nome: budgetCondominium.nome || "",
 
       cnpj: text(condominiumCnpj.value),
 
