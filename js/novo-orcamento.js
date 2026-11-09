@@ -1015,7 +1015,7 @@ function getClientUnitLabel(link) {
     return "";
   }
 
-  return [text(link?.unidade), text(link?.bloco)].filter(Boolean).join(" — ");
+  return text(link?.unidade);
 }
 
 function getLinkedClientOptionLabel(client) {
@@ -2275,7 +2275,12 @@ function buildBudgetData({
 
       cnpj: text(condominiumCnpj.value),
 
-      unidade: text(condominiumUnit.value),
+      unidade:
+        text(condominiumUnit.value) || text(existingCondominium.unidade),
+
+      bloco:
+        text(selectedClient?.condominioVinculo?.bloco) ||
+        text(existingCondominium.bloco),
 
       endereco: {
         ...address,
