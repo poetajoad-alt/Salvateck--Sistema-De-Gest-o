@@ -1564,6 +1564,20 @@ body.modal-open {
   margin-top: 14px;
 }
 
+.resident-client-details {
+  margin-top: 14px;
+}
+
+.resident-client-actions small {
+  flex: 1 1 240px;
+
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  color: #687077;
+}
+
 .check-option {
   position: relative;
 
@@ -1681,6 +1695,22 @@ body.modal-open {
   background-color: #fff0c9;
 
   border-radius: var(--radius-pill);
+}
+
+.linked-client-card__details {
+  display: block;
+
+  margin-top: 5px;
+
+  font-size: 0.64rem;
+  font-weight: 600;
+  line-height: 1.45;
+
+  color: #687077;
+}
+
+.linked-client-card__details[hidden] {
+  display: none;
 }
 
 .linked-client-card__badges {
