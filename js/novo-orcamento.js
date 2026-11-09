@@ -1092,24 +1092,38 @@ async function loadCondominiumSearchPeople() {
   }
 
   try {
-    const snapshot = await getDocs(collection(db, "usuarios"));
+    const clientIds = Array.from(linkedIds);
+
+    const snapshots = [];
+
+    for (let index = 0; index < clientIds.length; index += 20) {
+      const batchIds = clientIds.slice(index, index + 20);
+
+      const batchResults = await Promise.allSettled(
+        batchIds.map((clientId) => getDoc(doc(db, "usuarios", clientId))),
+      );
+
+      batchResults.forEach((result) => {
+        if (result.status === "fulfilled" && result.value.exists()) {
+          snapshots.push(result.value);
+        }
+      });
+    }
 
     condominiumSearchPeople = new Map(
-      snapshot.docs
-        .filter((userSnapshot) => linkedIds.has(userSnapshot.id))
-        .map((userSnapshot) => {
-          const data = userSnapshot.data() || {};
+      snapshots.map((userSnapshot) => {
+        const data = userSnapshot.data() || {};
 
-          return [
-            userSnapshot.id,
-            {
-              id: userSnapshot.id,
-              nome: text(data.nome),
-              telefone: text(data.telefone),
-              email: text(data.email),
-            },
-          ];
-        }),
+        return [
+          userSnapshot.id,
+          {
+            id: userSnapshot.id,
+            nome: text(data.nome),
+            telefone: text(data.telefone),
+            email: text(data.email),
+          },
+        ];
+      }),
     );
   } catch (error) {
     console.warn(
