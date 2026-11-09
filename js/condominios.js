@@ -897,9 +897,10 @@ function obterIniciais(nome) {
 }
 
 function obterClientePrincipal(condominio) {
-  const vinculos = Array.isArray(condominio.clientesVinculados)
+  const vinculos = (Array.isArray(condominio.clientesVinculados)
     ? condominio.clientesVinculados
-    : [];
+    : []
+  ).filter((vinculo) => vinculo.papel !== "morador");
 
   const principal = vinculos.find((vinculo) => vinculo.contatoPrincipal);
 
@@ -2508,10 +2509,14 @@ function correspondeAosFiltros(condominio) {
 
   let responsavelCorresponde = true;
 
+  const vinculosResponsaveis = condominio.clientesVinculados.filter(
+    (vinculo) => vinculo.papel !== "morador",
+  );
+
   if (filtrosAplicados.responsavel === "sem-responsavel") {
-    responsavelCorresponde = condominio.clientesVinculados.length === 0;
+    responsavelCorresponde = vinculosResponsaveis.length === 0;
   } else if (filtrosAplicados.responsavel) {
-    responsavelCorresponde = condominio.clientesVinculados.some(
+    responsavelCorresponde = vinculosResponsaveis.some(
       (vinculo) => vinculo.clienteId === filtrosAplicados.responsavel,
     );
   }
