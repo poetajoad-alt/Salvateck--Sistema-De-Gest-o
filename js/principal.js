@@ -890,6 +890,14 @@ async function respondClientBudget(status) {
     return;
   }
 
+  if (currentClientBudget.clienteUid !== user.uid) {
+    console.warn(
+      "[Principal] Resposta bloqueada: orçamento direcionado a outro cliente.",
+    );
+
+    return;
+  }
+
   if (status !== "aprovado" && status !== "recusado") {
     return;
   }
