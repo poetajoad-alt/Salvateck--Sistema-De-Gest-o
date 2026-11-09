@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/condominios.css?v=1.0.5" />
+  <link rel="stylesheet" href="css/condominios.css?v=1.0.6" />
 </head>
 
 <body data-page="condominios" data-profile="admin" data-allowed-roles="admin">
@@ -623,6 +623,10 @@
           Responsáveis
         </button>
 
+        <button type="button" class="condominium-modal__tab" data-modal-tab="clients" aria-pressed="false">
+          Clientes
+        </button>
+
         <button type="button" class="condominium-modal__tab" data-modal-tab="equipment" aria-pressed="false">
           Ambientes e Equipamentos
         </button>
@@ -954,7 +958,7 @@
               </p>
 
               <h3>
-                Clientes e responsáveis vinculados
+                Responsáveis vinculados
               </h3>
 
             </div>
@@ -1071,6 +1075,132 @@
 
             <p>
               Vincule síndicos, proprietários, administradoras, gerentes ou outros responsáveis pelo condomínio.
+            </p>
+
+          </div>
+
+        </section>
+
+        <!-- =====================================
+             CLIENTES / MORADORES VINCULADOS
+        ====================================== -->
+
+        <section class="modal-tab-panel" data-modal-panel="clients" hidden>
+
+          <div class="modal-section-heading">
+
+            <div>
+
+              <p>
+                Clientes do condomínio
+              </p>
+
+              <h3>
+                Moradores e proprietários atendidos
+              </h3>
+
+            </div>
+
+            <span class="modal-section-heading__count" id="resident-clients-count">
+              0 clientes
+            </span>
+
+          </div>
+
+          <div class="link-client-form">
+
+            <div class="modal-grid">
+
+              <div class="modal-field modal-field--wide">
+
+                <span>
+                  Cliente
+                </span>
+
+                <input type="search" id="resident-client-search" placeholder="Digite o nome, e-mail ou telefone" autocomplete="off" aria-label="Pesquisar cliente para vincular como morador" />
+
+                <select id="resident-client-select" aria-label="Selecionar cliente encontrado">
+                  <option value="">
+                    Selecione um cliente
+                  </option>
+                </select>
+
+              </div>
+
+              <label class="modal-field">
+
+                <span>
+                  Tipo de cliente
+                </span>
+
+                <select id="resident-client-type">
+                  <option value="morador">
+                    Morador
+                  </option>
+                </select>
+
+              </label>
+
+            </div>
+
+            <div class="modal-grid resident-client-details">
+
+              <label class="modal-field">
+
+                <span>
+                  Unidade / apartamento *
+                </span>
+
+                <input type="text" id="resident-client-unit" maxlength="80" placeholder="Ex.: Apto 104" />
+
+              </label>
+
+              <label class="modal-field">
+
+                <span>
+                  Bloco / torre
+                </span>
+
+                <input type="text" id="resident-client-block" maxlength="80" placeholder="Ex.: Bloco B" />
+
+              </label>
+
+            </div>
+
+            <label class="modal-field modal-field--spaced">
+
+              <span>
+                Observação da unidade
+              </span>
+
+              <input type="text" id="resident-client-note" maxlength="180" placeholder="Ex.: Proprietário da unidade, acesso pela portaria principal" />
+
+            </label>
+
+            <div class="link-client-options resident-client-actions">
+
+              <small>
+                Nome, telefone e e-mail continuam vindo do cadastro principal do cliente.
+              </small>
+
+              <button type="button" class="link-client-button" id="link-resident-client-button">
+                Vincular cliente
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="linked-clients-list" id="resident-clients-list"></div>
+
+          <div class="modal-empty-state" id="resident-clients-empty">
+
+            <strong>
+              Nenhum cliente morador vinculado
+            </strong>
+
+            <p>
+              Vincule moradores ou proprietários para que possam ser escolhidos diretamente nos Orçamentos.
             </p>
 
           </div>
@@ -1705,6 +1835,8 @@
 
         </div>
 
+        <span class="linked-client-card__details" data-link-details hidden></span>
+
         <div class="linked-client-card__badges">
 
           <span class="linked-client-card__badge" data-primary-badge hidden>
@@ -1949,7 +2081,7 @@
   </div>
 
   <script type="module" src="js/auth-guard.js"></script>
-  <script src="js/condominios.js?v=1.0.5"></script>
+  <script src="js/condominios.js?v=1.0.6"></script>
 
 </body>
 
