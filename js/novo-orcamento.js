@@ -954,6 +954,84 @@ function getLinkedClientIds(condominium) {
   );
 }
 
+function getLinkedClientRelationships(condominium, clientId) {
+  const normalizedClientId = text(clientId);
+
+  if (!normalizedClientId) {
+    return [];
+  }
+
+  return (Array.isArray(condominium?.clientesVinculados)
+    ? condominium.clientesVinculados
+    : []
+  ).filter((link) => text(link?.clienteId) === normalizedClientId);
+}
+
+function getRelationshipPriority(link) {
+  const role = normalizeText(link?.papel);
+
+  if (role === "sindico") {
+    return 0;
+  }
+
+  if (link?.contatoPrincipal) {
+    return 1;
+  }
+
+  if (role === "morador") {
+    return 3;
+  }
+
+  return 2;
+}
+
+function getPreferredClientRelationship(condominium, clientId) {
+  return [...getLinkedClientRelationships(condominium, clientId)].sort(
+    (linkA, linkB) =>
+      getRelationshipPriority(linkA) - getRelationshipPriority(linkB),
+  )[0] || null;
+}
+
+function getClientRelationshipLabel(link) {
+  const role = normalizeText(link?.papel);
+
+  const labels = {
+    sindico: "Síndico",
+    subsindico: "Subsindico",
+    proprietario: "Proprietário",
+    gerente: "Gerente",
+    administradora: "Administradora",
+    zelador: "Zelador",
+    financeiro: "Responsável financeiro",
+    morador: "Morador",
+    outro: "Outro",
+  };
+
+  return labels[role] || "";
+}
+
+function getClientUnitLabel(link) {
+  if (normalizeText(link?.papel) !== "morador") {
+    return "";
+  }
+
+  return [text(link?.unidade), text(link?.bloco)].filter(Boolean).join(" — ");
+}
+
+function getLinkedClientOptionLabel(client) {
+  const relationship = client?.condominioVinculo || null;
+
+  const details = [
+    getClientRelationshipLabel(relationship),
+    text(relationship?.unidade),
+    text(relationship?.bloco),
+  ].filter(Boolean);
+
+  return [text(client?.nome), details.join(" • ")]
+    .filter(Boolean)
+    .join(" — ");
+}
+
 function getCondominiumSearchPeople(condominium) {
   return getLinkedClientIds(condominium)
     .map((clientId) => condominiumSearchPeople.get(clientId))
@@ -1202,6 +1280,8 @@ function clearClientSelection() {
   clientPhone.value = "";
 
   clientEmail.value = "";
+
+  condominiumUnit.value = "";
 }
 
 function applyClient(client) {
@@ -1216,6 +1296,8 @@ function applyClient(client) {
   clientPhone.value = text(client.telefone);
 
   clientEmail.value = text(client.email);
+
+  condominiumUnit.value = getClientUnitLabel(client.condominioVinculo);
 
   updateSummary();
 }
@@ -1329,11 +1411,23 @@ async function loadLinkedClients() {
       .map((snapshot) => ({
         id: snapshot.id,
         ...snapshot.data(),
+        condominioVinculo: getPreferredClientRelationship(
+          selectedCondominium,
+          snapshot.id,
+        ),
       }))
       .filter((client) => client.ativo !== false)
-      .sort((clientA, clientB) =>
-        text(clientA.nome).localeCompare(text(clientB.nome), "pt-BR"),
-      );
+      .sort((clientA, clientB) => {
+        const priorityDifference =
+          getRelationshipPriority(clientA.condominioVinculo) -
+          getRelationshipPriority(clientB.condominioVinculo);
+
+        if (priorityDifference !== 0) {
+          return priorityDifference;
+        }
+
+        return text(clientA.nome).localeCompare(text(clientB.nome), "pt-BR");
+      });
 
     clientSelect.innerHTML = "";
 
@@ -1350,9 +1444,7 @@ async function loadLinkedClients() {
     }
 
     linkedClients.forEach((client) => {
-      const label = [text(client.nome), text(client.telefone)]
-        .filter(Boolean)
-        .join(" — ");
+      const label = getLinkedClientOptionLabel(client);
 
       clientSelect.appendChild(
         createOption(client.id, label || "Cliente sem nome"),
